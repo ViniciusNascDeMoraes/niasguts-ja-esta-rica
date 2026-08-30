@@ -445,7 +445,7 @@ test("static page exposes the version 1.13 full-screen experience", async () => 
 test("custom domain and every local media asset are release-ready", async () => {
   // Guard GitHub Pages routing and prevent silent GIF or music omissions.
   const cname = await readFile(resolve(projectRoot, "CNAME"), "utf8");
-  assert.equal(cname.trim(), "niasguts.viniciuspirasoft.com");
+  assert.equal(cname.trim(), "niasgutshhh.viniciuspirasoft.com");
   const mediaPaths = [
     "assets/musica.mp3",
     "assets/gifs/marin-chibi.gif",

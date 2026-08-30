@@ -117,7 +117,7 @@
 ## Architecture and Delivery
 
 - Keep page markup in root `index.html`, styles in root `styles.css`, page behavior in root `app.js`, and Three.js presentation in root `casino-3d.mjs`.
-- Keep `CNAME` set to `niasguts.viniciuspirasoft.com`.
+- Keep `CNAME` set to `niasgutshhh.viniciuspirasoft.com`.
 - Keep the site compatible with direct GitHub Pages hosting from `main` without a build step.
 - Three.js 0.185.1 is the only approved third-party runtime dependency. Keep both official module files and `THREE-LICENSE.txt` local and pinned; do not replace them with a CDN import.
 - Do not add other frameworks, package managers, build tools, analytics, backends, or third-party dependencies without explicit approval.
