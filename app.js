@@ -20,6 +20,8 @@ const NAME_VARIATIONS = [
   "diabo loiro",
   "demonio de porto alegre",
   "barista de porto alegre",
+  "don corleone de saia",
+  "pobre lazarenta",
 ];
 const CASINO_NORMAL_SYMBOLS = [
   { character: "☕", label: "café" },
@@ -29,20 +31,29 @@ const CASINO_NORMAL_SYMBOLS = [
   { character: "7", label: "sete" },
 ];
 const CASINO_PRIZE_SYMBOL = { character: "🎁", label: "presente" };
-const SLOT_SYMBOLS = [...CASINO_NORMAL_SYMBOLS, CASINO_PRIZE_SYMBOL];
-const CASINO_PRIZES = [
-  { id: "esposa-nenepira", name: "esposa do nenepira", icon: "💍" },
-  { id: "prima-vaper", name: "prima do vaper", icon: "👩" },
-  { id: "bolos", name: "bólos", icon: "🎂" },
+const CASINO_REFUND_SYMBOL = { character: "🪙", label: "ficha" };
+const CASINO_DOUBLE_SYMBOL = { character: "🪙×2", label: "duas fichas" };
+const SLOT_SYMBOLS = [
+  ...CASINO_NORMAL_SYMBOLS,
+  CASINO_PRIZE_SYMBOL,
+  CASINO_REFUND_SYMBOL,
+  CASINO_DOUBLE_SYMBOL,
 ];
-const CASINO_PRIZE_CHANCE = 0.12;
+const CASINO_PRIZES = [
+  { id: "esposa-nenepira", name: "esposa do nenepira", modelId: "ring" },
+  { id: "prima-vaper", name: "prima do vaper", modelId: "chibi" },
+  { id: "bolos", name: "bólos", modelId: "cake" },
+  { id: "350-reais", name: "350 reais", modelId: "cash-case" },
+  { id: "lanche-subway", name: "lanche do subway", modelId: "sandwich" },
+];
 const ACHIEVEMENTS_STORAGE_KEY = "niasguts-achievements-v1";
+const CASINO_TOKENS_STORAGE_KEY = "niasguts-casino-fichas-v1";
+const INITIAL_CASINO_TOKENS = 5;
 const INITIAL_REEL_SYMBOL_INDICES = [0, 1, 4];
 const CASINO_REEL_FULL_TURNS = [5, 6, 7];
 const CASINO_REEL_DURATIONS_MS = [1400, 1750, 2100];
 const CASINO_SETTLE_DELAY_MS = 180;
-const NEW_PRIZE_ANIMATION_MS = 1100;
-const REPEATED_PRIZE_ANIMATION_MS = 450;
+const RELEASES_PER_PAGE = 3;
 const CASINO_FAILURE_MESSAGES = [
   "quase! mas o tigrinho ficou com tudo.",
   "a banca venceu. continua não rica.",
@@ -110,56 +121,103 @@ const MARIN_GIFS = [
 ];
 const MOBILE_GIF_MAX_WIDTH_REM = 34;
 const mobileGifMediaQuery = window.matchMedia(
-  `(max-width: ${MOBILE_GIF_MAX_WIDTH_REM}rem)`,
+  "(max-width: " + MOBILE_GIF_MAX_WIDTH_REM + "rem)",
 );
 const reducedMotionMediaQuery = window.matchMedia(
   "(prefers-reduced-motion: reduce)",
 );
+
 const selectedMarinGifs = [];
 const unlockedAchievementIds = new Set();
 let pendingCasinoOutcome = [];
 let pendingCasinoPrize = null;
+let pendingCasinoOutcomeType = "loss";
 let pendingAchievementAnimation = null;
+let casinoTokenBalance = INITIAL_CASINO_TOKENS;
+let casinoTokensArePersistent = true;
+let achievementsArePersistent = true;
+let casinoSpinInProgress = false;
+let casinoJackpotOpen = false;
 let casinoMusicWanted = true;
 let casinoIsOpen = false;
 let casinoMusicCommandId = 0;
 let casino3D = null;
+let achievements3D = null;
+let shared3DModulePromise = null;
 let casino3DLoadPromise = null;
+let achievements3DLoadPromise = null;
 let casino3DFailed = false;
-let casinoPrizeAnimationTimer = 0;
-let achievementsArePersistent = true;
+let achievements3DFailed = false;
+let releasePage = 0;
 
-// Load only known achievement IDs from this browser's saved progress.
-try {
-  const savedAchievementJson = localStorage.getItem(ACHIEVEMENTS_STORAGE_KEY);
+function loadSavedProgress() {
+  // Restore only known achievement IDs and a non-negative integer chip balance.
+  try {
+    const savedAchievementJson = localStorage.getItem(ACHIEVEMENTS_STORAGE_KEY);
 
-  if (savedAchievementJson !== null) {
-    let savedAchievementIds = [];
-
-    try {
-      const parsedAchievementIds = JSON.parse(savedAchievementJson);
-
-      if (Array.isArray(parsedAchievementIds)) {
-        savedAchievementIds = parsedAchievementIds;
-      } else {
-        localStorage.removeItem(ACHIEVEMENTS_STORAGE_KEY);
+    if (savedAchievementJson !== null) {
+      let parsedAchievementIds = [];
+      try {
+        const parsedValue = JSON.parse(savedAchievementJson);
+        if (Array.isArray(parsedValue)) {
+          parsedAchievementIds = parsedValue;
+        }
+      } catch {
+        // Invalid local data is reset without treating storage as unavailable.
       }
-    } catch {
-      localStorage.removeItem(ACHIEVEMENTS_STORAGE_KEY);
-    }
 
-    for (const savedAchievementId of savedAchievementIds) {
+      const knownAchievementIds = [];
       for (const prize of CASINO_PRIZES) {
-        if (savedAchievementId === prize.id) {
+        if (parsedAchievementIds.includes(prize.id)) {
           unlockedAchievementIds.add(prize.id);
-          break;
+          knownAchievementIds.push(prize.id);
         }
       }
+      const sanitizedAchievementJson = JSON.stringify(knownAchievementIds);
+      if (sanitizedAchievementJson !== savedAchievementJson) {
+        localStorage.setItem(
+          ACHIEVEMENTS_STORAGE_KEY,
+          sanitizedAchievementJson,
+        );
+      }
     }
+  } catch {
+    achievementsArePersistent = false;
   }
-} catch {
-  achievementsArePersistent = false;
+
+  try {
+    const savedTokenValue = localStorage.getItem(CASINO_TOKENS_STORAGE_KEY);
+
+    if (savedTokenValue === null) {
+      localStorage.setItem(
+        CASINO_TOKENS_STORAGE_KEY,
+        String(INITIAL_CASINO_TOKENS),
+      );
+    } else if (/^\d+$/.test(savedTokenValue)) {
+      const parsedTokenBalance = Number(savedTokenValue);
+
+      if (Number.isSafeInteger(parsedTokenBalance)) {
+        casinoTokenBalance = parsedTokenBalance;
+      } else {
+        localStorage.setItem(
+          CASINO_TOKENS_STORAGE_KEY,
+          String(INITIAL_CASINO_TOKENS),
+        );
+      }
+    } else {
+      localStorage.setItem(
+        CASINO_TOKENS_STORAGE_KEY,
+        String(INITIAL_CASINO_TOKENS),
+      );
+    }
+  } catch {
+    casinoTokensArePersistent = false;
+    casinoTokenBalance = INITIAL_CASINO_TOKENS;
+  }
 }
+
+loadSavedProgress();
+
 // IANA groups Rio Grande do Sul under the America/Sao_Paulo ruleset.
 const PORTO_ALEGRE_TIME_ZONE = "America/Sao_Paulo";
 const portoAlegreFormatter = new Intl.DateTimeFormat("en-CA", {
@@ -172,6 +230,7 @@ const portoAlegreFormatter = new Intl.DateTimeFormat("en-CA", {
   second: "2-digit",
   hourCycle: "h23",
 });
+
 const counter = document.querySelector("#age-counter");
 const counterValues = {
   years: document.querySelector("#years"),
@@ -189,8 +248,20 @@ const casinoCanvas = document.querySelector("#casino-canvas");
 const casinoLoading = document.querySelector("#casino-loading");
 const casinoReelFallback = document.querySelector("#casino-reel-fallback");
 const fallbackReels = document.querySelectorAll(".fallback-reel");
-const casinoPrizePop = document.querySelector("#casino-prize-pop");
 const casinoResult = document.querySelector("#casino-result");
+const casinoTokenBalanceElement = document.querySelector(
+  "#casino-token-balance",
+);
+const casinoTokenStorageNote = document.querySelector(
+  "#casino-token-storage-note",
+);
+const casinoEmpty = document.querySelector("#casino-empty");
+const casinoJackpot = document.querySelector("#casino-jackpot");
+const casinoJackpotBadge = document.querySelector("#casino-jackpot-badge");
+const casinoJackpotPrize = document.querySelector("#casino-jackpot-prize");
+const casinoJackpotContinue = document.querySelector(
+  "#casino-jackpot-continue",
+);
 const casinoMusic = document.querySelector("#casino-music");
 const casinoMusicToggle = document.querySelector("#toggle-casino-music");
 const casinoVolume = document.querySelector("#casino-volume");
@@ -199,7 +270,9 @@ const achievementsOpenButton = document.querySelector("#open-achievements");
 const achievementsCount = document.querySelector("#achievements-count");
 const achievementsProgress = document.querySelector("#achievements-progress");
 const achievementSlots = document.querySelectorAll(".achievement-slot");
-const achievementsPanel = document.querySelector("#achievements-panel");
+const achievementsScreen = document.querySelector("#achievements-screen");
+const achievementsCanvas = document.querySelector("#achievements-canvas");
+const achievementsLoading = document.querySelector("#achievements-loading");
 const achievementCompletePlaque = document.querySelector(
   "#achievement-complete-plaque",
 );
@@ -207,12 +280,16 @@ const achievementStorageNote = document.querySelector(
   "#achievement-storage-note",
 );
 const patchNotesDialog = document.querySelector("#patch-notes-dialog");
+const releaseEntries = document.querySelectorAll(".release-entry");
+const releasePrevious = document.querySelector("#release-previous");
+const releaseNext = document.querySelector("#release-next");
+const releasePageStatus = document.querySelector("#release-page-status");
 const marinGifFrames = document.querySelectorAll(".marin-gif-frame");
 
 function showRandomMarinGifs() {
-  // Keep two selected local Marin GIFs visible only outside mobile layouts.
-  for (const gifFrame of marinGifFrames) {
-    gifFrame.replaceChildren();
+  // Do not create or request GIF images on small viewports.
+  for (const frame of marinGifFrames) {
+    frame.replaceChildren();
   }
 
   if (mobileGifMediaQuery.matches) {
@@ -220,214 +297,232 @@ function showRandomMarinGifs() {
   }
 
   if (selectedMarinGifs.length === 0) {
-    const availableGifs = [...MARIN_GIFS];
+    const firstIndex = Math.floor(Math.random() * MARIN_GIFS.length);
+    let secondIndex = Math.floor(Math.random() * (MARIN_GIFS.length - 1));
 
-    for (let index = 0; index < marinGifFrames.length; index += 1) {
-      const randomIndex =
-        index + Math.floor(Math.random() * (availableGifs.length - index));
-      [availableGifs[index], availableGifs[randomIndex]] = [
-        availableGifs[randomIndex],
-        availableGifs[index],
-      ];
+    if (secondIndex >= firstIndex) {
+      secondIndex += 1;
     }
 
-    selectedMarinGifs.push(...availableGifs.slice(0, marinGifFrames.length));
+    selectedMarinGifs.push(MARIN_GIFS[firstIndex], MARIN_GIFS[secondIndex]);
   }
 
-  for (let index = 0; index < marinGifFrames.length; index += 1) {
-    const gif = selectedMarinGifs[index];
-    const gifFrame = marinGifFrames[index];
-    const sourceLink = document.createElement("a");
-    const gifImage = document.createElement("img");
+  for (let frameIndex = 0; frameIndex < marinGifFrames.length; frameIndex += 1) {
+    const gif = selectedMarinGifs[frameIndex];
 
-    gifFrame.style.aspectRatio = `${gif.width} / ${gif.height}`;
-    sourceLink.href = gif.sourceUrl;
-    sourceLink.rel = "noopener noreferrer";
-    sourceLink.target = "_blank";
-    sourceLink.setAttribute("aria-label", `${gif.description} no Tenor`);
-    gifImage.src = gif.src;
-    gifImage.alt = gif.description;
-    gifImage.width = gif.width;
-    gifImage.height = gif.height;
-    gifImage.decoding = "async";
-
-    sourceLink.append(gifImage);
-    gifFrame.append(sourceLink);
-  }
-}
-
-function renderAchievements() {
-  // Render locked placeholders or the prizes already earned in this browser.
-  let unlockedCount = 0;
-
-  for (let prizeIndex = 0; prizeIndex < CASINO_PRIZES.length; prizeIndex += 1) {
-    const prize = CASINO_PRIZES[prizeIndex];
-    const achievementSlot = achievementSlots[prizeIndex];
-    const achievementIcon = achievementSlot.querySelector(".achievement-icon");
-    const achievementName = achievementSlot.querySelector(".achievement-name");
-    const isUnlocked = unlockedAchievementIds.has(prize.id);
-
-    achievementSlot.classList.remove("is-new", "is-repeat");
-    achievementSlot.classList.toggle("is-locked", !isUnlocked);
-    achievementSlot.classList.toggle("is-unlocked", isUnlocked);
-
-    if (isUnlocked) {
-      unlockedCount += 1;
-      achievementIcon.textContent = prize.icon;
-      achievementName.textContent = prize.name;
-      achievementSlot.setAttribute(
-        "aria-label",
-        `Conquista desbloqueada: ${prize.name}`,
-      );
-    } else {
-      achievementIcon.textContent = "?";
-      achievementName.textContent = "conquista oculta";
-      achievementSlot.setAttribute("aria-label", "Conquista oculta");
+    if (gif === undefined) {
+      continue;
     }
-  }
 
-  achievementsCount.textContent = `${unlockedCount}/${CASINO_PRIZES.length}`;
-  achievementsProgress.textContent =
-    `${unlockedCount} de ${CASINO_PRIZES.length} desbloqueadas`;
-  const isComplete = unlockedCount === CASINO_PRIZES.length;
-  achievementsPanel.classList.toggle("is-complete", isComplete);
-  achievementCompletePlaque.hidden = !isComplete;
-  achievementStorageNote.hidden = achievementsArePersistent;
+    const link = document.createElement("a");
+    link.href = gif.sourceUrl;
+    link.target = "_blank";
+    link.rel = "noopener noreferrer";
+    link.setAttribute("aria-label", gif.description + " no Tenor");
+
+    const image = document.createElement("img");
+    image.src = gif.src;
+    image.alt = gif.description;
+    image.width = gif.width;
+    image.height = gif.height;
+    image.decoding = "async";
+    link.append(image);
+    marinGifFrames[frameIndex].append(link);
+  }
 }
 
-function playPendingAchievementAnimation() {
-  // Replay the latest earned trophy animation when the cabinet becomes visible.
-  if (pendingAchievementAnimation === null) {
-    return;
-  }
-
-  const prizeIndex = CASINO_PRIZES.findIndex(
-    (prize) => prize.id === pendingAchievementAnimation.prizeId,
-  );
-  const animationClass = pendingAchievementAnimation.isNew ? "is-new" : "is-repeat";
-  pendingAchievementAnimation = null;
-
-  if (prizeIndex < 0 || reducedMotionMediaQuery.matches) {
-    return;
-  }
-
-  const achievementSlot = achievementSlots[prizeIndex];
-  achievementSlot.classList.remove("is-new", "is-repeat");
-  void achievementSlot.offsetWidth;
-  achievementSlot.classList.add(animationClass);
-}
-
-function openAchievements() {
-  // Open the three-slot achievement collection as a modal dialog.
-  if (!achievementsDialog.open) {
-    achievementsDialog.showModal();
-  }
-
-  playPendingAchievementAnimation();
-}
-
-function updateCasinoMusicControl() {
-  // Reflect the current playback state in the music button.
-  const isPlaying = !casinoMusic.paused && !casinoMusic.ended;
-  casinoMusicToggle.textContent = isPlaying ? "⏸ MÚSICA" : "▶ MÚSICA";
-  casinoMusicToggle.setAttribute("aria-pressed", String(isPlaying));
-}
-
-async function reconcileCasinoMusic() {
-  // Apply the latest desired music state and ignore stale play promises.
-  const commandId = casinoMusicCommandId + 1;
-  casinoMusicCommandId = commandId;
-  casinoMusic.volume = Number(casinoVolume.value) / 100;
-
-  if (!casinoIsOpen || !casinoMusicWanted) {
-    casinoMusic.pause();
-    updateCasinoMusicControl();
+function saveAchievements() {
+  // Persist the known prize IDs while retaining in-memory progress on failure.
+  if (!achievementsArePersistent) {
     return;
   }
 
   try {
-    await casinoMusic.play();
-
-    if (
-      commandId !== casinoMusicCommandId ||
-      !casinoIsOpen ||
-      !casinoMusicWanted
-    ) {
-      casinoMusic.pause();
-    }
+    const orderedIds = CASINO_PRIZES
+      .filter((prize) => unlockedAchievementIds.has(prize.id))
+      .map((prize) => prize.id);
+    localStorage.setItem(ACHIEVEMENTS_STORAGE_KEY, JSON.stringify(orderedIds));
   } catch {
-    if (commandId === casinoMusicCommandId) {
-      casinoMusicWanted = false;
-    }
+    achievementsArePersistent = false;
+  }
+}
+
+function saveCasinoTokens() {
+  // Persist the virtual chip balance while retaining it for the current visit.
+  if (!casinoTokensArePersistent) {
+    return;
   }
 
-  updateCasinoMusicControl();
+  try {
+    localStorage.setItem(
+      CASINO_TOKENS_STORAGE_KEY,
+      String(casinoTokenBalance),
+    );
+  } catch {
+    casinoTokensArePersistent = false;
+  }
 }
 
-function toggleCasinoMusic() {
-  // Toggle the visitor's music preference for the current page visit.
-  casinoMusicWanted = !casinoMusicWanted;
-  void reconcileCasinoMusic();
+function renderAchievements() {
+  // Keep the HTML labels and the WebGL gallery synchronized.
+  for (const slot of achievementSlots) {
+    const prize = CASINO_PRIZES.find(
+      (candidate) => candidate.id === slot.dataset.prizeId,
+    );
+    const isUnlocked =
+      prize !== undefined && unlockedAchievementIds.has(prize.id);
+    const name = slot.querySelector(".achievement-name");
+    const fallbackMark = slot.querySelector(".achievement-fallback-mark");
+
+    slot.classList.toggle("is-locked", !isUnlocked);
+    slot.classList.toggle("is-unlocked", isUnlocked);
+    slot.setAttribute(
+      "aria-label",
+      isUnlocked ? "Conquista desbloqueada: " + prize.name : "Conquista oculta",
+    );
+    name.textContent = isUnlocked ? prize.name : "conquista oculta";
+    fallbackMark.textContent = isUnlocked ? "3D" : "?";
+  }
+
+  const unlockedCount = unlockedAchievementIds.size;
+  const totalCount = CASINO_PRIZES.length;
+  const isComplete = unlockedCount === totalCount;
+  achievementsCount.textContent = unlockedCount + "/" + totalCount;
+  achievementsProgress.textContent =
+    unlockedCount + " de " + totalCount + " desbloqueadas";
+  achievementCompletePlaque.hidden = !isComplete;
+  achievementStorageNote.hidden = achievementsArePersistent;
+  achievementsScreen.classList.toggle("is-complete", isComplete);
+  achievements3D?.setUnlocked([...unlockedAchievementIds]);
+  casino3D?.setCollectionComplete(isComplete);
 }
 
-function updateCasinoMusicVolume() {
-  // Apply the selected volume immediately to the casino music.
-  casinoMusic.volume = Number(casinoVolume.value) / 100;
+function renderCasinoTokens() {
+  // Show the current balance and prevent play when no chip remains.
+  casinoTokenBalanceElement.textContent = String(casinoTokenBalance);
+  casinoTokenStorageNote.hidden = casinoTokensArePersistent;
+  const canSpin =
+    casinoTokenBalance > 0 &&
+    !casinoSpinInProgress &&
+    !casinoJackpotOpen;
+  casinoLever.disabled = !canSpin;
+  casino3D?.setLeverInteractive(canSpin);
+
+  if (casinoSpinInProgress) {
+    casinoLeverLabel.textContent = "GIRANDO";
+    casinoLever.setAttribute("aria-label", "Alavanca acionada; rolos girando");
+  } else if (casinoTokenBalance === 0) {
+    casinoLeverLabel.textContent = "SEM FICHAS";
+    casinoLever.setAttribute("aria-label", "Sem fichas; minigame em breve");
+  } else {
+    casinoLeverLabel.textContent = "PUXE";
+    casinoLever.setAttribute(
+      "aria-label",
+      "Puxar alavanca tridimensional do cassino",
+    );
+  }
+
+  casinoEmpty.hidden =
+    casinoTokenBalance !== 0 || casinoSpinInProgress || casinoJackpotOpen;
+}
+
+function playPendingAchievementAnimation() {
+  // Animate the prize most recently awarded when its gallery is visible.
+  if (pendingAchievementAnimation === null || achievements3D === null) {
+    return;
+  }
+
+  achievements3D.highlightPrize(
+    pendingAchievementAnimation.id,
+    pendingAchievementAnimation.isNew,
+    reducedMotionMediaQuery.matches,
+  );
+  pendingAchievementAnimation = null;
 }
 
 function readCasinoPalette() {
   // Read semantic CSS colors for matching Three.js materials.
   const rootStyles = getComputedStyle(document.documentElement);
-  const readColor = (propertyName) => rootStyles.getPropertyValue(propertyName).trim();
+  const readColor = (propertyName) =>
+    rootStyles.getPropertyValue(propertyName).trim();
   return {
     navyDeep: readColor("--navy-deep"),
     navy: readColor("--navy"),
     shirt: readColor("--shirt"),
+    white: readColor("--white"),
     hairBlonde: readColor("--hair-blonde"),
     hairBlondeSoft: readColor("--hair-blonde-soft"),
     hairPink: readColor("--hair-pink"),
     hairPinkDark: readColor("--hair-pink-dark"),
     hairPinkSoft: readColor("--hair-pink-soft"),
+    tieRed: readColor("--tie-red"),
+    skirtBlue: readColor("--skirt-blue"),
     skirtBlueSoft: readColor("--skirt-blue-soft"),
-    casinoGlass: readColor("--casino-glass"),
   };
 }
 
+function load3DModule() {
+  // Share the one pinned local Three.js presentation module between both views.
+  if (shared3DModulePromise === null) {
+    shared3DModulePromise = import("./casino-3d.mjs");
+  }
+
+  return shared3DModulePromise;
+}
+
 function showCasinoFallback() {
-  // Keep the casino playable when WebGL or its local module is unavailable.
+  // Keep every rule playable when WebGL is unavailable.
   casino3DFailed = true;
+  casino3D?.dispose();
   casino3D = null;
   slotMachine.classList.remove("is-loading", "is-ready");
   slotMachine.classList.add("is-fallback");
   casinoReelFallback.hidden = false;
   casinoLoading.textContent = "modo 3D indisponível; usando rolos simples.";
+  renderCasinoTokens();
+}
+
+function showAchievementsFallback() {
+  // Preserve readable progress if the 3D trophy gallery cannot start.
+  achievements3DFailed = true;
+  achievements3D?.dispose();
+  achievements3D = null;
+  achievementsScreen.classList.remove("is-3d-loading", "is-3d-ready");
+  achievementsScreen.classList.add("is-3d-fallback");
+  achievementsLoading.textContent = "vitrine 3D indisponível.";
 }
 
 async function ensureCasino3D() {
-  // Load and initialize the local Three.js scene at most once per page visit.
+  // Initialize the casino scene only on its first opening.
   if (casino3D !== null || casino3DFailed) {
     return casino3D;
   }
 
   if (casino3DLoadPromise === null) {
-    casino3DLoadPromise = import("./casino-3d.mjs")
+    casino3DLoadPromise = load3DModule()
       .then(({ createCasino3D }) => {
-        // Build the fixed-camera machine only after the module is available.
         casino3D = createCasino3D({
           canvas: casinoCanvas,
           palette: readCasinoPalette(),
           symbols: SLOT_SYMBOLS.map((symbol) => symbol.character),
+          prizes: CASINO_PRIZES,
           initialIndices: INITIAL_REEL_SYMBOL_INDICES,
+          reducedMotion: reducedMotionMediaQuery.matches,
+          onLeverActivate: startCasinoSpin,
           onContextFailure: showCasinoFallback,
         });
         slotMachine.classList.remove("is-loading", "is-fallback");
         slotMachine.classList.add("is-ready");
         casinoReelFallback.hidden = true;
-        casino3D.setVisible(casinoDialog.open);
+        casino3D.setVisible(casinoDialog.open && !document.hidden);
+        casino3D.setLeverFocus(document.activeElement === casinoLever);
+        casino3D.setCollectionComplete(
+          unlockedAchievementIds.size === CASINO_PRIZES.length,
+        );
+        renderCasinoTokens();
         return casino3D;
       })
       .catch((error) => {
-        // Preserve the game and report the rendering failure for diagnostics.
         console.warn("Não foi possível iniciar o cassino 3D.", error);
         showCasinoFallback();
         return null;
@@ -437,277 +532,426 @@ async function ensureCasino3D() {
   return casino3DLoadPromise;
 }
 
+async function ensureAchievements3D() {
+  // Initialize the shared-canvas trophy gallery only on first opening.
+  if (achievements3D !== null || achievements3DFailed) {
+    return achievements3D;
+  }
+
+  if (achievements3DLoadPromise === null) {
+    achievementsScreen.classList.add("is-3d-loading");
+    achievements3DLoadPromise = load3DModule()
+      .then(({ createAchievements3D }) => {
+        achievements3D = createAchievements3D({
+          canvas: achievementsCanvas,
+          palette: readCasinoPalette(),
+          prizes: CASINO_PRIZES,
+          slots: [...achievementSlots],
+          unlockedIds: [...unlockedAchievementIds],
+          reducedMotion: reducedMotionMediaQuery.matches,
+          onContextFailure: showAchievementsFallback,
+        });
+        achievementsScreen.classList.remove(
+          "is-3d-loading",
+          "is-3d-fallback",
+        );
+        achievementsScreen.classList.add("is-3d-ready");
+        achievementsLoading.hidden = true;
+        achievements3D.setVisible(achievementsDialog.open && !document.hidden);
+        playPendingAchievementAnimation();
+        return achievements3D;
+      })
+      .catch((error) => {
+        console.warn("Não foi possível iniciar a vitrine 3D.", error);
+        showAchievementsFallback();
+        return null;
+      });
+  }
+
+  return achievements3DLoadPromise;
+}
+
+function updateCasinoMusicControl() {
+  // Reflect actual media playback, never merely the requested state.
+  const isActuallyPlaying = !casinoMusic.paused && !casinoMusic.ended;
+  casinoMusicToggle.setAttribute(
+    "aria-pressed",
+    isActuallyPlaying ? "true" : "false",
+  );
+  casinoMusicToggle.textContent = isActuallyPlaying
+    ? "⏸ PAUSAR"
+    : "▶ MÚSICA";
+}
+
+async function reconcileCasinoMusic() {
+  // Make only the newest play/pause request authoritative.
+  const commandId = ++casinoMusicCommandId;
+  const shouldPlay =
+    casinoIsOpen && casinoMusicWanted && !document.hidden;
+
+  if (!shouldPlay) {
+    casinoMusic.pause();
+    updateCasinoMusicControl();
+    return;
+  }
+
+  try {
+    await casinoMusic.play();
+  } catch {
+    if (commandId === casinoMusicCommandId) {
+      casinoMusicWanted = false;
+    }
+  }
+
+  if (
+    commandId !== casinoMusicCommandId ||
+    !casinoIsOpen ||
+    !casinoMusicWanted ||
+    document.hidden
+  ) {
+    casinoMusic.pause();
+  }
+
+  updateCasinoMusicControl();
+}
+
+function toggleCasinoMusic() {
+  // Preserve the visitor's desired state across close and reopen.
+  casinoMusicWanted = !casinoMusicWanted;
+  void reconcileCasinoMusic();
+}
+
+function updateCasinoMusicVolume() {
+  // Apply the selected casino-only volume immediately.
+  casinoMusic.volume = Number(casinoVolume.value) / 100;
+}
+
+function handleCasinoMusicError() {
+  // Expose a truthful retry button after a media error.
+  casinoMusicWanted = false;
+  casinoMusicCommandId += 1;
+  updateCasinoMusicControl();
+}
+
+function handleCasinoVisibilityChange() {
+  // Pause hidden work and resume only when the visitor still wants music.
+  casino3D?.setVisible(casinoIsOpen && !document.hidden);
+  achievements3D?.setVisible(achievementsDialog.open && !document.hidden);
+  void reconcileCasinoMusic();
+}
+
+function handleCasinoLeverFocus() {
+  // Put focus feedback on the rendered lever, not on a rectangular button.
+  casino3D?.setLeverFocus(true);
+}
+
+function handleCasinoLeverBlur() {
+  // Remove the rendered keyboard focus glow.
+  casino3D?.setLeverFocus(false);
+}
+
 function openCasino() {
-  // Open the fictional casino, initialize WebGL, and reconcile its music.
+  // Open the full-screen casino and lazily start its presentation.
   if (!casinoDialog.open) {
     casinoDialog.showModal();
   }
 
   casinoIsOpen = true;
+  renderCasinoTokens();
+  void ensureCasino3D();
   void reconcileCasinoMusic();
-  void ensureCasino3D().then((casinoView) => {
-    // Resume rendering only if the dialog is still visible after module loading.
-    if (casinoView !== null) {
-      casinoView.setVisible(casinoDialog.open);
-    }
-  });
+
+  if (casinoTokenBalance > 0) {
+    casinoLever.focus();
+  } else {
+    casinoEmpty.focus();
+  }
+}
+
+function closeCasinoJackpot() {
+  // Keep a win on screen until the visitor explicitly acknowledges it.
+  if (!casinoJackpotOpen) {
+    return;
+  }
+
+  casinoJackpotOpen = false;
+  casinoJackpot.hidden = true;
+  casino3D?.hidePrize();
+  renderCasinoTokens();
+
+  if (casinoTokenBalance > 0) {
+    casinoLever.focus();
+  } else {
+    casinoEmpty.focus();
+  }
 }
 
 function handleCasinoClose() {
-  // Pause rendering and audio without changing the visitor's music preference.
+  // Stop casino-only activity without overwriting the desired music state.
+  if (casinoJackpotOpen) {
+    closeCasinoJackpot();
+  }
+
   casinoIsOpen = false;
   casino3D?.setVisible(false);
   void reconcileCasinoMusic();
 }
 
-function handleCasinoVisibilityChange() {
-  // Render the machine only while both its dialog and browser tab are visible.
-  casino3D?.setVisible(casinoDialog.open && !document.hidden);
+function handleCasinoCancel(event) {
+  // Escape acknowledges a jackpot before it can close the surrounding dialog.
+  if (casinoJackpotOpen) {
+    event.preventDefault();
+    closeCasinoJackpot();
+  }
 }
 
-function handleCasinoMusicError() {
-  // Recover from an unavailable audio resource with an accurate play button.
-  casinoMusicWanted = false;
-  updateCasinoMusicControl();
+function handleCasinoKeydown(event) {
+  // Keep keyboard focus inside the blocking jackpot acknowledgement.
+  if (casinoJackpotOpen && event.key === "Tab") {
+    event.preventDefault();
+    casinoJackpotContinue.focus();
+  }
 }
 
-function handleCasinoLeverFocus() {
-  // Mirror keyboard focus on the physical Three.js lever.
-  casino3D?.setLeverFocus(true);
+function openAchievements() {
+  // Open the full-screen gallery and position its single WebGL canvas.
+  renderAchievements();
+
+  if (!achievementsDialog.open) {
+    achievementsDialog.showModal();
+  }
+
+  void ensureAchievements3D().then(() => {
+    achievements3D?.setVisible(!document.hidden);
+    achievements3D?.resize();
+    playPendingAchievementAnimation();
+  });
 }
 
-function handleCasinoLeverBlur() {
-  // Remove the rendered focus highlight after the lever loses focus.
-  casino3D?.setLeverFocus(false);
+function handleAchievementsClose() {
+  // Stop its low-rate animation while the gallery is hidden.
+  achievements3D?.setVisible(false);
+}
+
+function renderReleasePage() {
+  // Show three releases at a time, newest page first.
+  const pageCount = Math.ceil(releaseEntries.length / RELEASES_PER_PAGE);
+  releasePage = Math.max(0, Math.min(releasePage, pageCount - 1));
+  const firstVisibleIndex = releasePage * RELEASES_PER_PAGE;
+  const lastVisibleIndex = firstVisibleIndex + RELEASES_PER_PAGE;
+
+  for (let index = 0; index < releaseEntries.length; index += 1) {
+    releaseEntries[index].hidden =
+      index < firstVisibleIndex || index >= lastVisibleIndex;
+  }
+
+  releasePrevious.disabled = releasePage === 0;
+  releaseNext.disabled = releasePage === pageCount - 1;
+  releasePageStatus.textContent = releasePage + 1 + "/" + pageCount;
+}
+
+function changeReleasePage(direction) {
+  // Advance by one bounded release page.
+  releasePage += direction;
+  renderReleasePage();
 }
 
 function handlePatchNotesShortcut(event) {
-  // Toggle the secret patch notes with P while preserving browser modifiers.
-  const eventTarget = event.target;
-  const isEditableTarget =
-    eventTarget !== null &&
-    typeof eventTarget.matches === "function" &&
-    (eventTarget.matches("input, textarea, select") ||
-      eventTarget.isContentEditable);
-  const isPatchNotesKey =
-    typeof event.key === "string" && event.key.toLowerCase() === "p";
+  // Keep the release history secret behind an unmodified P key.
+  const target = event.target;
+  const isEditing =
+    target?.isContentEditable ||
+    target?.matches?.("input, textarea, select");
 
   if (
-    event.defaultPrevented ||
-    event.repeat ||
-    event.ctrlKey ||
-    event.altKey ||
-    event.metaKey ||
-    isEditableTarget ||
-    !isPatchNotesKey
+    event.key.toLowerCase() === "p" &&
+    !event.ctrlKey &&
+    !event.altKey &&
+    !event.metaKey &&
+    !isEditing &&
+    !casinoDialog.open &&
+    !achievementsDialog.open
   ) {
-    return;
-  }
-
-  if (patchNotesDialog.open) {
     event.preventDefault();
-    patchNotesDialog.close();
-    return;
-  }
+    releasePage = 0;
+    renderReleasePage();
 
-  if (casinoDialog.open || achievementsDialog.open) {
-    return;
-  }
-
-  event.preventDefault();
-  patchNotesDialog.showModal();
-}
-
-function showCasinoPrizeAnimation(prize, isNewPrize) {
-  // Raise a new prize or bounce a repeated prize above the payout tray.
-  window.clearTimeout(casinoPrizeAnimationTimer);
-  casinoPrizePop.classList.remove("is-new", "is-repeat");
-  casinoPrizePop.textContent = prize.icon;
-
-  if (reducedMotionMediaQuery.matches) {
-    casinoPrizePop.style.opacity = "1";
-    casinoPrizeAnimationTimer = window.setTimeout(() => {
-      // Hide the static reduced-motion reveal after it has been readable.
-      casinoPrizePop.style.opacity = "0";
-    }, REPEATED_PRIZE_ANIMATION_MS);
-    return;
-  }
-
-  void casinoPrizePop.offsetWidth;
-  casinoPrizePop.classList.add(isNewPrize ? "is-new" : "is-repeat");
-  casinoPrizeAnimationTimer = window.setTimeout(
-    () => {
-      // Clear the completed class so the same prize can animate again.
-      casinoPrizePop.classList.remove("is-new", "is-repeat");
-    },
-    isNewPrize ? NEW_PRIZE_ANIMATION_MS : REPEATED_PRIZE_ANIMATION_MS,
-  );
-}
-
-function finishCasinoSpin() {
-  // Reveal the prepared loss or unlock the prepared mystery prize.
-  const outcomeLabels = [];
-
-  for (
-    let reelIndex = 0;
-    reelIndex < pendingCasinoOutcome.length;
-    reelIndex += 1
-  ) {
-    outcomeLabels.push(pendingCasinoOutcome[reelIndex].label);
-  }
-
-  slotMachine.classList.remove("is-spinning");
-  slotMachine.removeAttribute("aria-busy");
-  for (let reelIndex = 0; reelIndex < fallbackReels.length; reelIndex += 1) {
-    fallbackReels[reelIndex].textContent = pendingCasinoOutcome[reelIndex].character;
-  }
-
-  if (pendingCasinoPrize !== null) {
-    const isNewPrize = !unlockedAchievementIds.has(pendingCasinoPrize.id);
-
-    slotMachine.classList.add("is-winning");
-    casinoResult.classList.add("is-prize");
-    casino3D?.celebrate(true, reducedMotionMediaQuery.matches);
-    slotMachine.setAttribute(
-      "aria-label",
-      `Resultado: ${outcomeLabels.join(", ")}. Prêmio: ${pendingCasinoPrize.name}`,
-    );
-
-    if (isNewPrize) {
-      unlockedAchievementIds.add(pendingCasinoPrize.id);
-
-      try {
-        const savedAchievementIds = [];
-
-        for (const prize of CASINO_PRIZES) {
-          if (unlockedAchievementIds.has(prize.id)) {
-            savedAchievementIds.push(prize.id);
-          }
-        }
-
-        localStorage.setItem(
-          ACHIEVEMENTS_STORAGE_KEY,
-          JSON.stringify(savedAchievementIds),
-        );
-      } catch {
-        achievementsArePersistent = false;
-      }
-
-      casinoResult.textContent = `VOCÊ GANHOU: ${pendingCasinoPrize.name}!`;
-      renderAchievements();
+    if (patchNotesDialog.open) {
+      patchNotesDialog.close();
     } else {
-      casinoResult.textContent =
-        `PRÊMIO REPETIDO: ${pendingCasinoPrize.name}.`;
+      patchNotesDialog.showModal();
     }
-
-    pendingAchievementAnimation = {
-      prizeId: pendingCasinoPrize.id,
-      isNew: isNewPrize,
-    };
-    showCasinoPrizeAnimation(pendingCasinoPrize, isNewPrize);
-  } else {
-    slotMachine.classList.add("is-denied");
-    casinoResult.classList.remove("is-prize");
-    casino3D?.celebrate(false, reducedMotionMediaQuery.matches);
-    slotMachine.setAttribute(
-      "aria-label",
-      `Resultado: ${outcomeLabels.join(", ")}`,
-    );
-    casinoResult.textContent =
-      CASINO_FAILURE_MESSAGES[
-        Math.floor(Math.random() * CASINO_FAILURE_MESSAGES.length)
-      ];
-  }
-
-  casinoLever.disabled = false;
-  casinoLeverLabel.textContent = "DE NOVO";
-  casinoLever.setAttribute("aria-label", "Puxar alavanca do cassino novamente");
-}
-
-async function waitForCasinoAnimation(milliseconds) {
-  // Wait for a fallback animation or short result-settle interval.
-  if (milliseconds <= 0) {
     return;
   }
 
-  await new Promise((resolve) => {
-    // Resolve after the requested visual delay without blocking the page.
+  if (!patchNotesDialog.open) {
+    return;
+  }
+
+  if (event.key === "ArrowLeft") {
+    event.preventDefault();
+    changeReleasePage(-1);
+  } else if (event.key === "ArrowRight") {
+    event.preventDefault();
+    changeReleasePage(1);
+  }
+}
+
+function waitForCasinoAnimation(milliseconds) {
+  // Avoid timers entirely when reduced motion requests an immediate result.
+  if (milliseconds <= 0) {
+    return Promise.resolve();
+  }
+
+  return new Promise((resolve) => {
     window.setTimeout(resolve, milliseconds);
   });
 }
 
-async function startCasinoSpin() {
-  // Prepare a controlled mystery-prize trinca or an ordinary losing outcome.
-  if (casinoLever.disabled) {
+function createOrdinaryLosingOutcome() {
+  // Choose three ordinary symbols and repair any accidental matching triple.
+  const outcome = Array.from({ length: 3 }, () => {
+    const symbolIndex = Math.floor(Math.random() * CASINO_NORMAL_SYMBOLS.length);
+    return CASINO_NORMAL_SYMBOLS[symbolIndex];
+  });
+
+  if (outcome.every((symbol) => symbol === outcome[0])) {
+    const currentIndex = CASINO_NORMAL_SYMBOLS.indexOf(outcome[2]);
+    outcome[2] =
+      CASINO_NORMAL_SYMBOLS[
+        (currentIndex + 1) % CASINO_NORMAL_SYMBOLS.length
+      ];
+  }
+
+  return outcome;
+}
+
+function chooseCasinoOutcome() {
+  // Resolve the four exclusive outcomes from one uniformly random roll.
+  const outcomeRoll = Math.random();
+  pendingCasinoPrize = null;
+
+  if (outcomeRoll < 0.5) {
+    pendingCasinoOutcomeType = "refund";
+    pendingCasinoOutcome = Array(3).fill(CASINO_REFUND_SYMBOL);
     return;
   }
 
-  pendingCasinoOutcome = [];
-  pendingCasinoPrize = null;
-
-  if (Math.random() < CASINO_PRIZE_CHANCE) {
-    const availablePrizes = [];
-
-    for (const prize of CASINO_PRIZES) {
-      if (!unlockedAchievementIds.has(prize.id)) {
-        availablePrizes.push(prize);
-      }
-    }
-
-    if (availablePrizes.length === 0) {
-      availablePrizes.push(...CASINO_PRIZES);
-    }
-
-    pendingCasinoPrize =
-      availablePrizes[Math.floor(Math.random() * availablePrizes.length)];
-
-    for (
-      let reelIndex = 0;
-      reelIndex < INITIAL_REEL_SYMBOL_INDICES.length;
-      reelIndex += 1
-    ) {
-      pendingCasinoOutcome.push(CASINO_PRIZE_SYMBOL);
-    }
-  } else {
-    for (
-      let reelIndex = 0;
-      reelIndex < INITIAL_REEL_SYMBOL_INDICES.length;
-      reelIndex += 1
-    ) {
-      pendingCasinoOutcome.push(
-        CASINO_NORMAL_SYMBOLS[
-          Math.floor(Math.random() * CASINO_NORMAL_SYMBOLS.length)
-        ],
-      );
-    }
-
-    const allSymbolsMatch =
-      pendingCasinoOutcome[0] === pendingCasinoOutcome[1] &&
-      pendingCasinoOutcome[1] === pendingCasinoOutcome[2];
-
-    if (allSymbolsMatch) {
-      const matchingIndex = CASINO_NORMAL_SYMBOLS.indexOf(
-        pendingCasinoOutcome[0],
-      );
-      let replacementIndex = Math.floor(
-        Math.random() * (CASINO_NORMAL_SYMBOLS.length - 1),
-      );
-
-      if (replacementIndex >= matchingIndex) {
-        replacementIndex += 1;
-      }
-
-      pendingCasinoOutcome[pendingCasinoOutcome.length - 1] =
-        CASINO_NORMAL_SYMBOLS[replacementIndex];
-    }
+  if (outcomeRoll < 0.75) {
+    pendingCasinoOutcomeType = "double";
+    pendingCasinoOutcome = Array(3).fill(CASINO_DOUBLE_SYMBOL);
+    return;
   }
 
-  casinoLever.disabled = true;
-  casinoLeverLabel.textContent = "GIRANDO";
-  casinoLever.setAttribute("aria-label", "Alavanca acionada; rolos girando");
+  if (outcomeRoll < 0.875) {
+    pendingCasinoOutcomeType = "prize";
+    pendingCasinoOutcome = Array(3).fill(CASINO_PRIZE_SYMBOL);
+    const lockedPrizes = CASINO_PRIZES.filter(
+      (prize) => !unlockedAchievementIds.has(prize.id),
+    );
+    const prizePool = lockedPrizes.length > 0 ? lockedPrizes : CASINO_PRIZES;
+    pendingCasinoPrize =
+      prizePool[Math.floor(Math.random() * prizePool.length)];
+    return;
+  }
+
+  pendingCasinoOutcomeType = "loss";
+  pendingCasinoOutcome = createOrdinaryLosingOutcome();
+}
+
+function showCasinoJackpot(prize, isNewPrize) {
+  // Block the machine behind a persistent, emphatic prize presentation.
+  casinoJackpotOpen = true;
+  casinoJackpotBadge.textContent = isNewPrize
+    ? "NOVA CONQUISTA"
+    : "VOCÊ GANHOU DE NOVO";
+  casinoJackpotPrize.textContent = prize.name;
+  casinoJackpot.hidden = false;
+  casino3D?.showPrize(
+    prize.modelId,
+    !isNewPrize,
+    reducedMotionMediaQuery.matches,
+  );
+  renderCasinoTokens();
+  casinoJackpotContinue.focus();
+}
+
+function finishCasinoSpin() {
+  // Apply the authoritative payout only after every reel has stopped.
+  casinoSpinInProgress = false;
+  slotMachine.classList.remove("is-spinning");
+  slotMachine.setAttribute("aria-busy", "false");
+  casinoResult.classList.remove("is-prize", "is-token");
+
+  if (pendingCasinoOutcomeType === "refund") {
+    casinoTokenBalance += 1;
+    saveCasinoTokens();
+    casinoResult.textContent = "a ficha voltou. patrimônio líquido: igual.";
+    casinoResult.classList.add("is-token");
+    casino3D?.celebrate("token", reducedMotionMediaQuery.matches);
+    renderCasinoTokens();
+    return;
+  }
+
+  if (pendingCasinoOutcomeType === "double") {
+    casinoTokenBalance += 2;
+    saveCasinoTokens();
+    casinoResult.textContent = "duas fichas! lucro operacional: uma ficha.";
+    casinoResult.classList.add("is-token");
+    casino3D?.celebrate("double", reducedMotionMediaQuery.matches);
+    renderCasinoTokens();
+    return;
+  }
+
+  if (pendingCasinoOutcomeType === "prize" && pendingCasinoPrize !== null) {
+    const isNewPrize = !unlockedAchievementIds.has(pendingCasinoPrize.id);
+
+    if (isNewPrize) {
+      unlockedAchievementIds.add(pendingCasinoPrize.id);
+      saveAchievements();
+    }
+
+    renderAchievements();
+    pendingAchievementAnimation = {
+      id: pendingCasinoPrize.id,
+      isNew: isNewPrize,
+    };
+    casinoResult.textContent = isNewPrize
+      ? "NOVA CONQUISTA: " + pendingCasinoPrize.name + ". Continua não rica."
+      : "PRÊMIO REPETIDO: " + pendingCasinoPrize.name + ".";
+    casinoResult.classList.add("is-prize");
+    casino3D?.celebrate("prize", reducedMotionMediaQuery.matches);
+    showCasinoJackpot(pendingCasinoPrize, isNewPrize);
+    return;
+  }
+
+  const failureMessage =
+    CASINO_FAILURE_MESSAGES[
+      Math.floor(Math.random() * CASINO_FAILURE_MESSAGES.length)
+    ];
+  casinoResult.textContent = failureMessage;
+  casino3D?.celebrate("loss", reducedMotionMediaQuery.matches);
+  renderCasinoTokens();
+}
+
+async function startCasinoSpin() {
+  // Debit one chip, animate one authoritative outcome, then settle its payout.
+  if (
+    casinoSpinInProgress ||
+    casinoJackpotOpen ||
+    casinoTokenBalance <= 0
+  ) {
+    renderCasinoTokens();
+    return;
+  }
+
+  casinoSpinInProgress = true;
+  casinoTokenBalance -= 1;
+  saveCasinoTokens();
+  chooseCasinoOutcome();
+  renderCasinoTokens();
   casinoResult.textContent = "os rolos estão girando...";
-  casinoResult.classList.remove("is-prize");
-  slotMachine.classList.remove("is-denied", "is-winning");
+  casinoResult.classList.remove("is-prize", "is-token");
   slotMachine.classList.add("is-spinning");
   slotMachine.setAttribute("aria-busy", "true");
 
@@ -728,16 +972,16 @@ async function startCasinoSpin() {
       console.warn("A animação 3D do cassino falhou.", error);
       showCasinoFallback();
       await waitForCasinoAnimation(
-        reducedMotion
-          ? 0
-          : CASINO_REEL_DURATIONS_MS[CASINO_REEL_DURATIONS_MS.length - 1],
+        reducedMotion ? 0 : Math.max(...CASINO_REEL_DURATIONS_MS),
       );
     }
   } else {
+    for (let reelIndex = 0; reelIndex < fallbackReels.length; reelIndex += 1) {
+      fallbackReels[reelIndex].textContent =
+        pendingCasinoOutcome[reelIndex].character;
+    }
     await waitForCasinoAnimation(
-      reducedMotion
-        ? 0
-        : CASINO_REEL_DURATIONS_MS[CASINO_REEL_DURATIONS_MS.length - 1],
+      reducedMotion ? 0 : Math.max(...CASINO_REEL_DURATIONS_MS),
     );
   }
 
@@ -789,14 +1033,13 @@ function getPortoAlegreBirthday(year) {
 const birthInstant = getPortoAlegreBirthday(BIRTH_YEAR);
 
 function updateCounter() {
-  // Show the completed years and elapsed time since the latest birthday.
+  // Show completed years and elapsed time since the latest birthday.
   const now = new Date();
 
   if (now < birthInstant) {
     for (const value of Object.values(counterValues)) {
       value.textContent = "0";
     }
-
     counter.setAttribute("aria-label", "A data atual é anterior ao nascimento");
     return;
   }
@@ -813,19 +1056,18 @@ function updateCounter() {
   const years = latestBirthdayYear - BIRTH_YEAR;
   const days = Math.floor(remainingMilliseconds / MILLISECONDS_PER_DAY);
   remainingMilliseconds %= MILLISECONDS_PER_DAY;
-
   const hours = Math.floor(
     remainingMilliseconds /
       (MILLISECONDS_PER_SECOND * SECONDS_PER_MINUTE * MINUTES_PER_HOUR),
   );
   remainingMilliseconds %=
     MILLISECONDS_PER_SECOND * SECONDS_PER_MINUTE * MINUTES_PER_HOUR;
-
   const minutes = Math.floor(
     remainingMilliseconds / (MILLISECONDS_PER_SECOND * SECONDS_PER_MINUTE),
   );
   const seconds = Math.floor(
-    (remainingMilliseconds % (MILLISECONDS_PER_SECOND * SECONDS_PER_MINUTE)) /
+    (remainingMilliseconds %
+      (MILLISECONDS_PER_SECOND * SECONDS_PER_MINUTE)) /
       MILLISECONDS_PER_SECOND,
   );
 
@@ -836,21 +1078,24 @@ function updateCounter() {
   counterValues.seconds.textContent = String(seconds).padStart(2, "0");
   counter.setAttribute(
     "aria-label",
-    `${years} anos, ${days} dias, ${hours} horas, ${minutes} minutos, ` +
-      `${seconds} segundos`,
+    years + " anos, " + days + " dias, " + hours + " horas, " +
+      minutes + " minutos, " + seconds + " segundos",
   );
 }
 
 function scheduleNextUpdate() {
   // Refresh now and align the next update with the next real clock second.
   updateCounter();
-  const delay = MILLISECONDS_PER_SECOND - (Date.now() % MILLISECONDS_PER_SECOND);
+  const delay =
+    MILLISECONDS_PER_SECOND - (Date.now() % MILLISECONDS_PER_SECOND);
   window.setTimeout(scheduleNextUpdate, delay);
 }
 
 updateCasinoMusicVolume();
 updateCasinoMusicControl();
 renderAchievements();
+renderCasinoTokens();
+renderReleasePage();
 casinoOpenButton.addEventListener("click", openCasino);
 achievementsOpenButton.addEventListener("click", openAchievements);
 casinoLever.addEventListener("click", startCasinoSpin);
@@ -863,14 +1108,20 @@ casinoMusic.addEventListener("pause", updateCasinoMusicControl);
 casinoMusic.addEventListener("ended", updateCasinoMusicControl);
 casinoMusic.addEventListener("error", handleCasinoMusicError);
 casinoDialog.addEventListener("close", handleCasinoClose);
+casinoDialog.addEventListener("cancel", handleCasinoCancel);
+casinoDialog.addEventListener("keydown", handleCasinoKeydown);
+casinoJackpotContinue.addEventListener("click", closeCasinoJackpot);
+achievementsDialog.addEventListener("close", handleAchievementsClose);
+releasePrevious.addEventListener("click", () => changeReleasePage(-1));
+releaseNext.addEventListener("click", () => changeReleasePage(1));
 document.addEventListener("keydown", handlePatchNotesShortcut);
 document.addEventListener("visibilitychange", handleCasinoVisibilityChange);
 mobileGifMediaQuery.addEventListener("change", showRandomMarinGifs);
 
-// Pick one displayed name for this page visit.
+// Pick one displayed identity for this page visit.
 const selectedName =
   NAME_VARIATIONS[Math.floor(Math.random() * NAME_VARIATIONS.length)];
-const questionText = `${selectedName} já está rica?`;
+const questionText = selectedName + " já está rica?";
 document.querySelector("#question").textContent = questionText;
 document.title = questionText;
 

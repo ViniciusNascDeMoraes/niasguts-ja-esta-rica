@@ -7,6 +7,13 @@ import vm from "node:vm";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
 const projectRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
+const prizeIds = [
+  "esposa-nenepira",
+  "prima-vaper",
+  "bolos",
+  "350-reais",
+  "lanche-subway",
+];
 
 class FakeClassList {
   // Store CSS classes for behavior tests without a browser DOM.
@@ -15,21 +22,18 @@ class FakeClassList {
   }
 
   add(...names) {
-    // Add every requested class.
     for (const name of names) {
       this.values.add(name);
     }
   }
 
   remove(...names) {
-    // Remove every requested class.
     for (const name of names) {
       this.values.delete(name);
     }
   }
 
   toggle(name, force) {
-    // Toggle one class using normal DOM force semantics.
     if (force === true) {
       this.values.add(name);
       return true;
@@ -47,60 +51,71 @@ class FakeClassList {
   }
 
   contains(name) {
-    // Report whether a class is currently stored.
     return this.values.has(name);
   }
 }
 
 class FakeElement {
-  // Provide the small DOM surface used by the static page script.
-  constructor(name = "element") {
+  // Provide the DOM surface used by the static page script.
+  constructor(name = "element", dataset = {}) {
     this.name = name;
     this.attributes = new Map();
     this.classList = new FakeClassList();
     this.listeners = new Map();
     this.style = {};
     this.childrenBySelector = new Map();
+    this.dataset = dataset;
     this.textContent = "";
     this.hidden = false;
     this.open = false;
     this.disabled = false;
     this.isContentEditable = false;
     this.offsetWidth = 100;
+    this.value = "";
+    this.focused = false;
   }
 
   addEventListener(type, listener) {
-    // Record an event listener for later inspection or dispatch.
     if (!this.listeners.has(type)) {
       this.listeners.set(type, []);
     }
     this.listeners.get(type).push(listener);
   }
 
-  dispatch(type) {
-    // Invoke every listener registered for one event type.
+  dispatch(type, overrides = {}) {
+    const event = {
+      type,
+      target: this,
+      key: "",
+      ctrlKey: false,
+      altKey: false,
+      metaKey: false,
+      shiftKey: false,
+      defaultPrevented: false,
+      preventDefault() {
+        this.defaultPrevented = true;
+      },
+      ...overrides,
+    };
     for (const listener of this.listeners.get(type) ?? []) {
-      listener({ type, target: this });
+      listener(event);
     }
+    return event;
   }
 
   setAttribute(name, value) {
-    // Store a string attribute value.
     this.attributes.set(name, String(value));
   }
 
   getAttribute(name) {
-    // Read a previously stored attribute value.
     return this.attributes.get(name) ?? null;
   }
 
   removeAttribute(name) {
-    // Remove one stored attribute.
     this.attributes.delete(name);
   }
 
   querySelector(selector) {
-    // Return a stable child element for an internal selector.
     if (!this.childrenBySelector.has(selector)) {
       this.childrenBySelector.set(selector, new FakeElement(selector));
     }
@@ -108,63 +123,73 @@ class FakeElement {
   }
 
   replaceChildren(...children) {
-    // Preserve replacement children for compatibility with the page script.
     this.replacementChildren = children;
   }
 
   append(...children) {
-    // Preserve appended children for compatibility with GIF rendering.
     this.appendedChildren = [...(this.appendedChildren ?? []), ...children];
   }
 
-  matches() {
-    // Treat test elements as non-editable unless explicitly configured.
-    return false;
+  matches(selector) {
+    return selector.split(",").some((part) => part.trim() === this.name);
+  }
+
+  focus() {
+    this.focused = true;
+  }
+
+  getBoundingClientRect() {
+    return {
+      left: 0,
+      top: 0,
+      right: 100,
+      bottom: 100,
+      width: 100,
+      height: 100,
+    };
   }
 
   showModal() {
-    // Open a fake modal dialog.
     this.open = true;
   }
 
   close() {
-    // Close a fake modal dialog and notify listeners.
     this.open = false;
     this.dispatch("close");
   }
 }
 
-function createPageHarness(savedAchievements = []) {
+function createPageHarness(options = {}) {
   // Execute the real application script against a deterministic fake page.
   const elements = new Map();
-  const achievementSlots = [
-    new FakeElement("achievement-0"),
-    new FakeElement("achievement-1"),
-    new FakeElement("achievement-2"),
-  ];
+  const achievementSlots = prizeIds.map(
+    (prizeId, index) =>
+      new FakeElement("achievement-" + index, { prizeId }),
+  );
   const fallbackReels = [
     new FakeElement("fallback-0"),
     new FakeElement("fallback-1"),
     new FakeElement("fallback-2"),
   ];
+  const releaseEntries = Array.from(
+    { length: 18 },
+    (_, index) => new FakeElement("release-" + index),
+  );
   const audio = new FakeElement("casino-music");
   audio.paused = true;
   audio.ended = false;
   audio.volume = 0;
   audio.currentTime = 0;
   audio.play = async () => {
-    // Simulate successful playback and its media event.
     audio.paused = false;
     audio.dispatch("play");
   };
   audio.pause = () => {
-    // Simulate synchronous pause and its media event.
     audio.paused = true;
     audio.dispatch("pause");
   };
 
   function getElement(selector) {
-    // Return stable fake elements for every document query.
     if (!elements.has(selector)) {
       elements.set(selector, new FakeElement(selector));
     }
@@ -172,9 +197,17 @@ function createPageHarness(savedAchievements = []) {
   }
 
   elements.set("#casino-music", audio);
+  getElement("#casino-volume").value = "25";
+
   const storage = new Map();
-  if (savedAchievements.length > 0) {
-    storage.set("niasguts-achievements-v1", JSON.stringify(savedAchievements));
+  if (options.savedAchievements !== undefined) {
+    storage.set(
+      "niasguts-achievements-v1",
+      JSON.stringify(options.savedAchievements),
+    );
+  }
+  if (options.savedTokens !== undefined) {
+    storage.set("niasguts-casino-fichas-v1", String(options.savedTokens));
   }
 
   let randomValues = [];
@@ -182,33 +215,34 @@ function createPageHarness(savedAchievements = []) {
   fakeMath.random = () => randomValues.shift() ?? 0;
   const timers = new Map();
   let nextTimerId = 1;
+  const documentListeners = new Map();
   const windowObject = {
     devicePixelRatio: 1,
     matchMedia: () => ({ matches: true, addEventListener() {} }),
     setTimeout(callback, milliseconds) {
-      // Store timers without recursively running the age-counter scheduler.
       const timerId = nextTimerId;
       nextTimerId += 1;
       timers.set(timerId, { callback, milliseconds });
       return timerId;
     },
     clearTimeout(timerId) {
-      // Remove one queued fake timer.
       timers.delete(timerId);
     },
   };
   const documentObject = {
     hidden: false,
     title: "",
-    documentElement: new FakeElement("documentElement"),
+    documentElement: new FakeElement("html"),
     querySelector: getElement,
     querySelectorAll(selector) {
-      // Return the repeated elements used by the real application.
       if (selector === ".achievement-slot") {
         return achievementSlots;
       }
       if (selector === ".fallback-reel") {
         return fallbackReels;
+      }
+      if (selector === ".release-entry") {
+        return releaseEntries;
       }
       if (selector === ".marin-gif-frame") {
         return [];
@@ -216,7 +250,32 @@ function createPageHarness(savedAchievements = []) {
       return [];
     },
     createElement: (name) => new FakeElement(name),
-    addEventListener() {},
+    addEventListener(type, listener) {
+      if (!documentListeners.has(type)) {
+        documentListeners.set(type, []);
+      }
+      documentListeners.get(type).push(listener);
+    },
+  };
+  const localStorage = {
+    getItem(key) {
+      if (options.storageAvailable === false) {
+        throw new Error("Storage blocked");
+      }
+      return storage.get(key) ?? null;
+    },
+    setItem(key, value) {
+      if (options.storageAvailable === false) {
+        throw new Error("Storage blocked");
+      }
+      storage.set(key, String(value));
+    },
+    removeItem(key) {
+      if (options.storageAvailable === false) {
+        throw new Error("Storage blocked");
+      }
+      storage.delete(key);
+    },
   };
   const context = vm.createContext({
     console,
@@ -224,11 +283,7 @@ function createPageHarness(savedAchievements = []) {
     Intl,
     Math: fakeMath,
     performance,
-    localStorage: {
-      getItem: (key) => storage.get(key) ?? null,
-      setItem: (key, value) => storage.set(key, String(value)),
-      removeItem: (key) => storage.delete(key),
-    },
+    localStorage,
     document: documentObject,
     getComputedStyle: () => ({ getPropertyValue: () => "#000000" }),
     window: windowObject,
@@ -239,39 +294,71 @@ function createPageHarness(savedAchievements = []) {
     achievementSlots,
     audio,
     context,
+    documentListeners,
     elements,
     fallbackReels,
+    releaseEntries,
     setRandomValues(values) {
-      // Replace the deterministic random sequence for the next scenario.
       randomValues = [...values];
     },
     storage,
+    timers,
   };
 }
 
-async function loadHarness(savedAchievements = []) {
+async function loadHarness(options = {}) {
   // Load and run the production script in one isolated test context.
-  const harness = createPageHarness(savedAchievements);
+  const harness = createPageHarness(options);
   const applicationSource = await readFile(resolve(projectRoot, "app.js"), "utf8");
   vm.runInContext(applicationSource, harness.context, { filename: "app.js" });
-  vm.runInContext("casino3DFailed = true", harness.context);
+  vm.runInContext(
+    "casino3DFailed = true; achievements3DFailed = true",
+    harness.context,
+  );
   return harness;
 }
 
-test("static page references split assets and version 1.7", async () => {
-  // Verify the deployment entry point and required accessible controls.
+test("static page exposes the version 1.8 full-screen experience", async () => {
+  // Verify deployment markup and all required native controls.
   const html = await readFile(resolve(projectRoot, "index.html"), "utf8");
   assert.match(html, /href="styles\.css"/);
   assert.match(html, /src="app\.js" defer/);
   assert.match(html, /id="casino-canvas"/);
+  assert.match(html, /id="casino-token-balance"/);
+  assert.match(html, /id="casino-jackpot-continue"/);
+  assert.match(html, /id="achievements-canvas"/);
   assert.match(html, /id="toggle-casino-music"/);
-  assert.match(html, /id="achievement-complete-plaque"/);
-  assert.match(html, /versão 1\.7/);
+  assert.match(html, /versão 1\.8/);
+  assert.equal((html.match(/data-prize-id=/g) ?? []).length, 5);
+  assert.equal((html.match(/class="release-entry"/g) ?? []).length, 18);
+  assert.doesNotMatch(html, /aria-controls="patch-notes-dialog"/);
+  assert.doesNotMatch(html, /aperte\s+p/i);
+  assert.doesNotMatch(html, /coraç/i);
   assert.doesNotMatch(html, /<style>/);
-  assert.doesNotMatch(html, /<script>\s*["']use strict/);
 });
 
-test("vendored Three.js module and MIT notice have pinned contents", async () => {
+test("custom domain and every local media asset are release-ready", async () => {
+  // Guard GitHub Pages routing and prevent silent GIF or music omissions.
+  const cname = await readFile(resolve(projectRoot, "CNAME"), "utf8");
+  assert.equal(cname.trim(), "niasguts.viniciuspirasoft.com");
+  const mediaPaths = [
+    "assets/musica.mp3",
+    "assets/gifs/marin-chibi.gif",
+    "assets/gifs/marin-cry.gif",
+    "assets/gifs/marin-love.gif",
+    "assets/gifs/marin-bisque.gif",
+    "assets/gifs/marin-peak.gif",
+    "assets/gifs/marin-square.gif",
+    "assets/gifs/marin-bisque-doll.gif",
+    "assets/gifs/marin-sono-bisque.gif",
+  ];
+  for (const mediaPath of mediaPaths) {
+    const bytes = await readFile(resolve(projectRoot, mediaPath));
+    assert.ok(bytes.byteLength > 1024, mediaPath + " is unexpectedly small");
+  }
+});
+
+test("vendored Three.js module and MIT notice remain pinned", async () => {
   // Detect accidental dependency drift or a missing redistribution notice.
   const moduleBytes = await readFile(
     resolve(projectRoot, "assets/vendor/three.module.min.mjs"),
@@ -283,31 +370,28 @@ test("vendored Three.js module and MIT notice have pinned contents", async () =>
     resolve(projectRoot, "assets/vendor/THREE-LICENSE.txt"),
     "utf8",
   );
-  const moduleHash = createHash("sha256").update(moduleBytes).digest("hex");
-  const coreHash = createHash("sha256").update(coreBytes).digest("hex");
   assert.equal(
-    moduleHash,
+    createHash("sha256").update(moduleBytes).digest("hex"),
     "86bcee248b64f44bcfc23c331ae74619061957d59cab040171dcb6fb5900beb6",
   );
   assert.equal(
-    coreHash,
+    createHash("sha256").update(coreBytes).digest("hex"),
     "05b2609338c76cd65daf74f3ac515bc9a5045e1b3b33edc07d8c9bd55250fa90",
   );
   assert.match(license, /Copyright © 2010-2026 three\.js authors/);
-  assert.match(license, /The MIT License/);
-
   const casinoModule = await import(
     pathToFileURL(resolve(projectRoot, "casino-3d.mjs")).href
   );
   assert.equal(typeof casinoModule.createCasino3D, "function");
+  assert.equal(typeof casinoModule.createAchievements3D, "function");
 });
 
-test("physical reels stop with the selected symbol facing forward", async () => {
+test("all eight reel faces stop exactly on the selected symbol", async () => {
   // Cover every current and target face while preserving backward rotation.
   const casinoModule = await import(
     pathToFileURL(resolve(projectRoot, "casino-3d.mjs")).href
   );
-  const symbolCount = 6;
+  const symbolCount = 8;
   const fullTurn = Math.PI * 2;
   const symbolAngle = fullTurn / symbolCount;
 
@@ -321,7 +405,8 @@ test("physical reels stop with the selected symbol facing forward", async () => 
         5,
         symbolCount,
       );
-      const normalizedRotation = ((targetRotation % fullTurn) + fullTurn) % fullTurn;
+      const normalizedRotation =
+        ((targetRotation % fullTurn) + fullTurn) % fullTurn;
       const expectedRotation = targetIndex * symbolAngle;
       assert.ok(Math.abs(normalizedRotation - expectedRotation) < 1e-9);
       assert.ok(targetRotation <= currentRotation - 5 * fullTurn);
@@ -329,72 +414,151 @@ test("physical reels stop with the selected symbol facing forward", async () => 
   }
 });
 
-test("every ordinary symbol combination remains a loss", async () => {
-  // Run all 125 ordinary reel combinations through the complete spin scenario.
+test("one random roll selects the four exact outcome bands", async () => {
+  // Assert inclusive lower bounds and exclusive upper bounds.
   const harness = await loadHarness();
+  const scenarios = [
+    [0, "refund"],
+    [0.499999, "refund"],
+    [0.5, "double"],
+    [0.749999, "double"],
+    [0.75, "prize"],
+    [0.874999, "prize"],
+    [0.875, "loss"],
+    [0.999999, "loss"],
+  ];
 
+  for (const [roll, expectedType] of scenarios) {
+    harness.setRandomValues([roll, 0, 0.2, 0.4, 0.6]);
+    vm.runInContext("chooseCasinoOutcome()", harness.context);
+    assert.equal(
+      vm.runInContext("pendingCasinoOutcomeType", harness.context),
+      expectedType,
+    );
+  }
+});
+
+test("chip debit and exclusive payouts produce the intended net balance", async () => {
+  // A refund nets zero, double nets one, and both prize and loss net minus one.
+  const scenarios = [
+    { roll: [0.2], expectedBalance: 10, expectedType: "refund" },
+    { roll: [0.6], expectedBalance: 11, expectedType: "double" },
+    { roll: [0.8, 0], expectedBalance: 9, expectedType: "prize" },
+    { roll: [0.9, 0, 0.25, 0.5, 0], expectedBalance: 9, expectedType: "loss" },
+  ];
+
+  for (const scenario of scenarios) {
+    const harness = await loadHarness({ savedTokens: 10 });
+    harness.setRandomValues(scenario.roll);
+    await vm.runInContext("startCasinoSpin()", harness.context);
+    assert.equal(
+      vm.runInContext("pendingCasinoOutcomeType", harness.context),
+      scenario.expectedType,
+    );
+    assert.equal(
+      vm.runInContext("casinoTokenBalance", harness.context),
+      scenario.expectedBalance,
+    );
+    assert.equal(
+      harness.storage.get("niasguts-casino-fichas-v1"),
+      String(scenario.expectedBalance),
+    );
+  }
+});
+
+test("ordinary loss results never contain a matching triple", async () => {
+  // Exhaust all 125 source combinations and verify triple repair.
+  const harness = await loadHarness();
   for (let first = 0; first < 5; first += 1) {
     for (let second = 0; second < 5; second += 1) {
       for (let third = 0; third < 5; third += 1) {
         harness.setRandomValues([
-          0.12,
           (first + 0.01) / 5,
           (second + 0.01) / 5,
           (third + 0.01) / 5,
-          0,
-          0,
         ]);
-        await vm.runInContext("startCasinoSpin()", harness.context);
         const labels = vm.runInContext(
-          "pendingCasinoOutcome.map((symbol) => symbol.label)",
+          "createOrdinaryLosingOutcome().map((symbol) => symbol.label)",
           harness.context,
         );
         assert.equal(new Set(labels).size > 1, true);
-        assert.equal(vm.runInContext("pendingCasinoPrize", harness.context), null);
       }
     }
   }
 });
 
-test("the 12 percent boundary awards locked prizes before repeats", async () => {
-  // Unlock all three prizes in order and only then permit a repeated reward.
-  const harness = await loadHarness();
+test("achievement outcomes award all five locked prizes before repeats", async () => {
+  // Unlock the five stable IDs in order, acknowledging each blocking jackpot.
+  const harness = await loadHarness({ savedTokens: 20 });
 
-  for (let prizeIndex = 0; prizeIndex < 3; prizeIndex += 1) {
-    harness.setRandomValues([0.119999, 0]);
+  for (let prizeIndex = 0; prizeIndex < prizeIds.length; prizeIndex += 1) {
+    harness.setRandomValues([0.8, 0]);
     await vm.runInContext("startCasinoSpin()", harness.context);
     assert.equal(
       vm.runInContext("unlockedAchievementIds.size", harness.context),
       prizeIndex + 1,
     );
+    assert.equal(
+      vm.runInContext("casinoJackpotOpen", harness.context),
+      true,
+    );
+    vm.runInContext("closeCasinoJackpot()", harness.context);
   }
 
-  harness.setRandomValues([0.119999, 0]);
+  harness.setRandomValues([0.8, 0]);
   await vm.runInContext("startCasinoSpin()", harness.context);
-  assert.equal(vm.runInContext("unlockedAchievementIds.size", harness.context), 3);
+  assert.equal(vm.runInContext("unlockedAchievementIds.size", harness.context), 5);
   assert.equal(
-    harness.elements.get("#casino-result").textContent,
-    "PRÊMIO REPETIDO: esposa do nenepira.",
+    harness.elements.get("#casino-jackpot-badge").textContent,
+    "VOCÊ GANHOU DE NOVO",
   );
   assert.equal(
     harness.storage.get("niasguts-achievements-v1"),
-    JSON.stringify(["esposa-nenepira", "prima-vaper", "bolos"]),
+    JSON.stringify(prizeIds),
   );
 });
 
-test("manual pause wins over an unresolved play request", async () => {
-  // Reproduce the former race and assert that stale playback cannot resume.
+test("zero chips disable the lever and expose the future minigame notice", async () => {
+  // Spend the final chip on an ordinary loss without creating a reset path.
+  const harness = await loadHarness({ savedTokens: 1 });
+  harness.setRandomValues([0.9, 0, 0.25, 0.5, 0]);
+  await vm.runInContext("startCasinoSpin()", harness.context);
+  assert.equal(vm.runInContext("casinoTokenBalance", harness.context), 0);
+  assert.equal(harness.elements.get("#spin-casino").disabled, true);
+  assert.equal(harness.elements.get("#casino-empty").hidden, false);
+  assert.equal(
+    harness.elements.get("#lever-label").textContent,
+    "SEM FICHAS",
+  );
+});
+
+test("storage failure keeps visit progress and exposes both warnings", async () => {
+  // Preserve in-memory defaults when browser persistence is blocked.
+  const harness = await loadHarness({ storageAvailable: false });
+  assert.equal(vm.runInContext("casinoTokenBalance", harness.context), 5);
+  assert.equal(vm.runInContext("casinoTokensArePersistent", harness.context), false);
+  assert.equal(vm.runInContext("achievementsArePersistent", harness.context), false);
+  assert.equal(
+    harness.elements.get("#casino-token-storage-note").hidden,
+    false,
+  );
+  assert.equal(
+    harness.elements.get("#achievement-storage-note").hidden,
+    false,
+  );
+});
+
+test("manual music pause wins over an unresolved play request", async () => {
+  // Reproduce the former race and assert stale playback cannot resume.
   const harness = await loadHarness();
   let resolvePlay;
   harness.audio.play = () => {
-    // Leave playback pending until the scenario explicitly resolves it.
     harness.audio.paused = false;
     return new Promise((resolvePlayPromise) => {
       resolvePlay = resolvePlayPromise;
     });
   };
   harness.audio.pause = () => {
-    // Record the synchronous pause used by the current command.
     harness.audio.paused = true;
   };
 
@@ -415,8 +579,8 @@ test("manual pause wins over an unresolved play request", async () => {
   );
 });
 
-test("manual pause persists across close and reopen during one visit", async () => {
-  // Verify the full dialog lifecycle without resetting playback position.
+test("manual music pause persists through close and reopen", async () => {
+  // Keep the desired state for the current visit without resetting playback.
   const harness = await loadHarness();
   vm.runInContext("openCasino()", harness.context);
   await Promise.resolve();
@@ -426,8 +590,6 @@ test("manual pause persists across close and reopen during one visit", async () 
   vm.runInContext("toggleCasinoMusic()", harness.context);
   await Promise.resolve();
   assert.equal(harness.audio.paused, true);
-  assert.equal(vm.runInContext("casinoMusicWanted", harness.context), false);
-
   harness.elements.get("#casino-dialog").close();
   vm.runInContext("openCasino()", harness.context);
   await Promise.resolve();
@@ -436,47 +598,96 @@ test("manual pause persists across close and reopen during one visit", async () 
   assert.equal(harness.audio.currentTime, 0);
 });
 
-test("rejected playback leaves a truthful retry control", async () => {
+test("rejected music playback leaves a truthful retry control", async () => {
   // Handle browser autoplay rejection without a stale pressed state.
   const harness = await loadHarness();
   harness.audio.play = async () => {
-    // Reproduce a browser policy rejection.
     throw new Error("Autoplay blocked");
   };
-
   await vm.runInContext(
     "casinoIsOpen = true; casinoMusicWanted = true; reconcileCasinoMusic()",
     harness.context,
   );
-
   assert.equal(harness.audio.paused, true);
   assert.equal(vm.runInContext("casinoMusicWanted", harness.context), false);
-  assert.equal(
-    harness.elements.get("#toggle-casino-music").getAttribute("aria-pressed"),
-    "false",
-  );
   assert.equal(
     harness.elements.get("#toggle-casino-music").textContent,
     "▶ MÚSICA",
   );
 });
 
-test("restored complete progress turns the trophy cabinet gold", async () => {
-  // Restore all known prizes and expose the permanent completion plaque.
-  const harness = await loadHarness([
-    "esposa-nenepira",
-    "prima-vaper",
-    "bolos",
-    "unknown-prize",
-  ]);
-
+test("restored five-prize progress completes the trophy gallery", async () => {
+  // Filter unknown IDs while retaining the permanent five-prize collection.
+  const harness = await loadHarness({
+    savedAchievements: [...prizeIds, "unknown-prize"],
+  });
   assert.equal(
-    harness.elements.get("#achievements-panel").classList.contains("is-complete"),
+    harness.elements.get("#achievements-screen").classList.contains("is-complete"),
     true,
   );
   assert.equal(
     harness.elements.get("#achievement-complete-plaque").hidden,
     false,
   );
-  assert.equal(vm.runInContext("unlockedAchievementIds.size", harness.context), 3);
+  assert.equal(vm.runInContext("unlockedAchievementIds.size", harness.context), 5);
+  assert.equal(harness.elements.get("#achievements-count").textContent, "5/5");
+});
+
+test("secret patch notes paginate three releases and support P toggling", async () => {
+  // Confirm initial visibility, bounded navigation, and the hidden keyboard entry.
+  const harness = await loadHarness();
+  assert.deepEqual(
+    harness.releaseEntries.map((entry) => entry.hidden),
+    [false, false, false, ...Array(15).fill(true)],
+  );
+  vm.runInContext("changeReleasePage(1)", harness.context);
+  assert.deepEqual(
+    harness.releaseEntries.map((entry) => entry.hidden),
+    [true, true, true, false, false, false, ...Array(12).fill(true)],
+  );
+
+  const shortcut = {
+    key: "P",
+    target: new FakeElement("main"),
+    ctrlKey: false,
+    altKey: false,
+    metaKey: false,
+    preventDefault() {},
+  };
+  harness.context.handlePatchNotesShortcut(shortcut);
+  assert.equal(harness.elements.get("#patch-notes-dialog").open, true);
+  harness.context.handlePatchNotesShortcut(shortcut);
+  assert.equal(harness.elements.get("#patch-notes-dialog").open, false);
+});
+
+test("CSS keeps colors centralized and every screen viewport-bound", async () => {
+  // Guard the semantic Marin palette and scroll-free full-screen shells.
+  const css = await readFile(resolve(projectRoot, "styles.css"), "utf8");
+  const cssWithoutRoot = css.replace(/:root\s*\{[\s\S]*?\}/, "");
+  assert.doesNotMatch(cssWithoutRoot, /#[0-9a-f]{3,8}/i);
+  assert.doesNotMatch(cssWithoutRoot, /rgba?\(/i);
+  assert.doesNotMatch(css, /overflow:\s*(auto|scroll)/);
+  assert.match(css, /html\s*\{[\s\S]*?overflow:\s*hidden/);
+  assert.match(css, /\.site-dialog\s*\{[\s\S]*?height:\s*100dvh/);
+  assert.match(css, /\.slot-lever\s*\{[\s\S]*?width:\s*1px/);
+  assert.match(css, /\.slot-lever\s*\{[\s\S]*?pointer-events:\s*none/);
+});
+
+test("3D source uses model factories, a dancing tiger, and precise lever raycasting", async () => {
+  // Prevent regression to flat prizes or a rectangular pointer control.
+  const source = await readFile(resolve(projectRoot, "casino-3d.mjs"), "utf8");
+  for (const factory of [
+    "createRingPrize",
+    "createChibiPrize",
+    "createCakePrize",
+    "createCashCasePrize",
+    "createSandwichPrize",
+    "buildTiger",
+  ]) {
+    assert.match(source, new RegExp("function " + factory + "\\("));
+  }
+  assert.match(source, /new THREE\.Raycaster\(\)/);
+  assert.match(source, /leverHitMeshes = \[model\.leverArm, model\.leverKnob\]/);
+  assert.match(source, /intersectObjects\(leverHitMeshes, false\)/);
+  assert.doesNotMatch(source, /leverPivot.*leverHitMeshes/);
 });

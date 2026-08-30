@@ -18,74 +18,76 @@
       <section class="card" aria-labelledby="question">
         <span class="sparkle sparkle-left" aria-hidden="true">✦</span>
 
-        <p class="eyebrow">status financeiro em tempo real</p>
-        <h1 id="question">niasguts já está rica?</h1>
+        <div class="main-primary">
+          <p class="eyebrow">status financeiro em tempo real</p>
+          <h1 id="question">niasguts já está rica?</h1>
 
-        <div class="verdict">
-          <p class="answer" aria-label="Não">NÃO</p>
+          <div class="verdict">
+            <p class="answer" aria-label="Não">NÃO</p>
+          </div>
+
+          <div class="main-actions">
+            <button
+              class="rich-button"
+              id="open-casino"
+              type="button"
+              aria-haspopup="dialog"
+              aria-controls="casino-dialog"
+            >FIQUE RICA!</button>
+            <button
+              class="achievements-button"
+              id="open-achievements"
+              type="button"
+              aria-haspopup="dialog"
+              aria-controls="achievements-dialog"
+            >
+              <span>CONQUISTAS</span>
+              <span class="achievements-count" id="achievements-count">0/5</span>
+            </button>
+          </div>
         </div>
 
-        <div class="main-actions">
-          <button
-            class="rich-button"
-            id="open-casino"
-            type="button"
-            aria-haspopup="dialog"
-            aria-controls="casino-dialog"
-          >FIQUE RICA!</button>
-          <button
-            class="achievements-button"
-            id="open-achievements"
-            type="button"
-            aria-haspopup="dialog"
-            aria-controls="achievements-dialog"
+        <div class="main-details">
+          <p class="counter-heading">tempo oficialmente não rica</p>
+          <div
+            class="counter"
+            id="age-counter"
+            role="timer"
+            aria-live="off"
+            aria-label="Carregando idade"
           >
-            <span>CONQUISTAS</span>
-            <span class="achievements-count" id="achievements-count">0/3</span>
-          </button>
-        </div>
+            <div class="counter-part">
+              <strong class="counter-value" id="years">--</strong>
+              <span class="counter-unit">anos</span>
+            </div>
+            <div class="counter-part">
+              <strong class="counter-value" id="days">---</strong>
+              <span class="counter-unit">dias</span>
+            </div>
+            <div class="counter-part">
+              <strong class="counter-value" id="hours">--</strong>
+              <span class="counter-unit">horas</span>
+            </div>
+            <div class="counter-part">
+              <strong class="counter-value" id="minutes">--</strong>
+              <span class="counter-unit">minutos</span>
+            </div>
+            <div class="counter-part">
+              <strong class="counter-value" id="seconds">--</strong>
+              <span class="counter-unit">segundos</span>
+            </div>
+          </div>
 
-        <p class="counter-heading">tempo oficialmente não rica</p>
-        <div
-          class="counter"
-          id="age-counter"
-          role="timer"
-          aria-live="off"
-          aria-label="Carregando idade"
-        >
-          <div class="counter-part">
-            <strong class="counter-value" id="years">--</strong>
-            <span class="counter-unit">anos</span>
-          </div>
-          <div class="counter-part">
-            <strong class="counter-value" id="days">---</strong>
-            <span class="counter-unit">dias</span>
-          </div>
-          <div class="counter-part">
-            <strong class="counter-value" id="hours">--</strong>
-            <span class="counter-unit">horas</span>
-          </div>
-          <div class="counter-part">
-            <strong class="counter-value" id="minutes">--</strong>
-            <span class="counter-unit">minutos</span>
-          </div>
-          <div class="counter-part">
-            <strong class="counter-value" id="seconds">--</strong>
-            <span class="counter-unit">segundos</span>
-          </div>
+          <footer class="site-footer">
+            <p class="since">desde 04 de outubro de 2000, 12:16 · Porto Alegre</p>
+            <p class="credit">agradecimentos ao @vapercarioca pela ideia no chat da twitch</p>
+            <p class="donation">
+              ajude ela a ficar rica doando em
+              <a href="https://pixie.gg/niagott" target="_blank" rel="noopener noreferrer">pixie.gg/niagott</a>
+            </p>
+            <span class="version-label">versão 1.8</span>
+          </footer>
         </div>
-
-        <footer class="site-footer">
-          <p class="since">desde 04 de outubro de 2000, 12:16 · Porto Alegre</p>
-          <p class="credit">agradecimentos ao @vapercarioca pela ideia no chat da twitch</p>
-          <p class="donation">
-            ajude ela a ficar rica doando em
-            <a href="https://pixie.gg/niagott" target="_blank" rel="noopener noreferrer">pixie.gg/niagott</a>
-          </p>
-          <div class="release-info">
-            <span class="version-label">versão 1.7</span>
-          </div>
-        </footer>
       </section>
 
       <aside class="marin-decorations" aria-label="Marin Kitagawa">
@@ -100,82 +102,127 @@
       aria-labelledby="casino-title"
       aria-describedby="casino-description"
     >
-      <div class="casino-scene">
-        <section
-          class="slot-machine is-loading"
-          id="slot-machine"
-          aria-label="Resultado inicial: café, tigre e sete"
-        >
-          <canvas class="casino-canvas" id="casino-canvas" aria-hidden="true"></canvas>
+      <section
+        class="slot-machine is-loading"
+        id="slot-machine"
+        aria-label="Resultado inicial: café, tigre e sete"
+      >
+        <canvas class="casino-canvas" id="casino-canvas" aria-hidden="true"></canvas>
 
-          <div class="casino-interface">
-            <form class="dialog-close-form casino-close-form" method="dialog">
-              <button class="dialog-close casino-close" type="submit" aria-label="Fechar simulador">×</button>
-            </form>
+        <div class="casino-interface">
+          <form class="dialog-close-form casino-close-form" method="dialog">
+            <button class="dialog-close casino-close" type="submit" aria-label="Fechar cassino">×</button>
+          </form>
 
-            <header class="casino-marquee">
-              <p class="casino-kicker">simulador 100% confiável</p>
-              <h2 class="casino-title" id="casino-title">Tigrinho da Barista</h2>
-              <p class="casino-description" id="casino-description">
-                Três presentes iguais liberam um prêmio. Talvez.
-              </p>
-            </header>
+          <header class="casino-marquee">
+            <p class="casino-kicker">simulador 100% confiável</p>
+            <h2 class="casino-title" id="casino-title">Tigrinho da Barista</h2>
+            <p class="casino-description" id="casino-description">
+              Uma ficha por giro. A banca promete absolutamente nada.
+            </p>
+          </header>
 
-            <p class="casino-loading" id="casino-loading" role="status">
-              montando a máquina 3D...
+          <section class="casino-token-hud" aria-label="Saldo de fichas">
+            <span class="casino-token-label">fichas</span>
+            <strong class="casino-token-balance" id="casino-token-balance">5</strong>
+            <p class="casino-token-storage-note" id="casino-token-storage-note" hidden>
+              saldo válido só nesta visita
+            </p>
+          </section>
+
+          <p class="casino-loading" id="casino-loading" role="status">
+            montando a máquina 3D...
+          </p>
+
+          <div class="casino-reel-fallback" id="casino-reel-fallback" aria-hidden="true" hidden>
+            <span class="fallback-reel">☕</span>
+            <span class="fallback-reel">🐯</span>
+            <span class="fallback-reel">7</span>
+          </div>
+
+          <button
+            class="slot-lever"
+            id="spin-casino"
+            type="button"
+            aria-label="Puxar alavanca tridimensional do cassino"
+            aria-describedby="casino-result casino-token-balance"
+          >
+            <span class="fallback-lever-visual" aria-hidden="true">
+              <span class="fallback-lever-arm"></span>
+              <span class="fallback-lever-knob"></span>
+            </span>
+            <span class="visually-hidden">Puxar alavanca</span>
+          </button>
+          <span class="lever-label" id="lever-label" aria-hidden="true">PUXE</span>
+
+          <div class="casino-control-deck">
+            <p class="casino-result" id="casino-result" role="status" aria-live="polite">
+              pronta para tentar?
             </p>
 
-            <div class="casino-reel-fallback" id="casino-reel-fallback" aria-hidden="true" hidden>
-              <span class="fallback-reel">☕</span>
-              <span class="fallback-reel">🐯</span>
-              <span class="fallback-reel">7</span>
+            <p class="casino-rules" aria-label="Regras das fichas">
+              1 ficha por giro · 🪙 devolve 1 · 🪙×2 paga 2 · 🎁 libera conquista
+            </p>
+
+            <div class="casino-audio-controls" aria-label="Controles da música">
+              <button
+                class="casino-music-toggle"
+                id="toggle-casino-music"
+                type="button"
+                aria-pressed="false"
+              >▶ MÚSICA</button>
+              <label class="casino-volume-control" for="casino-volume">
+                <span>volume</span>
+                <input
+                  class="casino-volume"
+                  id="casino-volume"
+                  type="range"
+                  min="0"
+                  max="100"
+                  step="5"
+                  value="25"
+                >
+              </label>
             </div>
 
-            <button
-              class="slot-lever"
-              id="spin-casino"
-              type="button"
-              aria-label="Puxar alavanca tridimensional do cassino"
-              aria-describedby="casino-result"
-            >
-              <span class="lever-label" id="lever-label" aria-hidden="true">PUXE</span>
-            </button>
-
-            <div class="casino-control-deck">
-              <p class="casino-result" id="casino-result" role="status" aria-live="polite">
-                pronta para tentar?
-              </p>
-
-              <div class="casino-audio-controls" aria-label="Controles da música">
-                <button
-                  class="casino-music-toggle"
-                  id="toggle-casino-music"
-                  type="button"
-                  aria-pressed="false"
-                >▶ MÚSICA</button>
-                <label class="casino-volume-control" for="casino-volume">
-                  <span>volume</span>
-                  <input
-                    class="casino-volume"
-                    id="casino-volume"
-                    type="range"
-                    min="0"
-                    max="100"
-                    step="5"
-                    value="25"
-                  >
-                </label>
-              </div>
-
-              <div class="casino-tray" aria-hidden="true">☕ A BANCA SEMPRE TOMA O CAFÉ ☕</div>
-            </div>
-
-            <div class="casino-prize-pop" id="casino-prize-pop" aria-hidden="true"></div>
+            <div class="casino-tray" aria-hidden="true">☕ A BANCA SEMPRE TOMA O CAFÉ ☕</div>
           </div>
-        </section>
+
+          <section class="casino-empty" id="casino-empty" tabindex="-1" hidden>
+            <strong>SEM FICHAS</strong>
+            <span>MINIGAME EM BREVE</span>
+          </section>
+
+          <section
+            class="casino-jackpot"
+            id="casino-jackpot"
+            role="alertdialog"
+            aria-modal="true"
+            aria-labelledby="casino-jackpot-title"
+            aria-describedby="casino-jackpot-prize"
+            hidden
+          >
+            <div class="jackpot-flash" aria-hidden="true"></div>
+            <div class="jackpot-rays" aria-hidden="true"></div>
+            <div class="jackpot-confetti" aria-hidden="true">
+              <i></i><i></i><i></i><i></i><i></i><i></i>
+              <i></i><i></i><i></i><i></i><i></i><i></i>
+              <i></i><i></i><i></i><i></i><i></i><i></i>
+              <i></i><i></i><i></i><i></i><i></i><i></i>
+            </div>
+            <div class="jackpot-copy">
+              <p class="jackpot-badge" id="casino-jackpot-badge">NOVA CONQUISTA</p>
+              <h3 class="jackpot-title" id="casino-jackpot-title">VOCÊ GANHOU</h3>
+              <p class="jackpot-prize" id="casino-jackpot-prize"></p>
+              <button class="jackpot-continue" id="casino-jackpot-continue" type="button">
+                CONTINUAR
+              </button>
+            </div>
+          </section>
+        </div>
 
         <audio id="casino-music" src="assets/musica.mp3" preload="none" loop></audio>
-      </div>
+      </section>
     </dialog>
 
     <dialog
@@ -184,40 +231,48 @@
       aria-labelledby="achievements-title"
       aria-describedby="achievements-progress"
     >
-      <div class="dialog-panel achievements-panel" id="achievements-panel">
-        <form class="dialog-close-form" method="dialog">
+      <section class="achievements-screen" id="achievements-screen">
+        <form class="dialog-close-form achievements-close-form" method="dialog">
           <button class="dialog-close" type="submit" aria-label="Fechar conquistas">×</button>
         </form>
 
-        <div class="achievement-cabinet">
-          <p class="achievements-kicker">coleção de prêmios reais</p>
+        <header class="achievements-header">
+          <p class="achievements-kicker">vitrine de prêmios muito reais</p>
           <h2 class="achievements-title" id="achievements-title">Conquistas</h2>
-          <p class="achievements-progress" id="achievements-progress">0 de 3 desbloqueadas</p>
+          <p class="achievements-progress" id="achievements-progress">0 de 5 desbloqueadas</p>
+        </header>
+
+        <div class="achievement-stage" id="achievement-stage">
+          <canvas class="achievements-canvas" id="achievements-canvas" aria-hidden="true"></canvas>
+          <p class="achievements-loading" id="achievements-loading" role="status">
+            preparando a vitrine 3D...
+          </p>
 
           <ol class="achievement-grid" id="achievement-grid" aria-label="Slots de conquistas">
-            <li class="achievement-slot is-locked" aria-label="Conquista oculta">
-              <span class="trophy-alcove" aria-hidden="true">
-                <span class="achievement-icon">?</span>
-                <span class="trophy-pedestal"></span>
-              </span>
+            <li class="achievement-slot is-locked" data-prize-id="esposa-nenepira" aria-label="Conquista oculta">
+              <span class="achievement-model-space" aria-hidden="true"><span class="achievement-fallback-mark">?</span></span>
               <span class="achievement-name">conquista oculta</span>
             </li>
-            <li class="achievement-slot is-locked" aria-label="Conquista oculta">
-              <span class="trophy-alcove" aria-hidden="true">
-                <span class="achievement-icon">?</span>
-                <span class="trophy-pedestal"></span>
-              </span>
+            <li class="achievement-slot is-locked" data-prize-id="prima-vaper" aria-label="Conquista oculta">
+              <span class="achievement-model-space" aria-hidden="true"><span class="achievement-fallback-mark">?</span></span>
               <span class="achievement-name">conquista oculta</span>
             </li>
-            <li class="achievement-slot is-locked" aria-label="Conquista oculta">
-              <span class="trophy-alcove" aria-hidden="true">
-                <span class="achievement-icon">?</span>
-                <span class="trophy-pedestal"></span>
-              </span>
+            <li class="achievement-slot is-locked" data-prize-id="bolos" aria-label="Conquista oculta">
+              <span class="achievement-model-space" aria-hidden="true"><span class="achievement-fallback-mark">?</span></span>
+              <span class="achievement-name">conquista oculta</span>
+            </li>
+            <li class="achievement-slot is-locked" data-prize-id="350-reais" aria-label="Conquista oculta">
+              <span class="achievement-model-space" aria-hidden="true"><span class="achievement-fallback-mark">?</span></span>
+              <span class="achievement-name">conquista oculta</span>
+            </li>
+            <li class="achievement-slot is-locked" data-prize-id="lanche-subway" aria-label="Conquista oculta">
+              <span class="achievement-model-space" aria-hidden="true"><span class="achievement-fallback-mark">?</span></span>
               <span class="achievement-name">conquista oculta</span>
             </li>
           </ol>
+        </div>
 
+        <div class="achievement-status">
           <p class="achievement-complete-plaque" id="achievement-complete-plaque" hidden>
             COLEÇÃO COMPLETA
           </p>
@@ -225,7 +280,7 @@
             não foi possível salvar; o progresso vale só nesta visita.
           </p>
         </div>
-      </div>
+      </section>
     </dialog>
 
     <dialog
@@ -233,85 +288,43 @@
       id="patch-notes-dialog"
       aria-labelledby="patch-notes-title"
     >
-      <div class="dialog-panel patch-notes-panel">
-        <form class="dialog-close-form" method="dialog">
+      <section class="patch-notes-screen">
+        <form class="dialog-close-form patch-notes-close-form" method="dialog">
           <button class="dialog-close" type="submit" aria-label="Fechar patch notes">×</button>
         </form>
 
-        <p class="patch-notes-kicker">histórico da riqueza</p>
-        <h2 class="patch-notes-title" id="patch-notes-title">Patch notes</h2>
+        <header class="patch-notes-header">
+          <p class="patch-notes-kicker">histórico da riqueza</p>
+          <h2 class="patch-notes-title" id="patch-notes-title">Patch notes</h2>
+        </header>
 
-        <ol class="release-list" aria-label="Histórico de versões">
-          <li class="release-entry">
-            <h3>versão 1.7</h3>
-            <p>O cassino foi reconstruído em WebGL com alavanca tridimensional, texto nítido, música corrigida e um novo armário de conquistas.</p>
-          </li>
-          <li class="release-entry">
-            <h3>versão 1.6</h3>
-            <p>O cassino ganhou um gabinete 3D completo, trincas premiadas e conquistas persistentes; os patch notes agora abrem pela tecla P.</p>
-          </li>
-          <li class="release-entry">
-            <h3>versão 1.5</h3>
-            <p>O Tigrinho da Barista virou uma máquina 3D com rolos cilíndricos, alavanca, animação escalonada e música.</p>
-          </li>
-          <li class="release-entry">
-            <h3>versão 1.4</h3>
-            <p>O texto de apoio do Pixie e os patch notes foram revisados.</p>
-          </li>
-          <li class="release-entry">
-            <h3>versão 1.3</h3>
-            <p>Os oito GIFs da Marin agora são locais, somem no mobile e o histórico de versões chegou ao rodapé.</p>
-          </li>
-          <li class="release-entry">
-            <h3>versão 1.2</h3>
-            <p>O link de doação do Pixie foi adicionado.</p>
-          </li>
-          <li class="release-entry">
-            <h3>versão 1.1</h3>
-            <p>O horário de nascimento foi corrigido para 12:16 em Porto Alegre.</p>
-          </li>
-          <li class="release-entry">
-            <h3>versão 1.0</h3>
-            <p>O aviso redundante do cassino foi removido.</p>
-          </li>
-          <li class="release-entry">
-            <h3>versão 0.9</h3>
-            <p>“barista de porto alegre” virou uma opção entre os nomes aleatórios.</p>
-          </li>
-          <li class="release-entry">
-            <h3>versão 0.8</h3>
-            <p>O café e o minijogo do tigrinho que sempre dá errado foram adicionados.</p>
-          </li>
-          <li class="release-entry">
-            <h3>versão 0.7</h3>
-            <p>A página ganhou uma paleta inspirada na Marin Kitagawa.</p>
-          </li>
-          <li class="release-entry">
-            <h3>versão 0.6</h3>
-            <p>O nome exibido na pergunta passou a ser sorteado a cada carregamento.</p>
-          </li>
-          <li class="release-entry">
-            <h3>versão 0.5</h3>
-            <p>Oito GIFs passaram a disputar dois espaços, os milissegundos saíram e o crédito da Twitch entrou.</p>
-          </li>
-          <li class="release-entry">
-            <h3>versão 0.4</h3>
-            <p>Os primeiros GIFs da Marin foram colocados ao redor do contador.</p>
-          </li>
-          <li class="release-entry">
-            <h3>versão 0.3</h3>
-            <p>Os milissegundos foram adicionados temporariamente ao contador.</p>
-          </li>
-          <li class="release-entry">
-            <h3>versão 0.2</h3>
-            <p>O local foi corrigido para Porto Alegre.</p>
-          </li>
-          <li class="release-entry">
-            <h3>versão 0.1</h3>
-            <p>Nasceu o contador oficial para descobrir se niasguts já está rica.</p>
-          </li>
+        <ol class="release-list" id="release-list" aria-label="Histórico de versões">
+          <li class="release-entry"><h3>versão 1.8</h3><p>O site virou fullscreen, ganhou fichas persistentes, jackpots, tigrinho dançante, cinco prêmios 3D e uma alavanca clicável pela própria geometria.</p></li>
+          <li class="release-entry"><h3>versão 1.7</h3><p>O cassino foi reconstruído em WebGL com alavanca tridimensional, texto nítido, música corrigida e um novo armário de conquistas.</p></li>
+          <li class="release-entry"><h3>versão 1.6</h3><p>O cassino ganhou um gabinete 3D completo, trincas premiadas e conquistas persistentes; os patch notes agora abrem pela tecla P.</p></li>
+          <li class="release-entry"><h3>versão 1.5</h3><p>O Tigrinho da Barista virou uma máquina 3D com rolos cilíndricos, alavanca, animação escalonada e música.</p></li>
+          <li class="release-entry"><h3>versão 1.4</h3><p>O texto de apoio do Pixie e os patch notes foram revisados.</p></li>
+          <li class="release-entry"><h3>versão 1.3</h3><p>Os oito GIFs da Marin agora são locais, somem no mobile e o histórico de versões chegou ao rodapé.</p></li>
+          <li class="release-entry"><h3>versão 1.2</h3><p>O link de doação do Pixie foi adicionado.</p></li>
+          <li class="release-entry"><h3>versão 1.1</h3><p>O horário de nascimento foi corrigido para 12:16 em Porto Alegre.</p></li>
+          <li class="release-entry"><h3>versão 1.0</h3><p>O aviso redundante do cassino foi removido.</p></li>
+          <li class="release-entry"><h3>versão 0.9</h3><p>“barista de porto alegre” virou uma opção entre os nomes aleatórios.</p></li>
+          <li class="release-entry"><h3>versão 0.8</h3><p>O café e o minijogo do tigrinho que sempre dá errado foram adicionados.</p></li>
+          <li class="release-entry"><h3>versão 0.7</h3><p>A página ganhou uma paleta inspirada na Marin Kitagawa.</p></li>
+          <li class="release-entry"><h3>versão 0.6</h3><p>O nome exibido na pergunta passou a ser sorteado a cada carregamento.</p></li>
+          <li class="release-entry"><h3>versão 0.5</h3><p>Oito GIFs passaram a disputar dois espaços, os milissegundos saíram e o crédito da Twitch entrou.</p></li>
+          <li class="release-entry"><h3>versão 0.4</h3><p>Os primeiros GIFs da Marin foram colocados ao redor do contador.</p></li>
+          <li class="release-entry"><h3>versão 0.3</h3><p>Os milissegundos foram adicionados temporariamente ao contador.</p></li>
+          <li class="release-entry"><h3>versão 0.2</h3><p>O local foi corrigido para Porto Alegre.</p></li>
+          <li class="release-entry"><h3>versão 0.1</h3><p>Nasceu o contador oficial para descobrir se niasguts já está rica.</p></li>
         </ol>
-      </div>
+
+        <nav class="release-pagination" aria-label="Paginação dos patch notes">
+          <button class="release-page-button" id="release-previous" type="button">ANTERIOR</button>
+          <span class="release-page-status" id="release-page-status" aria-live="polite">1/6</span>
+          <button class="release-page-button" id="release-next" type="button">PRÓXIMA</button>
+        </nav>
+      </section>
     </dialog>
 
     <script src="app.js" defer></script>
