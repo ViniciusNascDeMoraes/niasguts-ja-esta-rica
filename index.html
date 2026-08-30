@@ -519,6 +519,28 @@
         opacity: 0.62;
       }
 
+      .donation {
+        margin: 0.65rem 0 0;
+        color: var(--navy-deep);
+        font-size: clamp(0.68rem, 1.8vw, 0.82rem);
+        font-weight: 700;
+      }
+
+      .donation a {
+        color: var(--hair-pink-dark);
+        text-decoration-color: var(--hair-pink);
+        text-underline-offset: 0.18em;
+      }
+
+      .donation a:hover {
+        color: var(--tie-red);
+      }
+
+      .donation a:focus-visible {
+        outline: 0.2rem solid var(--tie-red);
+        outline-offset: 0.2rem;
+      }
+
       @keyframes reel-spin {
         0%,
         100% {
@@ -689,6 +711,10 @@
 
         <p class="since">desde 04 de outubro de 2000, 12:16 · Porto Alegre</p>
         <p class="credit">agradecimentos ao @vapercarioca pela ideia no chat da twitch</p>
+        <p class="donation">
+          ajudando ela a ficar rica doando em
+          <a href="https://pixie.gg/niagott" target="_blank" rel="noopener noreferrer">pixie.gg/niagott</a>
+        </p>
       </section>
 
       <aside class="marin-decorations" aria-label="Marin Kitagawa">
