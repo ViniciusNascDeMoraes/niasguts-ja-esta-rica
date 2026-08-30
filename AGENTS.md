@@ -52,6 +52,7 @@
   - `1.1`: `b8cb05d` - birth time corrected to 12:16.
   - `1.2`: `593a920` - Pixie donation link.
   - `1.3`: local GIFs, mobile GIF removal, and visible patch notes.
+  - `1.4`: Pixie wording and patch-note copy refinements.
 - Update the footer version, patch notes, and this mapping together for each future user-visible release.
 
 ## Architecture and Delivery
