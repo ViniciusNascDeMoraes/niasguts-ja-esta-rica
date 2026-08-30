@@ -194,8 +194,7 @@ function createTextTexture(text, background, foreground) {
 function createSymbolTexture(
   character,
   background,
-  foreground,
-  highlight,
+  palette,
   renderer,
 ) {
   // Draw one high-resolution reel face onto a local canvas texture.
@@ -210,20 +209,66 @@ function createSymbolTexture(
 
   context.fillStyle = background;
   context.fillRect(0, 0, textureCanvas.width, textureCanvas.height);
-  context.fillStyle = highlight;
+  context.fillStyle = palette.white;
   context.beginPath();
   context.ellipse(132, 92, 106, 66, -0.3, 0, FULL_TURN_RADIANS);
   context.fill();
-  context.fillStyle = foreground;
-  const compactSymbol = character.includes("×");
-  context.font = character === "7"
-    ? '900 245px "Arial Rounded MT Bold", "Trebuchet MS", sans-serif'
-    : compactSymbol
-      ? '900 118px "Segoe UI Emoji", "Arial Rounded MT Bold", sans-serif'
+
+  if (character === "FICHA") {
+    const chipCenter = 192;
+    const chipOuterRadius = 122;
+    const chipRingRadius = 88;
+    const chipCenterRadius = 60;
+    context.fillStyle = palette.hairBlonde;
+    context.strokeStyle = palette.navyDeep;
+    context.lineWidth = 12;
+    context.beginPath();
+    context.arc(
+      chipCenter,
+      chipCenter,
+      chipOuterRadius,
+      0,
+      FULL_TURN_RADIANS,
+    );
+    context.fill();
+    context.stroke();
+    context.strokeStyle = palette.hairPinkDark;
+    context.lineWidth = 15;
+    context.setLineDash([18, 12]);
+    context.beginPath();
+    context.arc(
+      chipCenter,
+      chipCenter,
+      chipRingRadius,
+      0,
+      FULL_TURN_RADIANS,
+    );
+    context.stroke();
+    context.setLineDash([]);
+    context.fillStyle = palette.hairBlondeSoft;
+    context.beginPath();
+    context.arc(
+      chipCenter,
+      chipCenter,
+      chipCenterRadius,
+      0,
+      FULL_TURN_RADIANS,
+    );
+    context.fill();
+    context.fillStyle = palette.navyDeep;
+    context.font = '900 112px "Arial Rounded MT Bold", "Trebuchet MS", sans-serif';
+    context.textAlign = "center";
+    context.textBaseline = "middle";
+    context.fillText("1", chipCenter, chipCenter + 7);
+  } else {
+    context.fillStyle = palette.navyDeep;
+    context.font = character === "7"
+      ? '900 245px "Arial Rounded MT Bold", "Trebuchet MS", sans-serif'
       : '220px "Segoe UI Emoji", "Apple Color Emoji", sans-serif';
-  context.textAlign = "center";
-  context.textBaseline = "middle";
-  context.fillText(character, 192, compactSymbol ? 198 : 205);
+    context.textAlign = "center";
+    context.textBaseline = "middle";
+    context.fillText(character, 192, 205);
+  }
 
   const texture = new THREE.CanvasTexture(textureCanvas);
   texture.colorSpace = THREE.SRGBColorSpace;
@@ -258,8 +303,7 @@ function createReel(symbols, symbolBackgrounds, palette, renderer) {
     const texture = createSymbolTexture(
       symbols[symbolIndex],
       symbolBackgrounds[symbolIndex % symbolBackgrounds.length],
-      palette.navyDeep,
-      palette.white,
+      palette,
       renderer,
     );
     const plateMaterial = new THREE.MeshStandardMaterial({
@@ -946,7 +990,7 @@ function buildCasinoModel(
 ) {
   // Assemble a deep cabinet, physical reels, external lever, tiger, and prizes.
   const machine = new THREE.Group();
-  machine.name = "Tigrinho da Barista";
+  machine.name = "nanaBet";
   machine.position.x = 0.35;
   scene.add(machine);
 
@@ -1025,7 +1069,6 @@ function buildCasinoModel(
     palette.shirt,
     palette.hairBlondeSoft,
     palette.skirtBlueSoft,
-    palette.hairPinkSoft,
   ];
   const symbolAngle = FULL_TURN_RADIANS / symbols.length;
 
@@ -1693,7 +1736,7 @@ export function createCasino3D(options) {
   }
 
   function spinTo(targetIndices, animationOptions) {
-    // Rotate the physical eight-face reels to the page's authoritative result.
+    // Rotate the physical seven-face reels to the page's authoritative result.
     const { durations, fullTurns, reducedMotion: skipMotion } = animationOptions;
     if (spinState !== null) {
       return Promise.reject(new Error("A casino spin is already running."));
@@ -1746,7 +1789,7 @@ export function createCasino3D(options) {
     celebrationState = {
       startedAt: performance.now(),
       duration: kind === "prize" ? 1100 : 520,
-      strength: kind === "double" ? 1.2 : kind === "token" ? 0.8 : 0.25,
+      strength: kind === "token" ? 0.8 : 0.25,
     };
     requestFrame();
   }

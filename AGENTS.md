@@ -35,10 +35,10 @@
 - Use the external right-side 3D lever as the only spin control. Pointer and touch input must raycast only against the visible arm and knob meshes; the base and surrounding rectangle must never activate it.
 - Keep a clipped `1x1` native button for screen readers, Tab, Enter, and Space. Transfer its focus indication to the 3D lever and do not show a rectangular outline.
 - Pull the lever forward and down around its horizontal pivot. Do not animate it sideways.
-- Build three physical eight-symbol cylindrical reels and stop them sequentially with deceleration. Use five ordinary faces plus mystery gift, one-chip, and two-chip faces.
+- Build three physical seven-symbol cylindrical reels and stop them sequentially with deceleration. Use five ordinary faces plus mystery gift and one-chip faces.
 - Load the shared 3D module only when the casino or achievement gallery first opens; do not load it eagerly on the main page. Keep a functional HTML reel fallback for WebGL or module failure.
 - Start each visitor with five virtual chips stored under `niasguts-casino-fichas-v1`. Charge one chip before each spin and keep the balance visible only inside the casino.
-- Resolve each spin from one exclusive roll: 50% returns one chip, 25% pays two chips, 12.5% lands a mystery-gift achievement, and 12.5% is an ordinary loss. Keep ordinary losses free of matching triples.
+- Resolve each spin from one exclusive roll: 50% returns one chip, 12.5% lands a mystery-gift achievement, and 37.5% is an ordinary loss. Keep ordinary losses free of matching triples.
 - When the balance reaches zero, disable the lever and show `SEM FICHAS — MINIGAME EM BREVE`. Do not add a reset or emergency chip path.
 - Award `esposa do nenepira`, `prima do vaper`, `bólos`, `350 reais`, and `lanche do subway` only through mystery-gift triples. Award locked prizes before repeats; allow repeats only after all five are unlocked.
 - Build a procedural chibi tiger opposite the lever with exactly two eyes, visible inner ears, two short forehead stripes, and cheek-only whiskers. Dance at 30 fps only while the casino is visible, use a stronger victory dance during jackpots, and keep it static under reduced motion.
@@ -47,7 +47,7 @@
 - Keep the main financial verdict as `NÃO` after every prize.
 - Keep coffee references in the symbols or failure messages.
 - Use `assets/musica.mp3` as looped casino-only music at 25% initial volume.
-- Start enabled music when the casino opens, pause it when the casino closes, and provide play/pause and volume controls inside the modal.
+- Start enabled music when the casino opens, pause and reset it to the beginning when the casino closes, and provide play/pause and volume controls inside the modal.
 - Preserve a manual pause while the page remains open. Do not add other music or sound effects without explicit approval.
 - Track the visitor's desired music state separately from `HTMLMediaElement.paused`. Invalidate stale `play()` promises so they cannot undo a newer pause request.
 - Reflect actual playback through the media `play`, `pause`, and `error` events.
@@ -91,6 +91,7 @@
   - `1.7`: WebGL casino, physical side lever, sharp HTML controls, fixed music pause, and 3D trophy cabinet.
   - `1.8`: fullscreen responsive screens, persistent chips, five procedural prizes, blocking jackpots, dancing 3D tiger, paginated secret notes, and mesh-only lever raycasting.
   - `1.9`: corrected chibi tiger face and camera-centered jackpot prizes layered in front of every decorative effect.
+  - `1.10`: nanaBet branding, font-independent one-chip reels, top-right audio controls, simplified odds, and reliable casino and music reopening.
 - Update the footer version, patch notes, and this mapping together for each future user-visible release.
 
 ## Architecture and Delivery

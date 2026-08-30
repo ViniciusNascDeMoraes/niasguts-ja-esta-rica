@@ -172,7 +172,7 @@ function createPageHarness(options = {}) {
     new FakeElement("fallback-2"),
   ];
   const releaseEntries = Array.from(
-    { length: 18 },
+    { length: 20 },
     (_, index) => new FakeElement("release-" + index),
   );
   const audio = new FakeElement("casino-music");
@@ -318,7 +318,7 @@ async function loadHarness(options = {}) {
   return harness;
 }
 
-test("static page exposes the version 1.9 full-screen experience", async () => {
+test("static page exposes the version 1.10 full-screen experience", async () => {
   // Verify deployment markup and all required native controls.
   const html = await readFile(resolve(projectRoot, "index.html"), "utf8");
   assert.match(html, /href="styles\.css"/);
@@ -328,9 +328,16 @@ test("static page exposes the version 1.9 full-screen experience", async () => {
   assert.match(html, /id="casino-jackpot-continue"/);
   assert.match(html, /id="achievements-canvas"/);
   assert.match(html, /id="toggle-casino-music"/);
-  assert.match(html, /versão 1\.9/);
+  assert.match(html, /versão 1\.10/);
+  assert.match(html, /id="casino-title">nanaBet<\/h2>/);
+  assert.match(html, /class="casino-chip-mark"/);
   assert.equal((html.match(/data-prize-id=/g) ?? []).length, 5);
-  assert.equal((html.match(/class="release-entry"/g) ?? []).length, 19);
+  assert.equal((html.match(/class="release-entry"/g) ?? []).length, 20);
+  assert.ok(
+    html.indexOf('<div class="casino-audio-controls"') <
+      html.indexOf('<div class="casino-control-deck">'),
+  );
+  assert.doesNotMatch(html, /aria-describedby="casino-description"/);
   assert.doesNotMatch(html, /aria-controls="patch-notes-dialog"/);
   assert.doesNotMatch(html, /aperte\s+p/i);
   assert.doesNotMatch(html, /coraç/i);
@@ -476,12 +483,12 @@ test("jackpot prize anchor stays centered and viewport-bound", async () => {
   }
 });
 
-test("all eight reel faces stop exactly on the selected symbol", async () => {
+test("all seven reel faces stop exactly on the selected symbol", async () => {
   // Cover every current and target face while preserving backward rotation.
   const casinoModule = await import(
     pathToFileURL(resolve(projectRoot, "casino-3d.mjs")).href
   );
-  const symbolCount = 8;
+  const symbolCount = 7;
   const fullTurn = Math.PI * 2;
   const symbolAngle = fullTurn / symbolCount;
 
@@ -504,17 +511,15 @@ test("all eight reel faces stop exactly on the selected symbol", async () => {
   }
 });
 
-test("one random roll selects the four exact outcome bands", async () => {
+test("one random roll selects the three exact outcome bands", async () => {
   // Assert inclusive lower bounds and exclusive upper bounds.
   const harness = await loadHarness();
   const scenarios = [
     [0, "refund"],
     [0.499999, "refund"],
-    [0.5, "double"],
-    [0.749999, "double"],
-    [0.75, "prize"],
-    [0.874999, "prize"],
-    [0.875, "loss"],
+    [0.5, "prize"],
+    [0.624999, "prize"],
+    [0.625, "loss"],
     [0.999999, "loss"],
   ];
 
@@ -529,11 +534,10 @@ test("one random roll selects the four exact outcome bands", async () => {
 });
 
 test("chip debit and exclusive payouts produce the intended net balance", async () => {
-  // A refund nets zero, double nets one, and both prize and loss net minus one.
+  // A refund nets zero while both a prize and a loss net minus one.
   const scenarios = [
     { roll: [0.2], expectedBalance: 10, expectedType: "refund" },
-    { roll: [0.6], expectedBalance: 11, expectedType: "double" },
-    { roll: [0.8, 0], expectedBalance: 9, expectedType: "prize" },
+    { roll: [0.55, 0], expectedBalance: 9, expectedType: "prize" },
     { roll: [0.9, 0, 0.25, 0.5, 0], expectedBalance: 9, expectedType: "loss" },
   ];
 
@@ -553,6 +557,28 @@ test("chip debit and exclusive payouts produce the intended net balance", async 
       harness.storage.get("niasguts-casino-fichas-v1"),
       String(scenario.expectedBalance),
     );
+  }
+});
+
+test("fallback reels draw one local chip and clear it on the next loss", async () => {
+  // Exercise the font-independent chip path through complete fallback spins.
+  const harness = await loadHarness({ savedTokens: 5 });
+  harness.setRandomValues([0.2]);
+  await vm.runInContext("startCasinoSpin()", harness.context);
+
+  for (const reel of harness.fallbackReels) {
+    assert.equal(reel.classList.contains("is-chip"), true);
+    assert.equal(reel.dataset.chipCount, "1");
+    assert.equal(reel.textContent, "");
+  }
+
+  harness.setRandomValues([0.9, 0, 0.25, 0.5, 0]);
+  await vm.runInContext("startCasinoSpin()", harness.context);
+
+  for (const reel of harness.fallbackReels) {
+    assert.equal(reel.classList.contains("is-chip"), false);
+    assert.equal("chipCount" in reel.dataset, false);
+    assert.notEqual(reel.textContent, "");
   }
 });
 
@@ -582,7 +608,7 @@ test("achievement outcomes award all five locked prizes before repeats", async (
   const harness = await loadHarness({ savedTokens: 20 });
 
   for (let prizeIndex = 0; prizeIndex < prizeIds.length; prizeIndex += 1) {
-    harness.setRandomValues([0.8, 0]);
+    harness.setRandomValues([0.55, 0]);
     await vm.runInContext("startCasinoSpin()", harness.context);
     assert.equal(
       vm.runInContext("unlockedAchievementIds.size", harness.context),
@@ -603,7 +629,7 @@ test("achievement outcomes award all five locked prizes before repeats", async (
     );
   }
 
-  harness.setRandomValues([0.8, 0]);
+  harness.setRandomValues([0.55, 0]);
   await vm.runInContext("startCasinoSpin()", harness.context);
   assert.equal(vm.runInContext("unlockedAchievementIds.size", harness.context), 5);
   assert.equal(
@@ -678,7 +704,7 @@ test("manual music pause wins over an unresolved play request", async () => {
 });
 
 test("manual music pause persists through close and reopen", async () => {
-  // Keep the desired state for the current visit without resetting playback.
+  // Keep the desired state while resetting playback to the beginning.
   const harness = await loadHarness();
   vm.runInContext("openCasino()", harness.context);
   await Promise.resolve();
@@ -688,12 +714,79 @@ test("manual music pause persists through close and reopen", async () => {
   vm.runInContext("toggleCasinoMusic()", harness.context);
   await Promise.resolve();
   assert.equal(harness.audio.paused, true);
+  harness.audio.currentTime = 23;
   harness.elements.get("#casino-dialog").close();
+  assert.equal(harness.audio.currentTime, 0);
   vm.runInContext("openCasino()", harness.context);
   await Promise.resolve();
   await Promise.resolve();
   assert.equal(harness.audio.paused, true);
   assert.equal(harness.audio.currentTime, 0);
+});
+
+test("enabled music restarts from zero after the casino reopens", async () => {
+  // Pause casino-only audio on close and start a fresh loop on reopen.
+  const harness = await loadHarness();
+  vm.runInContext("openCasino()", harness.context);
+  await Promise.resolve();
+  await Promise.resolve();
+  assert.equal(harness.audio.paused, false);
+
+  harness.audio.currentTime = 37;
+  harness.elements.get("#casino-dialog").close();
+  assert.equal(harness.audio.paused, true);
+  assert.equal(harness.audio.currentTime, 0);
+
+  vm.runInContext("openCasino()", harness.context);
+  await Promise.resolve();
+  await Promise.resolve();
+  assert.equal(harness.audio.paused, false);
+  assert.equal(harness.audio.currentTime, 0);
+});
+
+test("a stale play completion cannot move closed-casino music past zero", async () => {
+  // Settle an old playback request after close and reapply the latest state.
+  const harness = await loadHarness();
+  let resolvePlay;
+  harness.audio.play = () =>
+    new Promise((resolvePlayPromise) => {
+      resolvePlay = () => {
+        harness.audio.paused = false;
+        resolvePlayPromise();
+      };
+    });
+
+  const pendingPlay = vm.runInContext(
+    "casinoDialog.open = true; casinoIsOpen = true; reconcileCasinoMusic()",
+    harness.context,
+  );
+  harness.audio.currentTime = 41;
+  harness.elements.get("#casino-dialog").close();
+  resolvePlay();
+  await pendingPlay;
+
+  assert.equal(harness.audio.paused, true);
+  assert.equal(harness.audio.currentTime, 0);
+});
+
+test("an existing 3D casino is reactivated after every reopen", async () => {
+  // Exercise the dialog lifecycle against one retained renderer instance.
+  const harness = await loadHarness();
+  harness.context.visibilityCalls = [];
+  vm.runInContext(
+    `casino3D = {
+      setVisible(value) { visibilityCalls.push(value); },
+      setLeverInteractive() {},
+      setCollectionComplete() {},
+    }`,
+    harness.context,
+  );
+
+  vm.runInContext("openCasino()", harness.context);
+  harness.elements.get("#casino-dialog").close();
+  vm.runInContext("openCasino()", harness.context);
+
+  assert.deepEqual([...harness.context.visibilityCalls], [true, false, true]);
 });
 
 test("rejected music playback leaves a truthful retry control", async () => {
@@ -736,12 +829,13 @@ test("secret patch notes paginate three releases and support P toggling", async 
   const harness = await loadHarness();
   assert.deepEqual(
     harness.releaseEntries.map((entry) => entry.hidden),
-    [false, false, false, ...Array(15).fill(true)],
+    [false, false, false, ...Array(17).fill(true)],
   );
+  assert.equal(harness.elements.get("#release-page-status").textContent, "1/7");
   vm.runInContext("changeReleasePage(1)", harness.context);
   assert.deepEqual(
     harness.releaseEntries.map((entry) => entry.hidden),
-    [true, true, true, false, false, false, ...Array(12).fill(true)],
+    [true, true, true, false, false, false, ...Array(14).fill(true)],
   );
 
   const shortcut = {
@@ -771,6 +865,12 @@ test("CSS keeps colors centralized and every screen viewport-bound", async () =>
   assert.match(css, /\.slot-lever\s*\{[\s\S]*?pointer-events:\s*none/);
   assert.match(
     css,
+    /\.casino-audio-controls\s*\{[\s\S]*?position:\s*absolute;[\s\S]*?right:[\s\S]*?pointer-events:\s*auto;/,
+  );
+  assert.match(css, /\.slot-machine\.is-jackpot \.casino-audio-controls,/);
+  assert.match(css, /\.fallback-reel\.is-chip::before[\s\S]*?repeating-conic-gradient/);
+  assert.match(
+    css,
     /\.slot-machine\.is-ready \.jackpot-flash,[\s\S]*?display:\s*none/,
   );
 });
@@ -792,7 +892,18 @@ test("3D source uses centered jackpots, a dancing tiger, and precise lever rayca
   assert.match(source, /name = "jackpot-presentation-stage"/);
   assert.doesNotMatch(source, /prizeRoot\.position\.set/);
   assert.match(source, /new THREE\.Raycaster\(\)/);
+  assert.match(source, /character === "FICHA"/);
+  assert.match(source, /context\.arc\(/);
   assert.match(source, /leverHitMeshes = \[model\.leverArm, model\.leverKnob\]/);
   assert.match(source, /intersectObjects\(leverHitMeshes, false\)/);
   assert.doesNotMatch(source, /leverPivot.*leverHitMeshes/);
+});
+
+test("casino source has one font-independent chip and no double payout", async () => {
+  // Guard the simplified seven-face economy and its procedural marker.
+  const applicationSource = await readFile(resolve(projectRoot, "app.js"), "utf8");
+  assert.match(applicationSource, /character: "FICHA", label: "ficha"/);
+  assert.doesNotMatch(applicationSource, /🪙/u);
+  assert.doesNotMatch(applicationSource, /CASINO_DOUBLE_SYMBOL/);
+  assert.doesNotMatch(applicationSource, /pendingCasinoOutcomeType === "double"/);
 });

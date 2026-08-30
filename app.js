@@ -31,13 +31,11 @@ const CASINO_NORMAL_SYMBOLS = [
   { character: "7", label: "sete" },
 ];
 const CASINO_PRIZE_SYMBOL = { character: "🎁", label: "presente" };
-const CASINO_REFUND_SYMBOL = { character: "🪙", label: "ficha" };
-const CASINO_DOUBLE_SYMBOL = { character: "🪙×2", label: "duas fichas" };
+const CASINO_REFUND_SYMBOL = { character: "FICHA", label: "ficha" };
 const SLOT_SYMBOLS = [
   ...CASINO_NORMAL_SYMBOLS,
   CASINO_PRIZE_SYMBOL,
   CASINO_REFUND_SYMBOL,
-  CASINO_DOUBLE_SYMBOL,
 ];
 const CASINO_PRIZES = [
   { id: "esposa-nenepira", name: "esposa do nenepira", modelId: "ring" },
@@ -53,6 +51,8 @@ const INITIAL_REEL_SYMBOL_INDICES = [0, 1, 4];
 const CASINO_REEL_FULL_TURNS = [5, 6, 7];
 const CASINO_REEL_DURATIONS_MS = [1400, 1750, 2100];
 const CASINO_SETTLE_DELAY_MS = 180;
+const CASINO_REFUND_CHANCE = 0.5;
+const CASINO_PRIZE_CHANCE = 0.125;
 const RELEASES_PER_PAGE = 3;
 const CASINO_FAILURE_MESSAGES = [
   "quase! mas o tigrinho ficou com tudo.",
@@ -492,6 +492,11 @@ function showAchievementsFallback() {
   achievementsLoading.textContent = "vitrine 3D indisponível.";
 }
 
+function syncCasino3DVisibility(view = casino3D) {
+  // Match the existing casino renderer to the dialog and browser visibility.
+  view?.setVisible(casinoIsOpen && casinoDialog.open && !document.hidden);
+}
+
 async function ensureCasino3D() {
   // Initialize the casino scene only on its first opening.
   if (casino3D !== null || casino3DFailed) {
@@ -514,7 +519,7 @@ async function ensureCasino3D() {
         slotMachine.classList.remove("is-loading", "is-fallback");
         slotMachine.classList.add("is-ready");
         casinoReelFallback.hidden = true;
-        casino3D.setVisible(casinoDialog.open && !document.hidden);
+        syncCasino3DVisibility(casino3D);
         casino3D.setLeverFocus(document.activeElement === casinoLever);
         casino3D.setCollectionComplete(
           unlockedAchievementIds.size === CASINO_PRIZES.length,
@@ -589,27 +594,22 @@ async function reconcileCasinoMusic() {
   const shouldPlay =
     casinoIsOpen && casinoMusicWanted && !document.hidden;
 
-  if (!shouldPlay) {
-    casinoMusic.pause();
-    updateCasinoMusicControl();
-    return;
-  }
-
-  try {
-    await casinoMusic.play();
-  } catch {
-    if (commandId === casinoMusicCommandId) {
-      casinoMusicWanted = false;
+  if (shouldPlay) {
+    try {
+      await casinoMusic.play();
+    } catch {
+      if (commandId === casinoMusicCommandId) {
+        casinoMusicWanted = false;
+      }
     }
   }
 
-  if (
-    commandId !== casinoMusicCommandId ||
-    !casinoIsOpen ||
-    !casinoMusicWanted ||
-    document.hidden
-  ) {
+  if (!casinoIsOpen || !casinoMusicWanted || document.hidden) {
     casinoMusic.pause();
+
+    if (!casinoIsOpen) {
+      casinoMusic.currentTime = 0;
+    }
   }
 
   updateCasinoMusicControl();
@@ -635,7 +635,7 @@ function handleCasinoMusicError() {
 
 function handleCasinoVisibilityChange() {
   // Pause hidden work and resume only when the visitor still wants music.
-  casino3D?.setVisible(casinoIsOpen && !document.hidden);
+  syncCasino3DVisibility();
   achievements3D?.setVisible(achievementsDialog.open && !document.hidden);
   void reconcileCasinoMusic();
 }
@@ -658,6 +658,7 @@ function openCasino() {
 
   casinoIsOpen = true;
   renderCasinoTokens();
+  syncCasino3DVisibility();
   void ensureCasino3D();
   void reconcileCasinoMusic();
 
@@ -694,7 +695,7 @@ function handleCasinoClose() {
   }
 
   casinoIsOpen = false;
-  casino3D?.setVisible(false);
+  syncCasino3DVisibility();
   void reconcileCasinoMusic();
 }
 
@@ -828,23 +829,17 @@ function createOrdinaryLosingOutcome() {
 }
 
 function chooseCasinoOutcome() {
-  // Resolve the four exclusive outcomes from one uniformly random roll.
+  // Resolve the three exclusive outcomes from one uniformly random roll.
   const outcomeRoll = Math.random();
   pendingCasinoPrize = null;
 
-  if (outcomeRoll < 0.5) {
+  if (outcomeRoll < CASINO_REFUND_CHANCE) {
     pendingCasinoOutcomeType = "refund";
     pendingCasinoOutcome = Array(3).fill(CASINO_REFUND_SYMBOL);
     return;
   }
 
-  if (outcomeRoll < 0.75) {
-    pendingCasinoOutcomeType = "double";
-    pendingCasinoOutcome = Array(3).fill(CASINO_DOUBLE_SYMBOL);
-    return;
-  }
-
-  if (outcomeRoll < 0.875) {
+  if (outcomeRoll < CASINO_REFUND_CHANCE + CASINO_PRIZE_CHANCE) {
     pendingCasinoOutcomeType = "prize";
     pendingCasinoOutcome = Array(3).fill(CASINO_PRIZE_SYMBOL);
     const lockedPrizes = CASINO_PRIZES.filter(
@@ -891,16 +886,6 @@ function finishCasinoSpin() {
     casinoResult.textContent = "a ficha voltou. patrimônio líquido: igual.";
     casinoResult.classList.add("is-token");
     casino3D?.celebrate("token", reducedMotionMediaQuery.matches);
-    renderCasinoTokens();
-    return;
-  }
-
-  if (pendingCasinoOutcomeType === "double") {
-    casinoTokenBalance += 2;
-    saveCasinoTokens();
-    casinoResult.textContent = "duas fichas! lucro operacional: uma ficha.";
-    casinoResult.classList.add("is-token");
-    casino3D?.celebrate("double", reducedMotionMediaQuery.matches);
     renderCasinoTokens();
     return;
   }
@@ -978,9 +963,19 @@ async function startCasinoSpin() {
       );
     }
   } else {
+    // Render the local chip without relying on a system emoji font.
     for (let reelIndex = 0; reelIndex < fallbackReels.length; reelIndex += 1) {
-      fallbackReels[reelIndex].textContent =
-        pendingCasinoOutcome[reelIndex].character;
+      const reel = fallbackReels[reelIndex];
+      const symbol = pendingCasinoOutcome[reelIndex];
+      const isChip = symbol === CASINO_REFUND_SYMBOL;
+      reel.classList.toggle("is-chip", isChip);
+      reel.textContent = isChip ? "" : symbol.character;
+
+      if (isChip) {
+        reel.dataset.chipCount = "1";
+      } else {
+        delete reel.dataset.chipCount;
+      }
     }
     await waitForCasinoAnimation(
       reducedMotion ? 0 : Math.max(...CASINO_REEL_DURATIONS_MS),
