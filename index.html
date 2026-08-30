@@ -262,7 +262,7 @@
       }
 
       .rich-button,
-      .patch-notes-button,
+      .achievements-button,
       .dialog-close,
       .slot-lever,
       .casino-music-toggle {
@@ -272,7 +272,8 @@
         cursor: pointer;
       }
 
-      .rich-button {
+      .rich-button,
+      .achievements-button {
         font-weight: 1000;
         letter-spacing: 0.04em;
         border: 0.18rem solid var(--navy-deep);
@@ -280,9 +281,16 @@
         box-shadow: 0.28rem 0.32rem 0 var(--navy-deep);
       }
 
-      .rich-button {
-        display: block;
+      .main-actions {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: center;
+        gap: 0.85rem;
         margin: 0 auto clamp(1.5rem, 5vw, 3rem);
+      }
+
+      .rich-button {
         padding: 0.7rem 1.4rem;
         color: var(--navy-deep);
         font-size: clamp(0.88rem, 2.5vw, 1.05rem);
@@ -295,7 +303,35 @@
         transform: rotate(1deg) translateY(-0.12rem);
       }
 
+      .achievements-button {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.55rem;
+        padding: 0.65rem 0.75rem 0.65rem 1rem;
+        color: var(--shirt);
+        font-size: clamp(0.72rem, 2.2vw, 0.9rem);
+        background: var(--navy);
+        transform: rotate(1deg);
+      }
+
+      .achievements-button:hover {
+        color: var(--navy-deep);
+        background: var(--hair-blonde);
+        transform: rotate(-1deg) translateY(-0.12rem);
+      }
+
+      .achievements-count {
+        min-width: 2.6rem;
+        padding: 0.22rem 0.45rem;
+        color: var(--navy-deep);
+        font-size: 0.72rem;
+        background: var(--hair-pink-soft);
+        border: 0.1rem solid var(--navy-deep);
+        border-radius: 999px;
+      }
+
       .rich-button:active,
+      .achievements-button:active,
       .casino-music-toggle:active,
       .dialog-close:active {
         box-shadow: none;
@@ -303,7 +339,7 @@
       }
 
       .rich-button:focus-visible,
-      .patch-notes-button:focus-visible,
+      .achievements-button:focus-visible,
       .dialog-close:focus-visible,
       .slot-lever:focus-visible,
       .casino-music-toggle:focus-visible,
@@ -329,7 +365,8 @@
       }
 
       .casino-dialog {
-        width: min(calc(100% - 2rem), 34rem);
+        width: min(calc(100% - 2rem), 38rem);
+        overflow-x: hidden;
       }
 
       .dialog-panel {
@@ -365,72 +402,123 @@
         box-shadow: 0.14rem 0.16rem 0 var(--navy-deep);
       }
 
-      .casino-kicker {
-        margin: 0;
-        color: var(--hair-pink-dark);
-        font-size: 0.7rem;
-        font-weight: 900;
-        letter-spacing: 0.12em;
-        text-transform: uppercase;
-      }
-
-      .casino-title {
-        margin: 0.4rem 2rem 0;
-        font-size: clamp(1.7rem, 7vw, 2.6rem);
-        line-height: 1;
-      }
-
-      .casino-description {
-        margin: 0.75rem auto 0;
-        font-size: 0.9rem;
-        font-weight: 700;
+      .casino-scene {
+        padding: 1.4rem 1.45rem 2rem;
+        text-align: center;
+        perspective: 52rem;
+        transform-style: preserve-3d;
       }
 
       .slot-machine {
         --reel-face-height: 4.75rem;
-        --reel-radius: 3.27rem;
+        --reel-radius: 4.11rem;
         position: relative;
         display: grid;
-        gap: 0.65rem;
-        margin: 1.25rem 0 1rem;
-        padding: 0.65rem 0.65rem 0.8rem;
+        gap: 0.75rem;
+        width: 100%;
+        margin: 0 auto;
+        padding: 0.85rem 0.85rem 1rem;
         background:
           linear-gradient(145deg, var(--hair-pink), var(--tie-red) 52%, var(--hair-pink-dark));
-        border: 0.22rem solid var(--navy-deep);
+        border: 0.24rem solid var(--navy-deep);
         border-radius: 1.35rem;
         box-shadow:
-          0.42rem 0.52rem 0 var(--navy-deep),
-          inset 0.12rem 0.12rem 0 var(--casino-glass),
-          inset -0.18rem -0.2rem 0 var(--casino-shadow);
-        transform: perspective(38rem) rotateX(1deg);
+          0.52rem 0.65rem 0 var(--navy-deep),
+          0.85rem 1.1rem 1.4rem var(--casino-shadow),
+          inset 0.14rem 0.14rem 0 var(--casino-glass),
+          inset -0.22rem -0.25rem 0 var(--casino-shadow);
+        transform: rotateX(1.5deg) rotateY(-1.5deg);
         transform-style: preserve-3d;
         isolation: isolate;
       }
 
+      .slot-machine::before {
+        position: absolute;
+        top: 0.85rem;
+        right: -0.82rem;
+        bottom: -0.42rem;
+        z-index: 0;
+        width: 0.82rem;
+        background: linear-gradient(90deg, var(--hair-pink-dark), var(--navy-deep));
+        border: 0.16rem solid var(--navy-deep);
+        border-left: 0;
+        border-radius: 0 0.55rem 0.55rem 0;
+        content: "";
+        transform: rotateY(18deg);
+        transform-origin: left;
+      }
+
       .slot-machine::after {
         position: absolute;
-        inset: 0.25rem;
-        z-index: 3;
-        background: linear-gradient(125deg, var(--casino-glass), transparent 28% 72%);
-        border-radius: 1rem;
+        right: -0.62rem;
+        bottom: -0.72rem;
+        left: 0.65rem;
+        z-index: 0;
+        height: 0.72rem;
+        background: linear-gradient(180deg, var(--hair-pink-dark), var(--navy-deep));
+        border: 0.16rem solid var(--navy-deep);
+        border-top: 0;
+        border-radius: 0 0 0.65rem 0.65rem;
         content: "";
-        opacity: 0.42;
+        transform: rotateX(-18deg);
+        transform-origin: top;
+      }
+
+      .casino-cabinet-gloss {
+        position: absolute;
+        inset: 0.3rem;
+        z-index: 5;
+        background: linear-gradient(125deg, var(--casino-glass), transparent 24% 76%);
+        border-radius: 1rem;
+        opacity: 0.36;
         pointer-events: none;
+        transform: translateZ(1.45rem);
+      }
+
+      .casino-close-form {
+        position: absolute;
+        top: 0.55rem;
+        right: 0.55rem;
+        z-index: 7;
+        transform: translateZ(1.7rem);
+      }
+
+      .casino-close {
+        position: relative;
+        top: auto;
+        right: auto;
+        background: linear-gradient(145deg, var(--hair-pink-soft), var(--hair-pink));
+        box-shadow:
+          0.16rem 0.2rem 0 var(--navy-deep),
+          0.28rem 0.34rem 0 var(--casino-shadow);
       }
 
       .casino-marquee {
         position: relative;
-        z-index: 1;
-        overflow: hidden;
-        padding: 0.5rem 0.7rem 0.6rem;
+        z-index: 2;
+        padding: 0.55rem 3rem 0.75rem;
         color: var(--shirt);
         background: linear-gradient(180deg, var(--navy), var(--navy-deep));
-        border: 0.15rem solid var(--hair-blonde);
-        border-radius: 0.85rem 0.85rem 0.55rem 0.55rem;
+        border: 0.17rem solid var(--hair-blonde);
+        border-radius: 0.95rem 0.95rem 0.62rem 0.62rem;
         box-shadow:
-          inset 0 0 0.7rem var(--casino-shadow),
-          0 0.22rem 0 var(--navy-deep);
-        transform: translateZ(0.5rem);
+          inset 0 0 0.85rem var(--casino-shadow),
+          0 0.3rem 0 var(--navy-deep),
+          0 0.52rem 0 var(--casino-shadow);
+        transform: translateZ(1rem);
+        transform-style: preserve-3d;
+      }
+
+      .casino-marquee::after {
+        position: absolute;
+        right: 0.35rem;
+        bottom: -0.38rem;
+        left: 0.35rem;
+        height: 0.38rem;
+        background: var(--navy-deep);
+        border-radius: 0 0 0.45rem 0.45rem;
+        content: "";
+        transform: translateZ(-0.2rem);
       }
 
       .casino-bulbs {
@@ -438,7 +526,7 @@
         grid-template-columns: repeat(7, 0.48rem);
         justify-content: center;
         gap: clamp(0.38rem, 2vw, 0.75rem);
-        margin-bottom: 0.4rem;
+        margin-bottom: 0.35rem;
       }
 
       .casino-bulb {
@@ -455,21 +543,38 @@
         box-shadow: 0 0 0.45rem var(--casino-pink-glow);
       }
 
-      .casino-marquee-text {
-        display: block;
-        font-size: clamp(0.74rem, 2.8vw, 0.95rem);
-        font-weight: 1000;
-        letter-spacing: 0.11em;
-        text-shadow: 0.1rem 0.12rem 0 var(--navy-deep);
+      .casino-kicker {
+        margin: 0;
+        color: var(--hair-blonde);
+        font-size: 0.62rem;
+        font-weight: 900;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+      }
+
+      .casino-title {
+        margin: 0.28rem 0 0;
+        color: var(--shirt);
+        font-size: clamp(1.55rem, 6vw, 2.35rem);
+        line-height: 1;
+        text-shadow: 0.12rem 0.16rem 0 var(--hair-pink-dark);
+      }
+
+      .casino-description {
+        margin: 0.45rem auto 0;
+        color: var(--hair-pink-soft);
+        font-size: 0.78rem;
+        font-weight: 700;
       }
 
       .casino-stage {
         position: relative;
-        z-index: 1;
+        z-index: 2;
         display: grid;
-        grid-template-columns: minmax(0, 1fr) clamp(3.25rem, 11vw, 4.35rem);
+        grid-template-columns: minmax(0, 1fr) clamp(3.35rem, 11vw, 4.45rem);
         align-items: stretch;
         gap: clamp(0.45rem, 2vw, 0.75rem);
+        transform: translateZ(0.72rem);
         transform-style: preserve-3d;
       }
 
@@ -479,24 +584,35 @@
         grid-template-columns: repeat(3, minmax(0, 1fr));
         gap: clamp(0.3rem, 1.5vw, 0.55rem);
         min-width: 0;
-        padding: clamp(0.55rem, 2.5vw, 0.8rem);
+        padding: clamp(0.6rem, 2.5vw, 0.82rem);
         background: linear-gradient(180deg, var(--navy-deep), var(--navy));
-        border: 0.16rem solid var(--navy-deep);
+        border: 0.18rem solid var(--navy-deep);
         border-radius: 0.9rem;
         box-shadow:
-          inset 0 0.35rem 0.7rem var(--casino-shadow),
-          0 0.22rem 0 var(--navy-deep);
+          inset 0 0.42rem 0.8rem var(--casino-shadow),
+          0 0.28rem 0 var(--navy-deep),
+          0 0.5rem 0 var(--casino-shadow);
         perspective: 28rem;
-        transform: translateZ(0.35rem);
+        transform: translateZ(0.3rem);
+      }
+
+      .reel-bank::before {
+        position: absolute;
+        inset: 0.2rem;
+        background: linear-gradient(145deg, var(--casino-glass), transparent 36%);
+        border-radius: 0.72rem;
+        content: "";
+        opacity: 0.38;
+        pointer-events: none;
       }
 
       .reel-bank::after {
         position: absolute;
-        inset: clamp(0.55rem, 2.5vw, 0.8rem);
+        inset: clamp(0.6rem, 2.5vw, 0.82rem);
         background: linear-gradient(
           180deg,
           var(--casino-shadow),
-          transparent 24% 76%,
+          transparent 25% 75%,
           var(--casino-shadow)
         );
         border-radius: 0.62rem;
@@ -513,9 +629,10 @@
         border: 0.13rem solid var(--navy-deep);
         border-radius: 0.65rem;
         box-shadow:
-          inset 0 0 0.55rem var(--casino-shadow),
-          0 0 0 0.08rem var(--hair-blonde-soft);
-        perspective: 22rem;
+          inset 0 0 0.62rem var(--casino-shadow),
+          0 0 0 0.08rem var(--hair-blonde-soft),
+          0.12rem 0.16rem 0 var(--casino-shadow);
+        perspective: 24rem;
       }
 
       .slot-reel-window::after {
@@ -564,11 +681,17 @@
         background: var(--hair-pink-soft);
       }
 
-      .slot-machine.is-spinning .casino-bulb {
+      .slot-reel-face:nth-child(6) {
+        background: linear-gradient(145deg, var(--hair-blonde-soft), var(--hair-pink-soft));
+      }
+
+      .slot-machine.is-spinning .casino-bulb,
+      .slot-machine.is-winning .casino-bulb {
         animation: casino-light-pulse 0.42s ease-in-out infinite alternate;
       }
 
-      .slot-machine.is-spinning .casino-bulb:nth-child(2n) {
+      .slot-machine.is-spinning .casino-bulb:nth-child(2n),
+      .slot-machine.is-winning .casino-bulb:nth-child(2n) {
         animation-delay: 0.21s;
       }
 
@@ -580,13 +703,23 @@
         animation: machine-denied 0.38s ease-out;
       }
 
+      .slot-machine.is-winning {
+        animation: machine-winning 0.75s ease-out;
+      }
+
       .slot-lever {
         position: relative;
         min-width: 0;
         padding: 0;
         color: var(--navy-deep);
-        background: transparent;
-        filter: drop-shadow(0.18rem 0.22rem 0 var(--navy-deep));
+        background: linear-gradient(145deg, var(--hair-pink), var(--hair-pink-dark));
+        border: 0.14rem solid var(--navy-deep);
+        border-radius: 0.8rem;
+        box-shadow:
+          0.22rem 0.3rem 0 var(--navy-deep),
+          0.34rem 0.46rem 0 var(--casino-shadow),
+          inset 0.1rem 0.1rem 0 var(--casino-glass);
+        transform: translateZ(0.55rem);
         transform-style: preserve-3d;
       }
 
@@ -600,8 +733,9 @@
         bottom: 1.15rem;
         left: 50%;
         width: 1.65rem;
-        transform: translateX(-50%) rotate(-14deg);
+        transform: translateX(-50%) rotate(-14deg) translateZ(0.65rem);
         transform-origin: 50% calc(100% - 0.25rem);
+        transform-style: preserve-3d;
       }
 
       .lever-knob {
@@ -615,8 +749,9 @@
         border-radius: 50%;
         box-shadow:
           inset -0.15rem -0.18rem 0 var(--hair-pink-dark),
-          0 0 0.6rem var(--casino-pink-glow);
-        transform: translateX(-50%) translateZ(0.45rem);
+          0 0 0.6rem var(--casino-pink-glow),
+          0.16rem 0.22rem 0 var(--navy-deep);
+        transform: translateX(-50%) translateZ(0.6rem);
       }
 
       .lever-arm {
@@ -628,6 +763,7 @@
         background: linear-gradient(90deg, var(--navy), var(--shirt), var(--navy));
         border: 0.1rem solid var(--navy-deep);
         border-radius: 999px;
+        box-shadow: 0.12rem 0.14rem 0 var(--casino-shadow);
         transform: translateX(-50%);
       }
 
@@ -642,7 +778,8 @@
         border-radius: 0.65rem;
         box-shadow:
           inset 0.1rem 0.1rem 0 var(--shirt-glow),
-          0 0.18rem 0 var(--navy-deep);
+          0 0.2rem 0 var(--navy-deep);
+        transform: translateZ(0.35rem);
       }
 
       .lever-label {
@@ -657,46 +794,85 @@
       }
 
       .slot-lever:not(:disabled):active .lever-handle {
-        transform: translateX(-50%) rotate(8deg);
+        transform: translateX(-50%) rotate(8deg) translateZ(0.65rem);
       }
 
       .slot-machine.is-spinning .lever-handle {
         animation: lever-pull 0.72s ease-in-out;
       }
 
-      .casino-tray {
+      .casino-control-deck {
         position: relative;
-        z-index: 1;
-        padding: 0.35rem 0.5rem;
-        color: var(--navy-deep);
-        font-size: clamp(0.58rem, 2vw, 0.72rem);
-        font-weight: 1000;
-        letter-spacing: 0.08em;
-        background: linear-gradient(180deg, var(--hair-blonde-soft), var(--hair-blonde));
-        border: 0.12rem solid var(--navy-deep);
-        border-radius: 0.55rem;
-        box-shadow: inset 0 -0.16rem 0 var(--hair-pink);
-        transform: translateZ(0.3rem);
+        z-index: 2;
+        display: grid;
+        gap: 0.6rem;
+        padding: 0.72rem 0.75rem 0.82rem;
+        background: linear-gradient(180deg, var(--navy), var(--navy-deep));
+        border: 0.17rem solid var(--navy-deep);
+        border-radius: 0.82rem;
+        box-shadow:
+          inset 0.12rem 0.12rem 0 var(--casino-glass),
+          0 0.32rem 0 var(--navy-deep),
+          0 0.54rem 0 var(--casino-shadow);
+        transform: translateZ(0.9rem) rotateX(4deg);
+        transform-origin: top;
+        transform-style: preserve-3d;
+      }
+
+      .casino-control-deck::after {
+        position: absolute;
+        right: 0.35rem;
+        bottom: -0.38rem;
+        left: 0.35rem;
+        height: 0.38rem;
+        background: var(--navy-deep);
+        border-radius: 0 0 0.42rem 0.42rem;
+        content: "";
+        transform: translateZ(-0.2rem);
       }
 
       .casino-result {
-        min-height: 2.5em;
-        margin: 0 0 0.75rem;
+        position: relative;
+        z-index: 1;
+        min-height: 2.7em;
+        margin: 0;
+        padding: 0.55rem 0.7rem;
         color: var(--hair-pink-dark);
-        font-size: 0.92rem;
+        font-size: 0.88rem;
         font-weight: 900;
+        background: linear-gradient(180deg, var(--shirt), var(--hair-pink-soft));
+        border: 0.12rem solid var(--navy-deep);
+        border-radius: 0.62rem;
+        box-shadow:
+          inset 0 -0.14rem 0 var(--hair-pink),
+          0.14rem 0.18rem 0 var(--navy-deep);
+        transform: translateZ(0.42rem);
+      }
+
+      .casino-result.is-prize {
+        color: var(--navy-deep);
+        background: linear-gradient(180deg, var(--hair-blonde-soft), var(--hair-blonde));
+        box-shadow:
+          inset 0 -0.14rem 0 var(--hair-pink),
+          0.14rem 0.18rem 0 var(--navy-deep),
+          0 0 0.75rem var(--casino-light-glow);
       }
 
       .casino-audio-controls {
+        position: relative;
+        z-index: 1;
         display: grid;
         grid-template-columns: auto minmax(0, 1fr);
         align-items: center;
         gap: 0.75rem;
-        padding: 0.65rem 0.75rem;
-        background: var(--hair-pink-soft);
+        padding: 0.58rem 0.68rem;
+        background: linear-gradient(145deg, var(--hair-pink-soft), var(--skirt-blue-soft));
         border: 0.12rem solid var(--navy-deep);
-        border-radius: 0.8rem;
-        box-shadow: 0.16rem 0.18rem 0 var(--navy-deep);
+        border-radius: 0.7rem;
+        box-shadow:
+          inset 0.1rem 0.1rem 0 var(--casino-glass),
+          0.14rem 0.18rem 0 var(--navy-deep);
+        transform: translateZ(0.34rem);
       }
 
       .casino-music-toggle {
@@ -704,15 +880,17 @@
         color: var(--navy-deep);
         font-size: 0.68rem;
         font-weight: 1000;
-        background: var(--hair-blonde);
+        background: linear-gradient(180deg, var(--hair-blonde-soft), var(--hair-blonde));
         border: 0.12rem solid var(--navy-deep);
         border-radius: 999px;
-        box-shadow: 0.12rem 0.14rem 0 var(--navy-deep);
+        box-shadow:
+          0.12rem 0.14rem 0 var(--navy-deep),
+          0.2rem 0.24rem 0 var(--casino-shadow);
       }
 
       .casino-music-toggle[aria-pressed="true"] {
         color: var(--shirt);
-        background: var(--navy);
+        background: linear-gradient(180deg, var(--navy), var(--navy-deep));
       }
 
       .casino-volume-control {
@@ -731,6 +909,118 @@
         width: 100%;
         accent-color: var(--hair-pink-dark);
         cursor: pointer;
+      }
+
+      .casino-tray {
+        position: relative;
+        z-index: 1;
+        padding: 0.35rem 0.5rem;
+        color: var(--navy-deep);
+        font-size: clamp(0.58rem, 2vw, 0.72rem);
+        font-weight: 1000;
+        letter-spacing: 0.08em;
+        background: linear-gradient(180deg, var(--hair-blonde-soft), var(--hair-blonde));
+        border: 0.12rem solid var(--navy-deep);
+        border-radius: 0.55rem;
+        box-shadow:
+          inset 0 -0.16rem 0 var(--hair-pink),
+          0.12rem 0.16rem 0 var(--navy-deep);
+        transform: translateZ(0.3rem);
+      }
+
+      .achievements-dialog {
+        width: min(calc(100% - 2rem), 36rem);
+      }
+
+      .achievements-panel {
+        overflow: hidden;
+        background:
+          linear-gradient(145deg, var(--shirt), var(--hair-pink-soft) 62%, var(--skirt-blue-soft));
+      }
+
+      .achievements-kicker {
+        margin: 0;
+        color: var(--hair-pink-dark);
+        font-size: 0.7rem;
+        font-weight: 900;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+      }
+
+      .achievements-title {
+        margin: 0.4rem 3rem 0;
+        font-size: clamp(1.7rem, 7vw, 2.6rem);
+        line-height: 1;
+      }
+
+      .achievements-progress {
+        margin: 0.7rem 0 0;
+        color: var(--hair-pink-dark);
+        font-size: 0.82rem;
+        font-weight: 900;
+      }
+
+      .achievement-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 0.75rem;
+        margin: 1.2rem 0 0;
+        padding: 0;
+        list-style: none;
+      }
+
+      .achievement-slot {
+        display: grid;
+        min-height: 8.25rem;
+        padding: 0.85rem 0.55rem;
+        place-content: center;
+        gap: 0.65rem;
+        background: var(--white);
+        border: 0.15rem solid var(--navy-deep);
+        border-radius: 0.9rem;
+        box-shadow: 0.2rem 0.24rem 0 var(--navy-deep);
+      }
+
+      .achievement-slot.is-locked {
+        color: var(--navy-deep);
+        background:
+          repeating-linear-gradient(
+            135deg,
+            var(--shirt),
+            var(--shirt) 0.55rem,
+            var(--skirt-blue-soft) 0.55rem,
+            var(--skirt-blue-soft) 1.1rem
+          );
+        border-style: dashed;
+        opacity: 0.72;
+      }
+
+      .achievement-slot.is-unlocked {
+        background: linear-gradient(145deg, var(--hair-blonde-soft), var(--hair-pink-soft));
+        border-color: var(--hair-pink-dark);
+        box-shadow:
+          0.2rem 0.24rem 0 var(--navy-deep),
+          0 0 0.75rem var(--casino-light-glow);
+      }
+
+      .achievement-icon {
+        font-size: 2.4rem;
+        font-weight: 1000;
+        line-height: 1;
+      }
+
+      .achievement-name {
+        font-size: 0.72rem;
+        font-weight: 1000;
+        line-height: 1.25;
+        text-transform: uppercase;
+      }
+
+      .achievement-storage-note {
+        margin: 1rem 0 0;
+        color: var(--tie-red);
+        font-size: 0.72rem;
+        font-weight: 900;
       }
 
       .counter-heading {
@@ -847,21 +1137,6 @@
         letter-spacing: 0.04em;
       }
 
-      .patch-notes-button {
-        padding: 0.15rem 0.2rem;
-        color: var(--hair-pink-dark);
-        font-size: inherit;
-        font-weight: 900;
-        text-decoration: underline;
-        text-decoration-color: var(--hair-pink);
-        text-underline-offset: 0.18em;
-        background: transparent;
-      }
-
-      .patch-notes-button:hover {
-        color: var(--tie-red);
-      }
-
       .patch-notes-dialog {
         width: min(calc(100% - 2rem), 40rem);
       }
@@ -948,30 +1223,43 @@
       @keyframes lever-pull {
         0%,
         100% {
-          transform: translateX(-50%) rotate(-14deg);
+          transform: translateX(-50%) rotate(-14deg) translateZ(0.65rem);
         }
 
         42% {
-          transform: translateX(-50%) rotate(18deg);
+          transform: translateX(-50%) rotate(18deg) translateZ(0.65rem);
         }
 
         68% {
-          transform: translateX(-50%) rotate(13deg);
+          transform: translateX(-50%) rotate(13deg) translateZ(0.65rem);
         }
       }
 
       @keyframes machine-denied {
         0%,
         100% {
-          transform: perspective(38rem) rotateX(1deg) translateX(0);
+          transform: rotateX(1.5deg) rotateY(-1.5deg) translateX(0);
         }
 
         30% {
-          transform: perspective(38rem) rotateX(1deg) translateX(-0.28rem);
+          transform: rotateX(1.5deg) rotateY(-1.5deg) translateX(-0.28rem);
         }
 
         65% {
-          transform: perspective(38rem) rotateX(1deg) translateX(0.22rem);
+          transform: rotateX(1.5deg) rotateY(-1.5deg) translateX(0.22rem);
+        }
+      }
+
+      @keyframes machine-winning {
+        0%,
+        100% {
+          filter: none;
+          transform: rotateX(1.5deg) rotateY(-1.5deg) scale(1);
+        }
+
+        45% {
+          filter: drop-shadow(0 0 1rem var(--casino-light-glow));
+          transform: rotateX(1.5deg) rotateY(-1.5deg) scale(1.015);
         }
       }
 
@@ -1037,6 +1325,10 @@
             0 1.2rem 2.5rem var(--shadow);
         }
 
+        .main-actions {
+          flex-direction: column;
+        }
+
         .counter {
           grid-template-columns: repeat(2, minmax(0, 1fr));
         }
@@ -1062,15 +1354,27 @@
           box-shadow: 0.3rem 0.35rem 0 var(--navy-deep);
         }
 
+        .casino-scene {
+          padding: 0.85rem 0.78rem 1.35rem;
+        }
+
         .slot-machine {
           --reel-face-height: 3.75rem;
-          --reel-radius: 2.58rem;
+          --reel-radius: 3.25rem;
           gap: 0.5rem;
           padding: 0.5rem 0.5rem 0.65rem;
         }
 
         .casino-marquee {
-          padding: 0.42rem 0.45rem 0.5rem;
+          padding: 0.42rem 2.6rem 0.55rem;
+        }
+
+        .casino-title {
+          font-size: clamp(1.28rem, 6.5vw, 1.75rem);
+        }
+
+        .casino-description {
+          font-size: 0.68rem;
         }
 
         .casino-stage {
@@ -1091,6 +1395,11 @@
           font-size: 2.15rem;
         }
 
+        .casino-control-deck {
+          gap: 0.5rem;
+          padding: 0.58rem;
+        }
+
         .casino-audio-controls {
           grid-template-columns: minmax(0, 1fr);
           gap: 0.55rem;
@@ -1098,6 +1407,18 @@
 
         .casino-music-toggle {
           justify-self: center;
+        }
+
+        .achievement-grid {
+          grid-template-columns: minmax(0, 1fr);
+        }
+
+        .achievement-slot {
+          grid-template-columns: auto minmax(0, 1fr);
+          min-height: 5.5rem;
+          place-content: normal;
+          align-items: center;
+          text-align: left;
         }
       }
 
@@ -1129,13 +1450,25 @@
           <p class="answer" aria-label="Não">NÃO</p>
         </div>
 
-        <button
-          class="rich-button"
-          id="open-casino"
-          type="button"
-          aria-haspopup="dialog"
-          aria-controls="casino-dialog"
-        >FIQUE RICA!</button>
+        <div class="main-actions">
+          <button
+            class="rich-button"
+            id="open-casino"
+            type="button"
+            aria-haspopup="dialog"
+            aria-controls="casino-dialog"
+          >FIQUE RICA!</button>
+          <button
+            class="achievements-button"
+            id="open-achievements"
+            type="button"
+            aria-haspopup="dialog"
+            aria-controls="achievements-dialog"
+          >
+            <span>CONQUISTAS</span>
+            <span class="achievements-count" id="achievements-count">0/3</span>
+          </button>
+        </div>
 
         <p class="counter-heading">tempo oficialmente não rica</p>
         <div
@@ -1175,15 +1508,7 @@
             <a href="https://pixie.gg/niagott" target="_blank" rel="noopener noreferrer">pixie.gg/niagott</a>
           </p>
           <div class="release-info">
-            <span class="version-label">versão 1.5</span>
-            <span aria-hidden="true">·</span>
-            <button
-              class="patch-notes-button"
-              id="open-patch-notes"
-              type="button"
-              aria-haspopup="dialog"
-              aria-controls="patch-notes-dialog"
-            >PATCH NOTES</button>
+            <span class="version-label">versão 1.6</span>
           </div>
         </footer>
       </section>
@@ -1200,24 +1525,20 @@
       aria-labelledby="casino-title"
       aria-describedby="casino-description"
     >
-      <div class="dialog-panel">
-        <form class="dialog-close-form" method="dialog">
-          <button class="dialog-close" type="submit" aria-label="Fechar simulador">×</button>
-        </form>
-
-        <p class="casino-kicker">simulador 100% confiável</p>
-        <h2 class="casino-title" id="casino-title">Tigrinho da Barista</h2>
-        <p class="casino-description" id="casino-description">
-          Três símbolos iguais deixam você rica. Talvez.
-        </p>
-
-        <div
+      <div class="casino-scene">
+        <section
           class="slot-machine"
           id="slot-machine"
           aria-label="Resultado inicial: café, tigre e sete"
         >
-          <div class="casino-marquee" aria-hidden="true">
-            <div class="casino-bulbs">
+          <form class="dialog-close-form casino-close-form" method="dialog">
+            <button class="dialog-close casino-close" type="submit" aria-label="Fechar simulador">×</button>
+          </form>
+
+          <div class="casino-cabinet-gloss" aria-hidden="true"></div>
+
+          <header class="casino-marquee">
+            <div class="casino-bulbs" aria-hidden="true">
               <span class="casino-bulb"></span>
               <span class="casino-bulb"></span>
               <span class="casino-bulb"></span>
@@ -1226,8 +1547,12 @@
               <span class="casino-bulb"></span>
               <span class="casino-bulb"></span>
             </div>
-            <span class="casino-marquee-text">CAFÉ · TIGRE · CAOS</span>
-          </div>
+            <p class="casino-kicker">simulador 100% confiável</p>
+            <h2 class="casino-title" id="casino-title">Tigrinho da Barista</h2>
+            <p class="casino-description" id="casino-description">
+              Três presentes iguais liberam um prêmio. Talvez.
+            </p>
+          </header>
 
           <div class="casino-stage">
             <div class="reel-bank" aria-hidden="true">
@@ -1259,35 +1584,73 @@
             </button>
           </div>
 
-          <div class="casino-tray" aria-hidden="true">☕ A BANCA SEMPRE TOMA O CAFÉ ☕</div>
-        </div>
+          <div class="casino-control-deck">
+            <p class="casino-result" id="casino-result" role="status" aria-live="polite">
+              pronta para tentar?
+            </p>
 
-        <p class="casino-result" id="casino-result" role="status" aria-live="polite">
-          pronta para tentar?
-        </p>
+            <div class="casino-audio-controls" aria-label="Controles da música">
+              <button
+                class="casino-music-toggle"
+                id="toggle-casino-music"
+                type="button"
+                aria-pressed="false"
+              >▶ MÚSICA</button>
+              <label class="casino-volume-control" for="casino-volume">
+                <span>volume</span>
+                <input
+                  class="casino-volume"
+                  id="casino-volume"
+                  type="range"
+                  min="0"
+                  max="100"
+                  step="5"
+                  value="25"
+                >
+              </label>
+            </div>
 
-        <div class="casino-audio-controls" aria-label="Controles da música">
-          <button
-            class="casino-music-toggle"
-            id="toggle-casino-music"
-            type="button"
-            aria-pressed="false"
-          >▶ MÚSICA</button>
-          <label class="casino-volume-control" for="casino-volume">
-            <span>volume</span>
-            <input
-              class="casino-volume"
-              id="casino-volume"
-              type="range"
-              min="0"
-              max="100"
-              step="5"
-              value="25"
-            >
-          </label>
-        </div>
+            <div class="casino-tray" aria-hidden="true">☕ A BANCA SEMPRE TOMA O CAFÉ ☕</div>
+          </div>
+        </section>
 
         <audio id="casino-music" src="assets/musica.mp3" preload="none" loop></audio>
+      </div>
+    </dialog>
+
+    <dialog
+      class="site-dialog achievements-dialog"
+      id="achievements-dialog"
+      aria-labelledby="achievements-title"
+      aria-describedby="achievements-progress"
+    >
+      <div class="dialog-panel achievements-panel">
+        <form class="dialog-close-form" method="dialog">
+          <button class="dialog-close" type="submit" aria-label="Fechar conquistas">×</button>
+        </form>
+
+        <p class="achievements-kicker">coleção de prêmios reais</p>
+        <h2 class="achievements-title" id="achievements-title">Conquistas</h2>
+        <p class="achievements-progress" id="achievements-progress">0 de 3 desbloqueadas</p>
+
+        <ol class="achievement-grid" id="achievement-grid" aria-label="Slots de conquistas">
+          <li class="achievement-slot is-locked" aria-label="Conquista oculta">
+            <span class="achievement-icon" aria-hidden="true">?</span>
+            <span class="achievement-name">conquista oculta</span>
+          </li>
+          <li class="achievement-slot is-locked" aria-label="Conquista oculta">
+            <span class="achievement-icon" aria-hidden="true">?</span>
+            <span class="achievement-name">conquista oculta</span>
+          </li>
+          <li class="achievement-slot is-locked" aria-label="Conquista oculta">
+            <span class="achievement-icon" aria-hidden="true">?</span>
+            <span class="achievement-name">conquista oculta</span>
+          </li>
+        </ol>
+
+        <p class="achievement-storage-note" id="achievement-storage-note" hidden>
+          não foi possível salvar; o progresso vale só nesta visita.
+        </p>
       </div>
     </dialog>
 
@@ -1305,6 +1668,10 @@
         <h2 class="patch-notes-title" id="patch-notes-title">Patch notes</h2>
 
         <ol class="release-list" aria-label="Histórico de versões">
+          <li class="release-entry">
+            <h3>versão 1.6</h3>
+            <p>O cassino ganhou um gabinete 3D completo, trincas premiadas e conquistas persistentes; os patch notes agora abrem pela tecla P.</p>
+          </li>
           <li class="release-entry">
             <h3>versão 1.5</h3>
             <p>O Tigrinho da Barista virou uma máquina 3D com rolos cilíndricos, alavanca, animação escalonada e música.</p>
@@ -1393,13 +1760,22 @@
         "demonio de porto alegre",
         "barista de porto alegre",
       ];
-      const SLOT_SYMBOLS = [
+      const CASINO_NORMAL_SYMBOLS = [
         { character: "☕", label: "café" },
         { character: "🐯", label: "tigre" },
         { character: "💎", label: "diamante" },
         { character: "🍒", label: "cerejas" },
         { character: "7", label: "sete" },
       ];
+      const CASINO_PRIZE_SYMBOL = { character: "🎁", label: "presente" };
+      const SLOT_SYMBOLS = [...CASINO_NORMAL_SYMBOLS, CASINO_PRIZE_SYMBOL];
+      const CASINO_PRIZES = [
+        { id: "esposa-nenepira", name: "esposa do nenepira", icon: "💍" },
+        { id: "prima-vaper", name: "prima do vaper", icon: "👩" },
+        { id: "bolos", name: "bólos", icon: "🎂" },
+      ];
+      const CASINO_PRIZE_CHANCE = 0.12;
+      const ACHIEVEMENTS_STORAGE_KEY = "niasguts-achievements-v1";
       const FULL_ROTATION_DEGREES = 360;
       const REEL_FACE_ANGLE_DEGREES = FULL_ROTATION_DEGREES / SLOT_SYMBOLS.length;
       const INITIAL_REEL_SYMBOL_INDICES = [0, 1, 4];
@@ -1480,6 +1856,7 @@
         "(prefers-reduced-motion: reduce)",
       );
       const selectedMarinGifs = [];
+      const unlockedAchievementIds = new Set();
       const casinoReelSymbolIndices = [...INITIAL_REEL_SYMBOL_INDICES];
       const casinoReelRotations = [
         -INITIAL_REEL_SYMBOL_INDICES[0] * REEL_FACE_ANGLE_DEGREES,
@@ -1487,7 +1864,41 @@
         -INITIAL_REEL_SYMBOL_INDICES[2] * REEL_FACE_ANGLE_DEGREES,
       ];
       let pendingCasinoOutcome = [];
+      let pendingCasinoPrize = null;
       let casinoMusicEnabled = true;
+      let achievementsArePersistent = true;
+
+      // Load only known achievement IDs from this browser's saved progress.
+      try {
+        const savedAchievementJson = localStorage.getItem(ACHIEVEMENTS_STORAGE_KEY);
+
+        if (savedAchievementJson !== null) {
+          let savedAchievementIds = [];
+
+          try {
+            const parsedAchievementIds = JSON.parse(savedAchievementJson);
+
+            if (Array.isArray(parsedAchievementIds)) {
+              savedAchievementIds = parsedAchievementIds;
+            } else {
+              localStorage.removeItem(ACHIEVEMENTS_STORAGE_KEY);
+            }
+          } catch {
+            localStorage.removeItem(ACHIEVEMENTS_STORAGE_KEY);
+          }
+
+          for (const savedAchievementId of savedAchievementIds) {
+            for (const prize of CASINO_PRIZES) {
+              if (savedAchievementId === prize.id) {
+                unlockedAchievementIds.add(prize.id);
+                break;
+              }
+            }
+          }
+        }
+      } catch {
+        achievementsArePersistent = false;
+      }
       // IANA groups Rio Grande do Sul under the America/Sao_Paulo ruleset.
       const PORTO_ALEGRE_TIME_ZONE = "America/Sao_Paulo";
       const portoAlegreFormatter = new Intl.DateTimeFormat("en-CA", {
@@ -1518,8 +1929,15 @@
       const casinoMusic = document.querySelector("#casino-music");
       const casinoMusicToggle = document.querySelector("#toggle-casino-music");
       const casinoVolume = document.querySelector("#casino-volume");
+      const achievementsDialog = document.querySelector("#achievements-dialog");
+      const achievementsOpenButton = document.querySelector("#open-achievements");
+      const achievementsCount = document.querySelector("#achievements-count");
+      const achievementsProgress = document.querySelector("#achievements-progress");
+      const achievementSlots = document.querySelectorAll(".achievement-slot");
+      const achievementStorageNote = document.querySelector(
+        "#achievement-storage-note",
+      );
       const patchNotesDialog = document.querySelector("#patch-notes-dialog");
-      const patchNotesOpenButton = document.querySelector("#open-patch-notes");
       const marinGifFrames = document.querySelectorAll(".marin-gif-frame");
 
       function showRandomMarinGifs() {
@@ -1566,6 +1984,53 @@
 
           sourceLink.append(gifImage);
           gifFrame.append(sourceLink);
+        }
+      }
+
+      function renderAchievements() {
+        // Render locked placeholders or the prizes already earned in this browser.
+        let unlockedCount = 0;
+
+        for (let prizeIndex = 0; prizeIndex < CASINO_PRIZES.length; prizeIndex += 1) {
+          const prize = CASINO_PRIZES[prizeIndex];
+          const achievementSlot = achievementSlots[prizeIndex];
+          const achievementIcon = document.createElement("span");
+          const achievementName = document.createElement("span");
+          const isUnlocked = unlockedAchievementIds.has(prize.id);
+
+          achievementIcon.className = "achievement-icon";
+          achievementIcon.setAttribute("aria-hidden", "true");
+          achievementName.className = "achievement-name";
+          achievementSlot.classList.toggle("is-locked", !isUnlocked);
+          achievementSlot.classList.toggle("is-unlocked", isUnlocked);
+
+          if (isUnlocked) {
+            unlockedCount += 1;
+            achievementIcon.textContent = prize.icon;
+            achievementName.textContent = prize.name;
+            achievementSlot.setAttribute(
+              "aria-label",
+              `Conquista desbloqueada: ${prize.name}`,
+            );
+          } else {
+            achievementIcon.textContent = "?";
+            achievementName.textContent = "conquista oculta";
+            achievementSlot.setAttribute("aria-label", "Conquista oculta");
+          }
+
+          achievementSlot.replaceChildren(achievementIcon, achievementName);
+        }
+
+        achievementsCount.textContent = `${unlockedCount}/${CASINO_PRIZES.length}`;
+        achievementsProgress.textContent =
+          `${unlockedCount} de ${CASINO_PRIZES.length} desbloqueadas`;
+        achievementStorageNote.hidden = achievementsArePersistent;
+      }
+
+      function openAchievements() {
+        // Open the three-slot achievement collection as a modal dialog.
+        if (!achievementsDialog.open) {
+          achievementsDialog.showModal();
         }
       }
 
@@ -1622,15 +2087,45 @@
         }
       }
 
-      function openPatchNotes() {
-        // Open the release history as a modal dialog.
-        if (!patchNotesDialog.open) {
-          patchNotesDialog.showModal();
+      function handlePatchNotesShortcut(event) {
+        // Toggle the secret patch notes with P while preserving browser modifiers.
+        const eventTarget = event.target;
+        const isEditableTarget =
+          eventTarget !== null &&
+          typeof eventTarget.matches === "function" &&
+          (eventTarget.matches("input, textarea, select") ||
+            eventTarget.isContentEditable);
+        const isPatchNotesKey =
+          typeof event.key === "string" && event.key.toLowerCase() === "p";
+
+        if (
+          event.defaultPrevented ||
+          event.repeat ||
+          event.ctrlKey ||
+          event.altKey ||
+          event.metaKey ||
+          isEditableTarget ||
+          !isPatchNotesKey
+        ) {
+          return;
         }
+
+        if (patchNotesDialog.open) {
+          event.preventDefault();
+          patchNotesDialog.close();
+          return;
+        }
+
+        if (casinoDialog.open || achievementsDialog.open) {
+          return;
+        }
+
+        event.preventDefault();
+        patchNotesDialog.showModal();
       }
 
       function finishCasinoSpin() {
-        // Reveal the prepared losing result after every 3D reel settles.
+        // Reveal the prepared loss or unlock the prepared mystery prize.
         const outcomeLabels = [];
 
         for (
@@ -1642,53 +2137,130 @@
         }
 
         slotMachine.classList.remove("is-spinning");
-        slotMachine.classList.add("is-denied");
         slotMachine.removeAttribute("aria-busy");
-        slotMachine.setAttribute("aria-label", `Resultado: ${outcomeLabels.join(", ")}`);
-        casinoResult.textContent =
-          CASINO_FAILURE_MESSAGES[
-            Math.floor(Math.random() * CASINO_FAILURE_MESSAGES.length)
-          ];
+
+        if (pendingCasinoPrize !== null) {
+          const isNewPrize = !unlockedAchievementIds.has(pendingCasinoPrize.id);
+
+          slotMachine.classList.add("is-winning");
+          casinoResult.classList.add("is-prize");
+          slotMachine.setAttribute(
+            "aria-label",
+            `Resultado: ${outcomeLabels.join(", ")}. Prêmio: ${pendingCasinoPrize.name}`,
+          );
+
+          if (isNewPrize) {
+            unlockedAchievementIds.add(pendingCasinoPrize.id);
+
+            try {
+              const savedAchievementIds = [];
+
+              for (const prize of CASINO_PRIZES) {
+                if (unlockedAchievementIds.has(prize.id)) {
+                  savedAchievementIds.push(prize.id);
+                }
+              }
+
+              localStorage.setItem(
+                ACHIEVEMENTS_STORAGE_KEY,
+                JSON.stringify(savedAchievementIds),
+              );
+            } catch {
+              achievementsArePersistent = false;
+            }
+
+            casinoResult.textContent = `VOCÊ GANHOU: ${pendingCasinoPrize.name}!`;
+            renderAchievements();
+          } else {
+            casinoResult.textContent =
+              `PRÊMIO REPETIDO: ${pendingCasinoPrize.name}.`;
+          }
+        } else {
+          slotMachine.classList.add("is-denied");
+          casinoResult.classList.remove("is-prize");
+          slotMachine.setAttribute(
+            "aria-label",
+            `Resultado: ${outcomeLabels.join(", ")}`,
+          );
+          casinoResult.textContent =
+            CASINO_FAILURE_MESSAGES[
+              Math.floor(Math.random() * CASINO_FAILURE_MESSAGES.length)
+            ];
+        }
+
         casinoLever.disabled = false;
         casinoLeverLabel.textContent = "DE NOVO";
         casinoLever.setAttribute("aria-label", "Puxar alavanca do cassino novamente");
       }
 
       function startCasinoSpin() {
-        // Prepare one losing outcome and rotate the three reels into it.
+        // Prepare a controlled mystery-prize trinca or an ordinary losing outcome.
         pendingCasinoOutcome = [];
+        pendingCasinoPrize = null;
 
-        for (
-          let reelIndex = 0;
-          reelIndex < slotReelCylinders.length;
-          reelIndex += 1
-        ) {
-          pendingCasinoOutcome.push(
-            SLOT_SYMBOLS[Math.floor(Math.random() * SLOT_SYMBOLS.length)],
-          );
-        }
+        if (Math.random() < CASINO_PRIZE_CHANCE) {
+          const availablePrizes = [];
 
-        const allSymbolsMatch =
-          pendingCasinoOutcome[0] === pendingCasinoOutcome[1] &&
-          pendingCasinoOutcome[1] === pendingCasinoOutcome[2];
-
-        if (allSymbolsMatch) {
-          const winningIndex = SLOT_SYMBOLS.indexOf(pendingCasinoOutcome[0]);
-          let replacementIndex = Math.floor(Math.random() * (SLOT_SYMBOLS.length - 1));
-
-          if (replacementIndex >= winningIndex) {
-            replacementIndex += 1;
+          for (const prize of CASINO_PRIZES) {
+            if (!unlockedAchievementIds.has(prize.id)) {
+              availablePrizes.push(prize);
+            }
           }
 
-          pendingCasinoOutcome[pendingCasinoOutcome.length - 1] =
-            SLOT_SYMBOLS[replacementIndex];
+          if (availablePrizes.length === 0) {
+            availablePrizes.push(...CASINO_PRIZES);
+          }
+
+          pendingCasinoPrize =
+            availablePrizes[Math.floor(Math.random() * availablePrizes.length)];
+
+          for (
+            let reelIndex = 0;
+            reelIndex < slotReelCylinders.length;
+            reelIndex += 1
+          ) {
+            pendingCasinoOutcome.push(CASINO_PRIZE_SYMBOL);
+          }
+        } else {
+          for (
+            let reelIndex = 0;
+            reelIndex < slotReelCylinders.length;
+            reelIndex += 1
+          ) {
+            pendingCasinoOutcome.push(
+              CASINO_NORMAL_SYMBOLS[
+                Math.floor(Math.random() * CASINO_NORMAL_SYMBOLS.length)
+              ],
+            );
+          }
+
+          const allSymbolsMatch =
+            pendingCasinoOutcome[0] === pendingCasinoOutcome[1] &&
+            pendingCasinoOutcome[1] === pendingCasinoOutcome[2];
+
+          if (allSymbolsMatch) {
+            const matchingIndex = CASINO_NORMAL_SYMBOLS.indexOf(
+              pendingCasinoOutcome[0],
+            );
+            let replacementIndex = Math.floor(
+              Math.random() * (CASINO_NORMAL_SYMBOLS.length - 1),
+            );
+
+            if (replacementIndex >= matchingIndex) {
+              replacementIndex += 1;
+            }
+
+            pendingCasinoOutcome[pendingCasinoOutcome.length - 1] =
+              CASINO_NORMAL_SYMBOLS[replacementIndex];
+          }
         }
 
         casinoLever.disabled = true;
         casinoLeverLabel.textContent = "GIRANDO";
         casinoLever.setAttribute("aria-label", "Alavanca acionada; rolos girando");
         casinoResult.textContent = "os rolos estão girando...";
-        slotMachine.classList.remove("is-denied");
+        casinoResult.classList.remove("is-prize");
+        slotMachine.classList.remove("is-denied", "is-winning");
         slotMachine.classList.add("is-spinning");
         slotMachine.setAttribute("aria-busy", "true");
 
@@ -1851,12 +2423,14 @@
 
       updateCasinoMusicVolume();
       updateCasinoMusicControl();
+      renderAchievements();
       casinoOpenButton.addEventListener("click", openCasino);
+      achievementsOpenButton.addEventListener("click", openAchievements);
       casinoLever.addEventListener("click", startCasinoSpin);
       casinoMusicToggle.addEventListener("click", toggleCasinoMusic);
       casinoVolume.addEventListener("input", updateCasinoMusicVolume);
       casinoDialog.addEventListener("close", pauseCasinoMusic);
-      patchNotesOpenButton.addEventListener("click", openPatchNotes);
+      document.addEventListener("keydown", handlePatchNotesShortcut);
       mobileGifMediaQuery.addEventListener("change", showRandomMarinGifs);
 
       // Pick one displayed name for this page visit.
