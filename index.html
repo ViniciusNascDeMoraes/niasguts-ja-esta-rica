@@ -85,7 +85,7 @@
               ajude ela a ficar rica doando em
               <a href="https://pixie.gg/niagott" target="_blank" rel="noopener noreferrer">pixie.gg/niagott</a>
             </p>
-            <span class="version-label">versão 1.10</span>
+            <span class="version-label">versão 1.11</span>
           </footer>
         </div>
       </section>
@@ -142,7 +142,7 @@
             <span class="casino-token-label">fichas</span>
             <strong class="casino-token-balance" id="casino-token-balance">5</strong>
             <p class="casino-token-storage-note" id="casino-token-storage-note" hidden>
-              saldo válido só nesta visita
+              estado válido só nesta visita
             </p>
           </section>
 
@@ -155,6 +155,13 @@
             <span class="fallback-reel">🐯</span>
             <span class="fallback-reel">7</span>
           </div>
+
+          <p
+            class="casino-result-flash"
+            id="casino-result-flash"
+            aria-hidden="true"
+            hidden
+          ></p>
 
           <button
             class="slot-lever"
@@ -169,22 +176,21 @@
             </span>
             <span class="visually-hidden">Puxar alavanca</span>
           </button>
-          <span class="lever-label" id="lever-label" aria-hidden="true">PUXE</span>
 
           <div class="casino-control-deck">
             <p class="casino-result" id="casino-result" role="status" aria-live="polite">
               pronta para tentar?
             </p>
-
-            <p
-              class="casino-rules"
-              aria-label="Uma ficha por giro. A ficha devolve uma. O presente libera uma conquista."
-            >
-              1 ficha por giro · <span class="casino-chip-mark" aria-hidden="true">1</span> devolve 1 · 🎁 libera conquista
-            </p>
-
-            <div class="casino-tray" aria-hidden="true">☕ A BANCA SEMPRE TOMA O CAFÉ ☕</div>
           </div>
+
+          <aside
+            class="casino-rules"
+            aria-label="Uma ficha por giro. A ficha devolve uma. O presente libera uma conquista."
+          >
+            <span>1 ficha por giro</span>
+            <span><span class="casino-chip-mark" aria-hidden="true">1</span> devolve 1</span>
+            <span>🎁 libera conquista</span>
+          </aside>
 
           <section class="casino-empty" id="casino-empty" tabindex="-1" hidden>
             <strong>SEM FICHAS</strong>
@@ -235,7 +241,6 @@
         </form>
 
         <header class="achievements-header">
-          <p class="achievements-kicker">vitrine de prêmios muito reais</p>
           <h2 class="achievements-title" id="achievements-title">Conquistas</h2>
           <p class="achievements-progress" id="achievements-progress">0 de 5 desbloqueadas</p>
         </header>
@@ -297,6 +302,7 @@
         </header>
 
         <ol class="release-list" id="release-list" aria-label="Histórico de versões">
+          <li class="release-entry"><h3>versão 1.11</h3><p>As mensagens comuns ganharam destaque, a legenda foi para a lateral e a primeira jogada passou a revelar o pé da prima do vaper em 3D.</p></li>
           <li class="release-entry"><h3>versão 1.10</h3><p>O cassino virou nanaBet, removeu o prêmio de duas fichas, ganhou uma ficha compatível com qualquer fonte, áudio no topo e reabertura corrigida.</p></li>
           <li class="release-entry"><h3>versão 1.9</h3><p>O tigrinho ganhou um rosto chibi correto e o prêmio do jackpot agora fica centralizado à frente de todos os efeitos.</p></li>
           <li class="release-entry"><h3>versão 1.8</h3><p>O site virou fullscreen, ganhou fichas persistentes, jackpots, tigrinho dançante, cinco prêmios 3D e uma alavanca clicável pela própria geometria.</p></li>

@@ -39,18 +39,20 @@ const SLOT_SYMBOLS = [
 ];
 const CASINO_PRIZES = [
   { id: "esposa-nenepira", name: "esposa do nenepira", modelId: "ring" },
-  { id: "prima-vaper", name: "prima do vaper", modelId: "chibi" },
+  { id: "prima-vaper", name: "pé da prima do vaper", modelId: "foot" },
   { id: "bolos", name: "bólos", modelId: "cake" },
   { id: "350-reais", name: "350 reais", modelId: "cash-case" },
   { id: "lanche-subway", name: "lanche do subway", modelId: "sandwich" },
 ];
 const ACHIEVEMENTS_STORAGE_KEY = "niasguts-achievements-v1";
 const CASINO_TOKENS_STORAGE_KEY = "niasguts-casino-fichas-v1";
+const CASINO_BAIT_STORAGE_KEY = "niasguts-casino-bait-v1";
 const INITIAL_CASINO_TOKENS = 5;
 const INITIAL_REEL_SYMBOL_INDICES = [0, 1, 4];
 const CASINO_REEL_FULL_TURNS = [5, 6, 7];
 const CASINO_REEL_DURATIONS_MS = [1400, 1750, 2100];
 const CASINO_SETTLE_DELAY_MS = 180;
+const CASINO_RESULT_FLASH_DURATION_MS = 2000;
 const CASINO_REFUND_CHANCE = 0.5;
 const CASINO_PRIZE_CHANCE = 0.125;
 const RELEASES_PER_PAGE = 3;
@@ -135,6 +137,8 @@ let pendingCasinoOutcomeType = "loss";
 let pendingAchievementAnimation = null;
 let casinoTokenBalance = INITIAL_CASINO_TOKENS;
 let casinoTokensArePersistent = true;
+let casinoBaitConsumed = false;
+let casinoBaitIsPersistent = true;
 let achievementsArePersistent = true;
 let casinoSpinInProgress = false;
 let casinoJackpotOpen = false;
@@ -149,9 +153,10 @@ let achievements3DLoadPromise = null;
 let casino3DFailed = false;
 let achievements3DFailed = false;
 let releasePage = 0;
+let casinoResultFlashTimerId = null;
 
 function loadSavedProgress() {
-  // Restore only known achievement IDs and a non-negative integer chip balance.
+  // Restore known prizes, a valid chip balance, and the one-time bait state.
   try {
     const savedAchievementJson = localStorage.getItem(ACHIEVEMENTS_STORAGE_KEY);
 
@@ -214,6 +219,13 @@ function loadSavedProgress() {
     casinoTokensArePersistent = false;
     casinoTokenBalance = INITIAL_CASINO_TOKENS;
   }
+
+  try {
+    casinoBaitConsumed =
+      localStorage.getItem(CASINO_BAIT_STORAGE_KEY) === "true";
+  } catch {
+    casinoBaitIsPersistent = false;
+  }
 }
 
 loadSavedProgress();
@@ -242,13 +254,13 @@ const counterValues = {
 const casinoDialog = document.querySelector("#casino-dialog");
 const casinoOpenButton = document.querySelector("#open-casino");
 const casinoLever = document.querySelector("#spin-casino");
-const casinoLeverLabel = document.querySelector("#lever-label");
 const slotMachine = document.querySelector("#slot-machine");
 const casinoCanvas = document.querySelector("#casino-canvas");
 const casinoLoading = document.querySelector("#casino-loading");
 const casinoReelFallback = document.querySelector("#casino-reel-fallback");
 const fallbackReels = document.querySelectorAll(".fallback-reel");
 const casinoResult = document.querySelector("#casino-result");
+const casinoResultFlash = document.querySelector("#casino-result-flash");
 const casinoTokenBalanceElement = document.querySelector(
   "#casino-token-balance",
 );
@@ -363,6 +375,21 @@ function saveCasinoTokens() {
   }
 }
 
+function consumeCasinoBait() {
+  // Guarantee the special first result only once per browser when possible.
+  casinoBaitConsumed = true;
+
+  if (!casinoBaitIsPersistent) {
+    return;
+  }
+
+  try {
+    localStorage.setItem(CASINO_BAIT_STORAGE_KEY, "true");
+  } catch {
+    casinoBaitIsPersistent = false;
+  }
+}
+
 function renderAchievements() {
   // Keep the HTML labels and the WebGL gallery synchronized.
   for (const slot of achievementSlots) {
@@ -400,7 +427,8 @@ function renderAchievements() {
 function renderCasinoTokens() {
   // Show the current balance and prevent play when no chip remains.
   casinoTokenBalanceElement.textContent = String(casinoTokenBalance);
-  casinoTokenStorageNote.hidden = casinoTokensArePersistent;
+  casinoTokenStorageNote.hidden =
+    casinoTokensArePersistent && casinoBaitIsPersistent;
   const canSpin =
     casinoTokenBalance > 0 &&
     !casinoSpinInProgress &&
@@ -409,13 +437,10 @@ function renderCasinoTokens() {
   casino3D?.setLeverInteractive(canSpin);
 
   if (casinoSpinInProgress) {
-    casinoLeverLabel.textContent = "GIRANDO";
     casinoLever.setAttribute("aria-label", "Alavanca acionada; rolos girando");
   } else if (casinoTokenBalance === 0) {
-    casinoLeverLabel.textContent = "SEM FICHAS";
     casinoLever.setAttribute("aria-label", "Sem fichas; minigame em breve");
   } else {
-    casinoLeverLabel.textContent = "PUXE";
     casinoLever.setAttribute(
       "aria-label",
       "Puxar alavanca tridimensional do cassino",
@@ -423,7 +448,45 @@ function renderCasinoTokens() {
   }
 
   casinoEmpty.hidden =
-    casinoTokenBalance !== 0 || casinoSpinInProgress || casinoJackpotOpen;
+    casinoTokenBalance !== 0 ||
+    casinoSpinInProgress ||
+    casinoJackpotOpen ||
+    !casinoResultFlash.hidden;
+}
+
+function clearCasinoResultFlash() {
+  // Cancel stale cards so a newer message always owns the two-second window.
+  if (casinoResultFlashTimerId !== null) {
+    window.clearTimeout(casinoResultFlashTimerId);
+    casinoResultFlashTimerId = null;
+  }
+
+  casinoResultFlash.hidden = true;
+  casinoResultFlash.classList.remove("is-token", "is-spinning", "is-loss");
+}
+
+function showCasinoMessage(message, tone = "default", emphasize = true) {
+  // Keep one accessible result below while briefly enlarging ordinary feedback.
+  casinoResult.textContent = message;
+  casinoResult.classList.toggle("is-prize", tone === "prize");
+  casinoResult.classList.toggle("is-token", tone === "token");
+  clearCasinoResultFlash();
+
+  if (!emphasize || !casinoIsOpen || casinoJackpotOpen) {
+    return;
+  }
+
+  casinoResultFlash.textContent = message;
+  casinoResultFlash.classList.toggle("is-token", tone === "token");
+  casinoResultFlash.classList.toggle("is-spinning", tone === "spinning");
+  casinoResultFlash.classList.toggle("is-loss", tone === "loss");
+  casinoResultFlash.hidden = false;
+  casinoResultFlashTimerId = window.setTimeout(() => {
+    casinoResultFlashTimerId = null;
+    casinoResultFlash.hidden = true;
+    casinoResultFlash.classList.remove("is-token", "is-spinning", "is-loss");
+    renderCasinoTokens();
+  }, CASINO_RESULT_FLASH_DURATION_MS);
 }
 
 function playPendingAchievementAnimation() {
@@ -658,6 +721,24 @@ function openCasino() {
 
   casinoIsOpen = true;
   renderCasinoTokens();
+
+  if (
+    (casinoTokenBalance > 0 || casinoSpinInProgress) &&
+    !casinoJackpotOpen &&
+    !casinoResult.classList.contains("is-prize")
+  ) {
+    showCasinoMessage(
+      casinoResult.textContent,
+      casinoSpinInProgress
+        ? "spinning"
+        : casinoResult.classList.contains("is-token")
+          ? "token"
+          : "default",
+    );
+  } else {
+    clearCasinoResultFlash();
+  }
+
   syncCasino3DVisibility();
   void ensureCasino3D();
   void reconcileCasinoMusic();
@@ -690,6 +771,8 @@ function closeCasinoJackpot() {
 
 function handleCasinoClose() {
   // Stop casino-only activity without overwriting the desired music state.
+  clearCasinoResultFlash();
+
   if (casinoJackpotOpen) {
     closeCasinoJackpot();
   }
@@ -830,8 +913,19 @@ function createOrdinaryLosingOutcome() {
 
 function chooseCasinoOutcome() {
   // Resolve the three exclusive outcomes from one uniformly random roll.
-  const outcomeRoll = Math.random();
   pendingCasinoPrize = null;
+
+  if (!casinoBaitConsumed) {
+    consumeCasinoBait();
+    pendingCasinoOutcomeType = "prize";
+    pendingCasinoOutcome = Array(3).fill(CASINO_PRIZE_SYMBOL);
+    pendingCasinoPrize = CASINO_PRIZES.find(
+      (prize) => prize.id === "prima-vaper",
+    );
+    return;
+  }
+
+  const outcomeRoll = Math.random();
 
   if (outcomeRoll < CASINO_REFUND_CHANCE) {
     pendingCasinoOutcomeType = "refund";
@@ -857,6 +951,7 @@ function chooseCasinoOutcome() {
 
 function showCasinoJackpot(prize, isNewPrize) {
   // Block the machine behind a persistent, emphatic prize presentation.
+  clearCasinoResultFlash();
   casinoJackpotOpen = true;
   slotMachine.classList.add("is-jackpot");
   casinoJackpotBadge.textContent = isNewPrize
@@ -883,8 +978,10 @@ function finishCasinoSpin() {
   if (pendingCasinoOutcomeType === "refund") {
     casinoTokenBalance += 1;
     saveCasinoTokens();
-    casinoResult.textContent = "a ficha voltou. patrimônio líquido: igual.";
-    casinoResult.classList.add("is-token");
+    showCasinoMessage(
+      "a ficha voltou. patrimônio líquido: igual.",
+      "token",
+    );
     casino3D?.celebrate("token", reducedMotionMediaQuery.matches);
     renderCasinoTokens();
     return;
@@ -903,10 +1000,13 @@ function finishCasinoSpin() {
       id: pendingCasinoPrize.id,
       isNew: isNewPrize,
     };
-    casinoResult.textContent = isNewPrize
-      ? "NOVA CONQUISTA: " + pendingCasinoPrize.name + ". Continua não rica."
-      : "PRÊMIO REPETIDO: " + pendingCasinoPrize.name + ".";
-    casinoResult.classList.add("is-prize");
+    showCasinoMessage(
+      isNewPrize
+        ? "NOVA CONQUISTA: " + pendingCasinoPrize.name + ". Continua não rica."
+        : "PRÊMIO REPETIDO: " + pendingCasinoPrize.name + ".",
+      "prize",
+      false,
+    );
     casino3D?.celebrate("prize", reducedMotionMediaQuery.matches);
     showCasinoJackpot(pendingCasinoPrize, isNewPrize);
     return;
@@ -916,7 +1016,7 @@ function finishCasinoSpin() {
     CASINO_FAILURE_MESSAGES[
       Math.floor(Math.random() * CASINO_FAILURE_MESSAGES.length)
     ];
-  casinoResult.textContent = failureMessage;
+  showCasinoMessage(failureMessage, "loss");
   casino3D?.celebrate("loss", reducedMotionMediaQuery.matches);
   renderCasinoTokens();
 }
@@ -937,8 +1037,7 @@ async function startCasinoSpin() {
   saveCasinoTokens();
   chooseCasinoOutcome();
   renderCasinoTokens();
-  casinoResult.textContent = "os rolos estão girando...";
-  casinoResult.classList.remove("is-prize", "is-token");
+  showCasinoMessage("os rolos estão girando...", "spinning");
   slotMachine.classList.add("is-spinning");
   slotMachine.setAttribute("aria-busy", "true");
 

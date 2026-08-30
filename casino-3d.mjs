@@ -372,68 +372,83 @@ function createRingPrize(palette) {
   return group;
 }
 
-function createChibiPrize(palette) {
-  // Model a generic feminine low-poly chibi character.
+export function createFootPrize(palette) {
+  // Model a playful cartoon foot with five individually readable toes.
   const group = new THREE.Group();
   const skin = createStandardMaterial(palette.hairBlondeSoft, {
-    roughness: 0.62,
+    roughness: 0.58,
   });
-  const hair = createStandardMaterial(palette.hairBlonde, {
-    roughness: 0.46,
+  const warmSkin = createStandardMaterial(palette.hairBlonde, {
+    roughness: 0.5,
   });
-  const dress = createStandardMaterial(palette.hairPink, {
-    roughness: 0.38,
-  });
-  const dark = createStandardMaterial(palette.navyDeep, {
-    metalness: 0.12,
-    roughness: 0.4,
-  });
-  const eye = createStandardMaterial(palette.navyDeep, {
-    roughness: 0.3,
+  const nail = createStandardMaterial(palette.hairPink, {
+    metalness: 0.08,
+    roughness: 0.32,
   });
 
-  addSphere(group, 0.48, [0, 1.18, 0], hair, [1.08, 1.06, 0.92]);
-  addSphere(group, 0.4, [0, 1.16, 0.22], skin, [1, 0.95, 0.72]);
-  addSphere(group, 0.055, [-0.14, 1.22, 0.52], eye);
-  addSphere(group, 0.055, [0.14, 1.22, 0.52], eye);
-  const fringeMaterial = hair;
-  for (const x of [-0.24, 0, 0.24]) {
-    const fringe = addCylinder(
+  addCylinder(
+    group,
+    0.31,
+    0.42,
+    0.92,
+    [0, 0.76, -0.46],
+    skin,
+    28,
+    "foot-ankle",
+  );
+  addSphere(
+    group,
+    0.62,
+    [0, 0.28, -0.34],
+    skin,
+    [0.78, 0.66, 0.92],
+    "foot-heel",
+  );
+  addSphere(
+    group,
+    0.7,
+    [0, 0.2, 0.28],
+    skin,
+    [1.05, 0.52, 1.16],
+    "foot-forefoot",
+  );
+  addSphere(
+    group,
+    0.42,
+    [0, 0.05, 0.14],
+    warmSkin,
+    [1.15, 0.16, 1.2],
+    "foot-sole-pad",
+  );
+
+  const toes = [
+    { x: -0.43, y: 0.2, z: 0.93, radius: 0.23 },
+    { x: -0.17, y: 0.21, z: 1.04, radius: 0.19 },
+    { x: 0.07, y: 0.2, z: 1.01, radius: 0.175 },
+    { x: 0.28, y: 0.19, z: 0.94, radius: 0.15 },
+    { x: 0.46, y: 0.17, z: 0.84, radius: 0.13 },
+  ];
+
+  for (let toeIndex = 0; toeIndex < toes.length; toeIndex += 1) {
+    const toe = toes[toeIndex];
+    addSphere(
       group,
-      0.02,
-      0.11,
-      0.42,
-      [x, 1.47, 0.35],
-      fringeMaterial,
-      10,
+      toe.radius,
+      [toe.x, toe.y, toe.z],
+      skin,
+      [1, 0.78, 1.08],
+      "foot-toe-" + (toeIndex + 1),
     );
-    fringe.rotation.z = x * 0.7;
+    addSphere(
+      group,
+      toe.radius * 0.58,
+      [toe.x, toe.y + toe.radius * 0.54, toe.z + toe.radius * 0.4],
+      nail,
+      [0.72, 0.16, 0.62],
+      "foot-nail-" + (toeIndex + 1),
+    );
   }
-  addCylinder(group, 0.28, 0.48, 0.82, [0, 0.48, 0], dress, 24);
-  addBox(group, [0.68, 0.12, 0.44], [0, 0.72, 0.08], dark);
-  addCylinder(group, 0.09, 0.09, 0.7, [-0.2, -0.18, 0], skin, 14);
-  addCylinder(group, 0.09, 0.09, 0.7, [0.2, -0.18, 0], skin, 14);
-  const leftArm = addCylinder(
-    group,
-    0.075,
-    0.09,
-    0.72,
-    [-0.48, 0.6, 0],
-    skin,
-    14,
-  );
-  leftArm.rotation.z = -0.55;
-  const rightArm = addCylinder(
-    group,
-    0.075,
-    0.09,
-    0.72,
-    [0.48, 0.6, 0],
-    skin,
-    14,
-  );
-  rightArm.rotation.z = 0.55;
-  addSphere(group, 0.12, [0, 0.84, 0.43], dress, [1.4, 0.75, 0.65]);
+
   return group;
 }
 
@@ -584,8 +599,8 @@ function createPrizeModel(modelId, palette) {
   if (modelId === "ring") {
     return createRingPrize(palette);
   }
-  if (modelId === "chibi") {
-    return createChibiPrize(palette);
+  if (modelId === "foot") {
+    return createFootPrize(palette);
   }
   if (modelId === "cake") {
     return createCakePrize(palette);

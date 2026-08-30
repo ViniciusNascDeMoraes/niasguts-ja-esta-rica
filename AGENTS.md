@@ -38,9 +38,12 @@
 - Build three physical seven-symbol cylindrical reels and stop them sequentially with deceleration. Use five ordinary faces plus mystery gift and one-chip faces.
 - Load the shared 3D module only when the casino or achievement gallery first opens; do not load it eagerly on the main page. Keep a functional HTML reel fallback for WebGL or module failure.
 - Start each visitor with five virtual chips stored under `niasguts-casino-fichas-v1`. Charge one chip before each spin and keep the balance visible only inside the casino.
-- Resolve each spin from one exclusive roll: 50% returns one chip, 12.5% lands a mystery-gift achievement, and 37.5% is an ordinary loss. Keep ordinary losses free of matching triples.
+- Make the first eligible spin per browser land the mystery-gift triple for `pé da prima do vaper`. Persist the consumed bait under `niasguts-casino-bait-v1`; if storage is unavailable, consume it for the current visit only.
+- After the guaranteed first result, resolve each spin from one exclusive roll: 50% returns one chip, 12.5% lands a mystery-gift achievement, and 37.5% is an ordinary loss. Keep ordinary losses free of matching triples.
 - When the balance reaches zero, disable the lever and show `SEM FICHAS — MINIGAME EM BREVE`. Do not add a reset or emergency chip path.
-- Award `esposa do nenepira`, `prima do vaper`, `bólos`, `350 reais`, and `lanche do subway` only through mystery-gift triples. Award locked prizes before repeats; allow repeats only after all five are unlocked.
+- Award `esposa do nenepira`, `pé da prima do vaper`, `bólos`, `350 reais`, and `lanche do subway` only through mystery-gift triples. Keep the stable `prima-vaper` saved ID. Award locked prizes before repeats; allow repeats only after all five are unlocked.
+- Show ready, spinning, refunded-chip, and ordinary-loss messages in a centered non-blocking HTML card for two seconds, then retain the same text in the compact bottom result panel. Do not use jackpot effects for these messages.
+- Keep the three-line symbol legend in a compact square at the lower right, separate from the result panel and lever.
 - Build a procedural chibi tiger opposite the lever with exactly two eyes, visible inner ears, two short forehead stripes, and cheek-only whiskers. Dance at 30 fps only while the casino is visible, use a stronger victory dance during jackpots, and keep it static under reduced motion.
 - Keep jackpot UI blocking until `CONTINUAR` or `Escape`. Show a large crisp title, the prize name, new/repeat badge, flash, rays, confetti, pooled 3D particles, cabinet lights, tiger celebration, and the enlarged matching 3D prize.
 - Anchor the jackpot presentation to the camera, normalize every prize around its bounds, and keep the prize centered in front of all decorative effects. Keep only the crisp HTML copy and confirmation control above it.
@@ -56,7 +59,7 @@
 ## Achievements
 
 - Keep a main-page `CONQUISTAS` button with a live unlocked count.
-- Show five permanent 3D pedestals with procedural mystery crates while locked. Reveal the matching procedural ring, generic feminine chibi, layered cake, `R$350` suitcase, or logo-free sandwich and its prize name only after the matching mystery-gift trinca lands.
+- Show five permanent 3D pedestals with procedural mystery crates while locked. Reveal the matching procedural ring, cartoon foot with five toes, layered cake, `R$350` suitcase, or logo-free sandwich and its prize name only after the matching mystery-gift trinca lands.
 - Render the achievement models in one WebGL canvas aligned with native HTML labels. Float and rotate unlocked prizes at 20 fps only while visible; keep locked mysteries static and honor reduced motion.
 - Raise a new prize from the payout tray for 1.1 seconds. Bounce and glow a repeated prize for 450 milliseconds.
 - After all five prizes are unlocked, keep the cabinet gold and pink and show `COLEÇÃO COMPLETA`.
@@ -92,6 +95,7 @@
   - `1.8`: fullscreen responsive screens, persistent chips, five procedural prizes, blocking jackpots, dancing 3D tiger, paginated secret notes, and mesh-only lever raycasting.
   - `1.9`: corrected chibi tiger face and camera-centered jackpot prizes layered in front of every decorative effect.
   - `1.10`: nanaBet branding, font-independent one-chip reels, top-right audio controls, simplified odds, and reliable casino and music reopening.
+  - `1.11`: prominent ordinary-result cards, lower-right legend, one-time guaranteed first prize, and the procedural `pé da prima do vaper` model.
 - Update the footer version, patch notes, and this mapping together for each future user-visible release.
 
 ## Architecture and Delivery
