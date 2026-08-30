@@ -69,16 +69,20 @@
 
       .page {
         display: grid;
+        grid-template-columns: minmax(0, 1fr);
+        align-content: center;
+        justify-items: center;
         min-height: 100svh;
-        place-items: center;
         padding: clamp(1rem, 4vw, 3rem);
       }
 
       .card {
         position: relative;
+        grid-area: 1 / 1;
         width: min(100%, 61rem);
         padding: clamp(2.25rem, 7vw, 5rem) clamp(1rem, 5vw, 4rem) clamp(1.5rem, 5vw, 3.5rem);
         overflow: hidden;
+        margin-inline: auto;
         text-align: center;
         background:
           linear-gradient(var(--paper), var(--paper)) padding-box,
@@ -89,6 +93,61 @@
           0.7rem 0.8rem 0 var(--ink),
           0 1.8rem 4rem var(--shadow);
         isolation: isolate;
+      }
+
+      .marin-decorations {
+        position: relative;
+        grid-area: 1 / 1;
+        align-self: stretch;
+        width: min(100%, 77rem);
+        pointer-events: none;
+      }
+
+      .marin-embed {
+        position: absolute;
+        z-index: 2;
+        display: grid;
+        overflow: hidden;
+        place-items: center;
+        color: var(--pink-dark);
+        font-size: 0.72rem;
+        font-weight: 900;
+        background: var(--paper);
+        border: 0.16rem solid var(--ink);
+        border-radius: 1rem;
+        box-shadow: 0.28rem 0.32rem 0 var(--ink);
+        pointer-events: auto;
+      }
+
+      .marin-embed .tenor-gif-embed {
+        width: 100% !important;
+      }
+
+      .marin-embed iframe {
+        display: block;
+        width: 100% !important;
+        height: 100% !important;
+        border: 0;
+      }
+
+      .marin-embed a {
+        color: inherit;
+      }
+
+      .marin-embed-jump {
+        top: 18%;
+        left: 0;
+        width: clamp(6.5rem, 8vw, 8.5rem);
+        aspect-ratio: 498 / 370;
+        transform: translateX(0.75rem) rotate(-4deg);
+      }
+
+      .marin-embed-chibi {
+        right: 0;
+        bottom: 18%;
+        width: clamp(6rem, 7vw, 7.75rem);
+        aspect-ratio: 487 / 498;
+        transform: translateX(-0.75rem) rotate(4deg);
       }
 
       .card::before {
@@ -275,6 +334,37 @@
         }
       }
 
+      @media (max-width: 76rem) {
+        .page {
+          row-gap: clamp(1.5rem, 4vw, 2.25rem);
+        }
+
+        .marin-decorations {
+          grid-area: 2 / 1;
+          position: static;
+          display: grid;
+          width: min(100%, 61rem);
+          grid-template-columns: minmax(0, 8.5rem) minmax(0, 7.75rem);
+          align-items: center;
+          justify-content: center;
+          gap: clamp(1rem, 5vw, 3rem);
+        }
+
+        .marin-embed {
+          position: relative;
+          inset: auto;
+          width: 100%;
+        }
+
+        .marin-embed-jump {
+          transform: rotate(-3deg);
+        }
+
+        .marin-embed-chibi {
+          transform: rotate(3deg);
+        }
+      }
+
       @media (max-width: 48rem) {
         .counter {
           grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -290,6 +380,11 @@
 
         .counter {
           grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .marin-decorations {
+          grid-template-columns: minmax(0, 6.5rem) minmax(0, 6rem);
+          gap: 0.85rem;
         }
       }
 
@@ -353,8 +448,55 @@
 
         <p class="since">desde 04 de outubro de 2000, 00:00 · Porto Alegre</p>
       </section>
+
+      <aside class="marin-decorations" aria-label="Marin Kitagawa">
+        <div class="marin-embed marin-embed-jump">
+          <div
+            class="tenor-gif-embed"
+            data-postid="4669622031982443835"
+            data-share-method="host"
+            data-aspect-ratio="1.34595"
+            data-width="100%"
+          >
+            <a
+              href="https://tenor.com/view/my-dress-up-darling-kitagawa-marin-%E5%96%9C%E5%A4%9A%E5%B7%9D-%E6%B5%B7%E5%A4%A2-%E5%96%9C%E5%A4%9A%E5%B7%9D-%E6%B5%B7%E5%A4%A2-gif-4669622031982443835"
+              rel="noopener noreferrer"
+              target="_blank"
+            >Marin Kitagawa pulando</a>
+            no
+            <a
+              href="https://tenor.com/search/marin-kitagawa-stickers"
+              rel="noopener noreferrer"
+              target="_blank"
+            >Tenor</a>
+          </div>
+        </div>
+
+        <div class="marin-embed marin-embed-chibi">
+          <div
+            class="tenor-gif-embed"
+            data-postid="5993688566449789421"
+            data-share-method="host"
+            data-aspect-ratio="0.977912"
+            data-width="100%"
+          >
+            <a
+              href="https://tenor.com/view/my-dress-up-darling-my-dress-up-darling-season-2-marin-kitagawa-my-dress-up-darling-chibi-marin-chibi-gif-5993688566449789421"
+              rel="noopener noreferrer"
+              target="_blank"
+            >Marin Kitagawa chibi surpresa</a>
+            no
+            <a
+              href="https://tenor.com/search/marin-kitagawa-stickers"
+              rel="noopener noreferrer"
+              target="_blank"
+            >Tenor</a>
+          </div>
+        </div>
+      </aside>
     </main>
 
+    <script async src="https://tenor.com/embed.js"></script>
     <script>
       "use strict";
 
