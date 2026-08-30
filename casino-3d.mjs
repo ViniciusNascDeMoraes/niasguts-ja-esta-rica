@@ -886,20 +886,6 @@ export function createTigerModel(palette) {
     "tiger-nose",
   );
 
-  for (const [side, x] of [["left", -0.055], ["right", 0.055]]) {
-    const mouth = addCylinder(
-      head,
-      0.014,
-      0.014,
-      0.19,
-      [x, -0.235, 0.755],
-      stripe,
-      8,
-      "tiger-smile-" + side,
-    );
-    mouth.rotation.z = x < 0 ? -0.58 : 0.58;
-  }
-
   for (const [side, x] of [["left", -0.21], ["right", 0.21]]) {
     const foreheadStripe = applyShadows(
       new THREE.Mesh(new THREE.CircleGeometry(0.105, 3), stripe),

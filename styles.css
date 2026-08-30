@@ -266,6 +266,9 @@ h1 {
 .dialog-close,
 .casino-music-toggle,
 .jackpot-continue,
+.classroom-open-button,
+.classroom-answer,
+.classroom-continue,
 .release-page-button {
   min-height: 2.5rem;
   font-weight: 1000;
@@ -459,6 +462,9 @@ h1 {
 .casino-music-toggle:focus-visible,
 .casino-volume:focus-visible,
 .jackpot-continue:focus-visible,
+.classroom-open-button:focus-visible,
+.classroom-answer:focus-visible,
+.classroom-continue:focus-visible,
 .release-page-button:focus-visible,
 .donation a:focus-visible {
   outline: 0.18rem solid var(--tie-red);
@@ -915,6 +921,7 @@ h1 {
   display: grid;
   min-width: min(84vw, 24rem);
   padding: 1rem;
+  gap: 0.65rem;
   place-items: center;
   color: var(--shirt);
   text-align: center;
@@ -922,6 +929,7 @@ h1 {
   border: 0.15rem solid var(--hair-pink);
   border-radius: 1rem;
   box-shadow: 0 0 1.4rem var(--casino-pink-glow);
+  pointer-events: auto;
   translate: -50% -50%;
 }
 
@@ -930,11 +938,13 @@ h1 {
   font-size: clamp(1.45rem, 6vmin, 3rem);
 }
 
-.casino-empty span {
-  margin-top: 0.25rem;
+.classroom-open-button {
+  min-height: 2.75rem;
+  padding: 0.55rem 1rem;
+  color: var(--navy-deep);
   font-size: clamp(0.65rem, 2vmin, 0.9rem);
-  font-weight: 900;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.05em;
+  background: var(--hair-blonde);
 }
 
 .casino-jackpot {
@@ -1103,6 +1113,217 @@ h1 {
 .jackpot-confetti i:nth-child(22) { --confetti-x: 96%; --confetti-delay: -1100ms; --confetti-turn: -470deg; }
 .jackpot-confetti i:nth-child(23) { --confetti-x: 35%; --confetti-delay: -2600ms; }
 .jackpot-confetti i:nth-child(24) { --confetti-x: 70%; --confetti-delay: -2200ms; }
+
+/* Fullscreen visual-novel classroom. */
+.classroom-screen {
+  position: relative;
+  display: grid;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  padding: max(0.55rem, env(safe-area-inset-top)) max(0.55rem, env(safe-area-inset-right)) max(0.55rem, env(safe-area-inset-bottom)) max(0.55rem, env(safe-area-inset-left));
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  gap: clamp(0.35rem, 1.4dvh, 0.8rem);
+  overflow: hidden;
+  color: var(--navy-deep);
+  background:
+    radial-gradient(circle at 18% 18%, var(--white-glow), transparent 22%),
+    linear-gradient(145deg, var(--skirt-blue-soft), var(--hair-pink-soft) 58%, var(--hair-blonde-soft));
+}
+
+.classroom-screen::before {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background: linear-gradient(180deg, var(--shirt-stripe), transparent 24% 72%, var(--hair-pink-haze));
+  content: "";
+  pointer-events: none;
+}
+
+.classroom-background,
+.classroom-background img {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.classroom-background {
+  z-index: 0;
+  overflow: hidden;
+}
+
+.classroom-background img {
+  object-fit: cover;
+  object-position: center;
+}
+
+.classroom-header {
+  z-index: 4;
+  display: grid;
+  width: min(100%, 36rem);
+  padding: clamp(0.22rem, 0.8vmin, 0.42rem) 3rem;
+  justify-items: center;
+  text-align: center;
+  background: var(--shirt-glow);
+  border: 0.1rem solid var(--navy-deep);
+  border-radius: 0.8rem;
+  box-shadow: 0.16rem 0.2rem 0 var(--navy-deep);
+  justify-self: center;
+}
+
+.classroom-kicker,
+.classroom-title,
+.classroom-progress,
+.classroom-speaker,
+.classroom-dialogue-text {
+  margin: 0;
+}
+
+.classroom-kicker {
+  color: var(--hair-pink-dark);
+  font-size: clamp(0.5rem, 1.45vmin, 0.72rem);
+  font-weight: 1000;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.classroom-title {
+  margin-top: 0.08rem;
+  color: var(--navy-deep);
+  font-size: clamp(1.35rem, 5vmin, 3.1rem);
+  line-height: 0.98;
+  text-wrap: balance;
+}
+
+.classroom-progress {
+  margin-top: 0.12rem;
+  color: var(--navy);
+  font-size: clamp(0.54rem, 1.55vmin, 0.8rem);
+  font-weight: 900;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.classroom-stage {
+  position: relative;
+  z-index: 2;
+  isolation: isolate;
+  width: 100%;
+  min-height: 0;
+  justify-self: center;
+  overflow: hidden;
+}
+
+.classroom-art-status {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  z-index: 3;
+  margin: 0;
+  padding: 0.42rem 0.7rem;
+  color: var(--shirt);
+  font-size: clamp(0.52rem, 1.5vmin, 0.72rem);
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  text-align: center;
+  text-transform: uppercase;
+  background: var(--casino-panel);
+  border: 0.1rem solid var(--hair-blonde);
+  border-radius: 999px;
+  box-shadow: 0 0.2rem 0 var(--navy-deep);
+  translate: -50% -50%;
+}
+
+.gojo-character {
+  position: absolute;
+  bottom: max(-5.5rem, -18%);
+  left: 50%;
+  z-index: 2;
+  display: block;
+  width: auto;
+  max-width: min(90vw, 36rem);
+  height: min(118%, 48rem);
+  object-fit: contain;
+  object-position: center bottom;
+  opacity: 0;
+  filter: drop-shadow(0 0.35rem 0.5rem var(--shadow-strong));
+  pointer-events: none;
+  translate: -50% 0;
+}
+
+.gojo-character.is-visible {
+  opacity: 1;
+}
+
+.gojo-character.is-entering {
+  animation: gojo-pose-in 220ms ease-out both;
+}
+
+.classroom-dialogue-box {
+  position: relative;
+  z-index: 5;
+  display: grid;
+  width: min(100%, 72rem);
+  min-height: 0;
+  padding: clamp(0.5rem, 1.8vmin, 0.9rem);
+  gap: clamp(0.28rem, 0.9dvh, 0.48rem);
+  justify-self: center;
+  overflow: hidden;
+  background: var(--shirt);
+  border: 0.15rem solid var(--navy-deep);
+  border-radius: clamp(0.65rem, 2vmin, 1rem);
+  box-shadow: 0.24rem 0.28rem 0 var(--navy-deep), 0 0 1rem var(--casino-pink-glow);
+}
+
+.classroom-speaker {
+  justify-self: start;
+  padding: 0.2rem 0.62rem;
+  color: var(--shirt);
+  font-size: clamp(0.58rem, 1.6vmin, 0.8rem);
+  font-weight: 1000;
+  letter-spacing: 0.04em;
+  background: var(--hair-pink-dark);
+  border-radius: 999px;
+}
+
+.classroom-dialogue-text {
+  min-height: 2.7em;
+  color: var(--navy-deep);
+  font-size: clamp(0.7rem, 2vmin, 1rem);
+  font-weight: 750;
+  line-height: 1.35;
+  text-align: left;
+  text-wrap: pretty;
+}
+
+.classroom-answers {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: clamp(0.3rem, 1.2vw, 0.65rem);
+}
+
+.classroom-answer,
+.classroom-continue {
+  min-height: 2.55rem;
+  padding: 0.42rem 0.75rem;
+  color: var(--navy-deep);
+  font-size: clamp(0.68rem, 1.8vmin, 0.9rem);
+  background: var(--hair-blonde-soft);
+}
+
+.classroom-answer:hover,
+.classroom-continue:hover,
+.classroom-open-button:hover {
+  background: var(--skirt-blue);
+}
+
+.classroom-continue {
+  min-width: min(100%, 13rem);
+  justify-self: end;
+  background: var(--hair-pink);
+}
 
 /* Fullscreen WebGL achievement showroom. */
 .achievements-screen {
@@ -1441,6 +1662,11 @@ h1 {
   to { translate: 8vw 118dvh; rotate: var(--confetti-turn); }
 }
 
+@keyframes gojo-pose-in {
+  from { opacity: 0.35; translate: -50% 0.35rem; }
+  to { opacity: 1; translate: -50% 0; }
+}
+
 @media (max-width: 76rem) {
   .marin-gif-left { left: 0.3rem; }
   .marin-gif-right { right: 0.3rem; }
@@ -1564,6 +1790,37 @@ h1 {
     top: 30%;
     right: 8%;
     left: 8%;
+  }
+
+  .classroom-screen {
+    padding: 0.35rem;
+    gap: 0.3rem;
+  }
+
+  .classroom-header {
+    padding: 0.22rem 2.7rem;
+  }
+
+  .classroom-title {
+    font-size: clamp(1.15rem, 6vw, 1.55rem);
+  }
+
+  .gojo-character {
+    bottom: 0;
+    max-width: 82vw;
+    height: min(112%, 33rem);
+  }
+
+  .classroom-dialogue-box {
+    padding: 0.48rem;
+    border-radius: 0.55rem;
+    box-shadow: 0.16rem 0.19rem 0 var(--navy-deep);
+  }
+
+  .classroom-answer,
+  .classroom-continue {
+    min-height: 2.35rem;
+    padding: 0.34rem 0.45rem;
   }
 
   .achievement-grid {
@@ -1713,6 +1970,53 @@ h1 {
   .casino-music-toggle,
   .casino-volume-control {
     font-size: clamp(0.4rem, 1.7dvh, 0.53rem);
+  }
+
+  .classroom-screen {
+    padding: 0.3rem;
+    gap: 0.24rem;
+  }
+
+  .classroom-header {
+    padding: 0.16rem 2.8rem;
+  }
+
+  .classroom-kicker,
+  .classroom-progress {
+    font-size: clamp(0.42rem, 1.7dvh, 0.56rem);
+  }
+
+  .classroom-title {
+    font-size: clamp(1rem, 5.5dvh, 1.35rem);
+  }
+
+  .gojo-character {
+    bottom: -55%;
+    max-width: 52vw;
+    height: min(155%, 23rem);
+  }
+
+  .classroom-dialogue-box {
+    padding: 0.36rem 0.48rem;
+    gap: 0.2rem;
+  }
+
+  .classroom-speaker {
+    padding: 0.12rem 0.45rem;
+    font-size: clamp(0.46rem, 1.8dvh, 0.58rem);
+  }
+
+  .classroom-dialogue-text {
+    min-height: 2.45em;
+    font-size: clamp(0.54rem, 2.2dvh, 0.68rem);
+    line-height: 1.24;
+  }
+
+  .classroom-answer,
+  .classroom-continue {
+    min-height: 2rem;
+    padding: 0.24rem 0.45rem;
+    font-size: clamp(0.48rem, 1.9dvh, 0.6rem);
   }
 
   .achievement-grid {

@@ -40,11 +40,11 @@
 - Start each visitor with five virtual chips stored under `niasguts-casino-fichas-v1`. Charge one chip before each spin and keep the balance visible only inside the casino.
 - Make the first eligible spin per browser land the mystery-gift triple for `pé da prima do vaper`. Persist the consumed bait under `niasguts-casino-bait-v1`; if storage is unavailable, consume it for the current visit only.
 - After the guaranteed first result, resolve each spin from one exclusive roll: 50% returns one chip, 12.5% lands a mystery-gift achievement, and 37.5% is an ordinary loss. Keep ordinary losses free of matching triples.
-- When the balance reaches zero, disable the lever and show `SEM FICHAS — MINIGAME EM BREVE`. Do not add a reset or emergency chip path.
+- When the balance reaches zero, disable the lever and show `SEM FICHAS` with the `GANHAR FICHAS NA AULA` button. Do not add a reset or emergency chip path.
 - Award `esposa do nenepira`, `pé da prima do vaper`, `bólos`, `350 reais`, and `lanche do subway` only through mystery-gift triples. Keep the stable `prima-vaper` saved ID. Award locked prizes before repeats; allow repeats only after all five are unlocked.
 - Show ready, spinning, refunded-chip, and ordinary-loss messages in a centered non-blocking HTML card for two seconds, then retain the same text in the compact bottom result panel. Do not use jackpot effects for these messages.
 - Keep the three-line symbol legend in a compact square at the lower right, separate from the result panel and lever.
-- Build a procedural chibi tiger opposite the lever with exactly two eyes, visible inner ears, two short forehead stripes, and cheek-only whiskers. Dance at 30 fps only while the casino is visible, use a stronger victory dance during jackpots, and keep it static under reduced motion.
+- Build a procedural chibi tiger opposite the lever with exactly two eyes, visible inner ears, two short forehead stripes, and four cheek-only whiskers. Do not add smile strokes or hair-like geometry below its nose. Dance at 30 fps only while the casino is visible, use a stronger victory dance during jackpots, and keep it static under reduced motion.
 - Keep jackpot UI blocking until `CONTINUAR` or `Escape`. Show a large crisp title, the prize name, new/repeat badge, flash, rays, confetti, pooled 3D particles, cabinet lights, tiger celebration, and the enlarged matching 3D prize.
 - Anchor the jackpot presentation to the camera, normalize every prize around its bounds, and keep the prize centered in front of all decorative effects. Keep only the crisp HTML copy and confirmation control above it.
 - Keep the main financial verdict as `NÃO` after every prize.
@@ -55,6 +55,20 @@
 - Track the visitor's desired music state separately from `HTMLMediaElement.paused`. Invalidate stale `play()` promises so they cannot undo a newer pause request.
 - Reflect actual playback through the media `play`, `pause`, and `error` events.
 - Do not add money balances, payments, gambling links, or a real-money disclaimer.
+
+## Visual Novel Lesson
+
+- Open the fullscreen classroom only from the zero-chip casino state. Close the casino first so its WebGL loop and music pause and reset through the normal lifecycle.
+- Keep the two classroom backgrounds and six transparent Gojo poses under `assets/images/gojo/`; `BRIEFING_ARTE_GOJO.txt` remains the source-art specification.
+- Do not request any classroom image before the lesson first opens. Select the portrait or landscape background by viewport orientation, preload every pose once inside the lesson, retain the previous decoded pose until its replacement is ready, and keep the CSS classroom as a failure fallback.
+- Use `caring`, `neutral`, and `reassuring` for the three introduction lines; `teaching` for questions and retries; `praise` for correct feedback; `reassuring` for wrong feedback; and `reward` for the completed lesson.
+- Address the learner as Nana. Keep Gojo affectionate, reassuring, and lightly romantic without making a wrong answer punitive.
+- Generate a fresh five-question lesson on every entry, covering addition, subtraction, multiplication, and exact division. Present exactly three large numeric alternatives.
+- A wrong answer gives a specific hint and retries the same generated question without losing progress. A correct answer advances only after its feedback line.
+- Completing all five questions unlocks one guarded `RECEBER 5 FICHAS` action. Add exactly five chips to the existing persistent casino balance, then reopen the casino with the reward message emphasized.
+- Closing with the dialog button or `Escape` awards nothing, returns to the zero-chip casino, and resets the lesson. Allow another fresh lesson whenever the balance later reaches zero.
+- Render dialogue with a 28-millisecond visual typewriter. Enter, Space, or a click finishes the current line before advancing. Announce only the complete line to assistive technology and show text immediately under reduced motion.
+- Do not add lesson persistence, music, or sound effects. Keep the classroom within the same viewport containment requirements as every other dialog.
 
 ## Achievements
 
@@ -96,6 +110,8 @@
   - `1.9`: corrected chibi tiger face and camera-centered jackpot prizes layered in front of every decorative effect.
   - `1.10`: nanaBet branding, font-independent one-chip reels, top-right audio controls, simplified odds, and reliable casino and music reopening.
   - `1.11`: prominent ordinary-result cards, lower-right legend, one-time guaranteed first prize, and the procedural `pé da prima do vaper` model.
+  - `1.12`: zero-chip Gojo visual-novel lesson, five generated math questions, five-chip reward, and artist briefing for the future local artwork.
+  - `1.13`: local orientation-aware classroom artwork, six contextual Gojo poses, and removal of the two hair-like strokes below the tiger's nose.
 - Update the footer version, patch notes, and this mapping together for each future user-visible release.
 
 ## Architecture and Delivery

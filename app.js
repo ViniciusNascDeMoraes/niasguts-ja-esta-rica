@@ -55,6 +55,30 @@ const CASINO_SETTLE_DELAY_MS = 180;
 const CASINO_RESULT_FLASH_DURATION_MS = 2000;
 const CASINO_REFUND_CHANCE = 0.5;
 const CASINO_PRIZE_CHANCE = 0.125;
+const CLASSROOM_QUESTION_COUNT = 5;
+const CLASSROOM_REWARD_TOKENS = 5;
+const CLASSROOM_TYPE_INTERVAL_MS = 28;
+const CLASSROOM_INTRO_LINES = [
+  "Então você ficou sem fichas, Nana? Tudo bem. Vem cá, eu cuido de você.",
+  "Se for uma boa garota e responder cinco perguntinhas corretamente, eu te dou cinco fichas.",
+  "Não precisa ficar nervosa. Eu vou estar aqui com você em cada uma delas.",
+];
+const CLASSROOM_CORRECT_LINES = [
+  "Muito bem, Nana. Eu sabia que você conseguiria.",
+  "Isso mesmo, boa garota. Continue assim para mim.",
+  "Perfeita. Você fica ainda mais adorável quando se concentra.",
+  "Exatamente. Estou orgulhoso de você, Nana.",
+  "Cinco de cinco. Você foi uma ótima garota, Nana. Como prometido, estas cinco fichas são suas.",
+];
+const CLASSROOM_POSE_SOURCES = {
+  neutral: "assets/images/gojo/gojo-neutral.png",
+  caring: "assets/images/gojo/gojo-caring.png",
+  teaching: "assets/images/gojo/gojo-teaching.png",
+  praise: "assets/images/gojo/gojo-praise.png",
+  reassuring: "assets/images/gojo/gojo-reassuring.png",
+  reward: "assets/images/gojo/gojo-reward.png",
+};
+const CLASSROOM_INTRO_POSES = ["caring", "neutral", "reassuring"];
 const RELEASES_PER_PAGE = 3;
 const CASINO_FAILURE_MESSAGES = [
   "quase! mas o tigrinho ficou com tudo.",
@@ -131,6 +155,7 @@ const reducedMotionMediaQuery = window.matchMedia(
 
 const selectedMarinGifs = [];
 const unlockedAchievementIds = new Set();
+const classroomPoseCache = new Map();
 let pendingCasinoOutcome = [];
 let pendingCasinoPrize = null;
 let pendingCasinoOutcomeType = "loss";
@@ -154,6 +179,18 @@ let casino3DFailed = false;
 let achievements3DFailed = false;
 let releasePage = 0;
 let casinoResultFlashTimerId = null;
+let classroomQuestions = [];
+let classroomIntroIndex = 0;
+let classroomQuestionIndex = 0;
+let classroomPhase = "closed";
+let classroomTypewriterTimerId = null;
+let classroomDialogueFullText = "";
+let classroomVisibleCharacterCount = 0;
+let classroomIsTyping = false;
+let classroomRewardClaimed = false;
+let classroomShouldReturnToCasino = false;
+let classroomArtInitialized = false;
+let classroomPoseRequestId = 0;
 
 function loadSavedProgress() {
   // Restore known prizes, a valid chip balance, and the one-time bait state.
@@ -268,6 +305,26 @@ const casinoTokenStorageNote = document.querySelector(
   "#casino-token-storage-note",
 );
 const casinoEmpty = document.querySelector("#casino-empty");
+const classroomOpenButton = document.querySelector("#open-classroom");
+const classroomDialog = document.querySelector("#classroom-dialog");
+const classroomProgress = document.querySelector("#classroom-progress");
+const classroomDialogueText = document.querySelector(
+  "#classroom-dialogue-text",
+);
+const classroomDialogueAnnouncement = document.querySelector(
+  "#classroom-dialogue-announcement",
+);
+const classroomAnswers = document.querySelector("#classroom-answers");
+const classroomAnswerButtons = document.querySelectorAll(".classroom-answer");
+const classroomContinue = document.querySelector("#classroom-continue");
+const classroomBackgroundPortrait = document.querySelector(
+  "#classroom-background-portrait",
+);
+const classroomBackgroundImage = document.querySelector(
+  "#classroom-background-image",
+);
+const classroomArtStatus = document.querySelector("#classroom-art-status");
+const classroomCharacter = document.querySelector("#gojo-character");
 const casinoJackpot = document.querySelector("#casino-jackpot");
 const casinoJackpotBadge = document.querySelector("#casino-jackpot-badge");
 const casinoJackpotPrize = document.querySelector("#casino-jackpot-prize");
@@ -375,6 +432,514 @@ function saveCasinoTokens() {
   }
 }
 
+function randomIntegerInclusive(minimum, maximum) {
+  // Keep generated classroom arithmetic integral and easy to read.
+  return Math.floor(Math.random() * (maximum - minimum + 1)) + minimum;
+}
+
+function shuffleClassroomValues(values) {
+  // Shuffle a copy so the correct choice does not stay in one position.
+  const shuffledValues = [...values];
+
+  for (let index = shuffledValues.length - 1; index > 0; index -= 1) {
+    const targetIndex = randomIntegerInclusive(0, index);
+    const heldValue = shuffledValues[index];
+    shuffledValues[index] = shuffledValues[targetIndex];
+    shuffledValues[targetIndex] = heldValue;
+  }
+
+  return shuffledValues;
+}
+
+function createClassroomChoices(correctAnswer) {
+  // Produce two unique, non-negative nearby distractors without retry loops.
+  const maximumOffset = Math.max(
+    2,
+    Math.min(9, Math.ceil((correctAnswer + 1) / 7)),
+  );
+  const offset = randomIntegerInclusive(1, maximumOffset);
+  const candidates = [
+    correctAnswer - offset,
+    correctAnswer + offset,
+    correctAnswer + offset + 1,
+    correctAnswer - offset - 1,
+  ];
+  const distractors = [];
+
+  for (const candidate of candidates) {
+    if (
+      candidate >= 0 &&
+      candidate !== correctAnswer &&
+      !distractors.includes(candidate)
+    ) {
+      distractors.push(candidate);
+    }
+
+    if (distractors.length === 2) {
+      break;
+    }
+  }
+
+  let fallbackOffset = 1;
+  while (distractors.length < 2) {
+    const candidate = correctAnswer + maximumOffset + fallbackOffset;
+    if (!distractors.includes(candidate)) {
+      distractors.push(candidate);
+    }
+    fallbackOffset += 1;
+  }
+
+  return shuffleClassroomValues([correctAnswer, ...distractors]);
+}
+
+function createClassroomQuestion(questionIndex) {
+  // Give every lesson all four operations, with a mixed fourth question.
+  let expression = "";
+  let answer = 0;
+  let hint = "";
+
+  if (questionIndex === 0) {
+    const left = randomIntegerInclusive(2, 12);
+    const right = randomIntegerInclusive(2, 12);
+    expression = left + " + " + right;
+    answer = left + right;
+    hint = "Some os dois números por partes.";
+  } else if (questionIndex === 1) {
+    const left = randomIntegerInclusive(10, 30);
+    const right = randomIntegerInclusive(2, left);
+    expression = left + " − " + right;
+    answer = left - right;
+    hint = "Comece pelo maior número e retire o menor.";
+  } else if (questionIndex === 2) {
+    const left = randomIntegerInclusive(2, 9);
+    const right = randomIntegerInclusive(2, 9);
+    expression = left + " × " + right;
+    answer = left * right;
+    hint = "Pense na multiplicação como uma soma repetida.";
+  } else if (questionIndex === 3) {
+    const operationIndex = randomIntegerInclusive(0, 2);
+
+    if (operationIndex === 0) {
+      const left = randomIntegerInclusive(18, 60);
+      const right = randomIntegerInclusive(10, 45);
+      expression = left + " + " + right;
+      answer = left + right;
+      hint = "Separe dezenas e unidades antes de somar.";
+    } else if (operationIndex === 1) {
+      const left = randomIntegerInclusive(35, 80);
+      const right = randomIntegerInclusive(10, 34);
+      expression = left + " − " + right;
+      answer = left - right;
+      hint = "Retire primeiro as dezenas e depois as unidades.";
+    } else {
+      const left = randomIntegerInclusive(6, 12);
+      const right = randomIntegerInclusive(6, 12);
+      expression = left + " × " + right;
+      answer = left * right;
+      hint = "Quebre um dos fatores em partes menores e multiplique.";
+    }
+  } else {
+    const divisor = randomIntegerInclusive(2, 12);
+    const quotient = randomIntegerInclusive(2, 12);
+    const dividend = divisor * quotient;
+    expression = dividend + " ÷ " + divisor;
+    answer = quotient;
+    hint =
+      "Pense em qual número multiplicado por " + divisor +
+      " resulta em " + dividend + ".";
+  }
+
+  return {
+    answer,
+    choices: createClassroomChoices(answer),
+    expression,
+    hint,
+    prompt:
+      "Pergunta " + (questionIndex + 1) +
+      ", Nana: quanto é " + expression + "?",
+  };
+}
+
+function createClassroomQuestions() {
+  // Generate a fresh five-question class whenever the visitor runs out again.
+  return Array.from(
+    { length: CLASSROOM_QUESTION_COUNT },
+    (_, questionIndex) => createClassroomQuestion(questionIndex),
+  );
+}
+
+function preloadClassroomPose(poseId) {
+  // Cache one transparent sprite and its decode promise for flicker-free swaps.
+  if (classroomPoseCache.has(poseId)) {
+    return classroomPoseCache.get(poseId);
+  }
+
+  const source = CLASSROOM_POSE_SOURCES[poseId];
+  const image = new Image();
+  image.decoding = "async";
+  const loaded = new Promise((resolveImage, rejectImage) => {
+    image.addEventListener("load", () => resolveImage(image), { once: true });
+    image.addEventListener(
+      "error",
+      () => rejectImage(new Error("Falha ao carregar a pose " + poseId)),
+      { once: true },
+    );
+  });
+  const ready = loaded.then(async (loadedImage) => {
+    if (typeof loadedImage.decode === "function") {
+      try {
+        await loadedImage.decode();
+      } catch {
+        // A successful load remains usable when decode() is unavailable or fails.
+      }
+    }
+    return loadedImage;
+  });
+  const cachedPose = { image, ready };
+  classroomPoseCache.set(poseId, cachedPose);
+  image.src = source;
+  return cachedPose;
+}
+
+function initializeClassroomArt() {
+  // Keep every large classroom PNG out of the initial page request.
+  if (classroomArtInitialized) {
+    return;
+  }
+
+  classroomArtInitialized = true;
+  classroomBackgroundPortrait.srcset =
+    classroomBackgroundPortrait.dataset.srcset;
+  classroomBackgroundImage.src = classroomBackgroundImage.dataset.src;
+
+  for (const poseId of Object.keys(CLASSROOM_POSE_SOURCES)) {
+    const cachedPose = preloadClassroomPose(poseId);
+    void cachedPose.ready.catch(() => {
+      // The CSS classroom remains as a functional fallback for a missing sprite.
+    });
+  }
+}
+
+async function showClassroomPose(poseId) {
+  // Keep the previous decoded pose visible until the requested one is ready.
+  initializeClassroomArt();
+  const requestId = ++classroomPoseRequestId;
+  const hasVisiblePose = classroomCharacter.classList.contains("is-visible");
+
+  if (!hasVisiblePose) {
+    classroomArtStatus.textContent = "preparando a arte da aula...";
+    classroomArtStatus.hidden = false;
+  }
+
+  try {
+    const cachedPose = preloadClassroomPose(poseId);
+    const loadedImage = await cachedPose.ready;
+
+    if (requestId !== classroomPoseRequestId || !classroomDialog.open) {
+      return false;
+    }
+
+    classroomCharacter.src = loadedImage.src;
+    classroomCharacter.dataset.pose = poseId;
+    classroomCharacter.classList.remove("is-entering");
+    void classroomCharacter.offsetWidth;
+    classroomCharacter.classList.add("is-visible");
+
+    if (!reducedMotionMediaQuery.matches) {
+      classroomCharacter.classList.add("is-entering");
+    }
+
+    classroomArtStatus.hidden = true;
+    return true;
+  } catch {
+    if (
+      requestId === classroomPoseRequestId &&
+      !classroomCharacter.classList.contains("is-visible")
+    ) {
+      classroomArtStatus.textContent = "arte indisponível";
+      classroomArtStatus.hidden = false;
+    }
+    return false;
+  }
+}
+
+function clearClassroomTypewriter() {
+  // Stop a sentence that no longer belongs to the visible lesson state.
+  if (classroomTypewriterTimerId !== null) {
+    window.clearTimeout(classroomTypewriterTimerId);
+    classroomTypewriterTimerId = null;
+  }
+  classroomIsTyping = false;
+}
+
+function renderClassroomInteraction() {
+  // Reveal either the three answers or the next native action button.
+  if (classroomPhase === "question") {
+    const question = classroomQuestions[classroomQuestionIndex];
+
+    for (let index = 0; index < classroomAnswerButtons.length; index += 1) {
+      const answerButton = classroomAnswerButtons[index];
+      const answerValue = question.choices[index];
+      answerButton.textContent = String(answerValue);
+      answerButton.dataset.answerValue = String(answerValue);
+      answerButton.disabled = false;
+    }
+
+    classroomAnswers.hidden = false;
+    classroomContinue.hidden = true;
+    classroomAnswerButtons[0]?.focus();
+    return;
+  }
+
+  classroomAnswers.hidden = true;
+  classroomContinue.hidden = false;
+
+  if (
+    classroomPhase === "intro" &&
+    classroomIntroIndex === CLASSROOM_INTRO_LINES.length - 1
+  ) {
+    classroomContinue.textContent = "COMEÇAR A AULA";
+  } else if (classroomPhase === "wrong") {
+    classroomContinue.textContent = "TENTAR DE NOVO";
+  } else if (classroomPhase === "reward") {
+    classroomContinue.textContent = "RECEBER 5 FICHAS";
+  } else {
+    classroomContinue.textContent = "CONTINUAR";
+  }
+
+  if (classroomDialog.open) {
+    classroomContinue.focus();
+  }
+}
+
+function finishClassroomTypewriter() {
+  // A first activation reveals the whole sentence instead of skipping it.
+  clearClassroomTypewriter();
+  classroomVisibleCharacterCount = classroomDialogueFullText.length;
+  classroomDialogueText.textContent = classroomDialogueFullText;
+  renderClassroomInteraction();
+}
+
+function typeNextClassroomCharacter() {
+  // Keep visual typing out of the live region to avoid character-by-character speech.
+  if (!classroomIsTyping) {
+    return;
+  }
+
+  classroomVisibleCharacterCount += 1;
+  classroomDialogueText.textContent = classroomDialogueFullText.slice(
+    0,
+    classroomVisibleCharacterCount,
+  );
+
+  if (classroomVisibleCharacterCount >= classroomDialogueFullText.length) {
+    classroomTypewriterTimerId = null;
+    classroomIsTyping = false;
+    renderClassroomInteraction();
+    return;
+  }
+
+  classroomTypewriterTimerId = window.setTimeout(
+    typeNextClassroomCharacter,
+    CLASSROOM_TYPE_INTERVAL_MS,
+  );
+}
+
+function showClassroomLine(text) {
+  // Announce the complete line once while rendering its visual typewriter effect.
+  clearClassroomTypewriter();
+  classroomDialogueFullText = text;
+  classroomVisibleCharacterCount = 0;
+  classroomDialogueText.textContent = "";
+  classroomDialogueAnnouncement.textContent = text;
+  classroomAnswers.hidden = true;
+  classroomContinue.hidden = false;
+  classroomContinue.textContent = "CONTINUAR";
+
+  if (classroomDialog.open) {
+    classroomContinue.focus();
+  }
+
+  if (reducedMotionMediaQuery.matches || text.length === 0) {
+    finishClassroomTypewriter();
+    return;
+  }
+
+  classroomIsTyping = true;
+  classroomTypewriterTimerId = window.setTimeout(
+    typeNextClassroomCharacter,
+    CLASSROOM_TYPE_INTERVAL_MS,
+  );
+}
+
+function showClassroomIntro() {
+  // Present the affectionate setup one sentence at a time.
+  classroomPhase = "intro";
+  classroomProgress.textContent = "5 perguntas · 5 fichas";
+  void showClassroomPose(CLASSROOM_INTRO_POSES[classroomIntroIndex]);
+  showClassroomLine(CLASSROOM_INTRO_LINES[classroomIntroIndex]);
+}
+
+function showClassroomQuestion() {
+  // Reuse the generated question and choices when a wrong answer is retried.
+  classroomPhase = "question";
+  classroomProgress.textContent =
+    "pergunta " + (classroomQuestionIndex + 1) +
+    " de " + CLASSROOM_QUESTION_COUNT;
+  void showClassroomPose("teaching");
+  showClassroomLine(classroomQuestions[classroomQuestionIndex].prompt);
+}
+
+function handleClassroomAnswer(answerButton) {
+  // A mistake gets a hint and keeps the learner on the same question.
+  if (classroomPhase !== "question" || classroomIsTyping) {
+    return;
+  }
+
+  const question = classroomQuestions[classroomQuestionIndex];
+  const selectedAnswer = Number(answerButton.dataset.answerValue);
+  classroomAnswers.hidden = true;
+
+  for (const button of classroomAnswerButtons) {
+    button.disabled = true;
+  }
+
+  if (selectedAnswer !== question.answer) {
+    classroomPhase = "wrong";
+    classroomProgress.textContent =
+      "pergunta " + (classroomQuestionIndex + 1) +
+      " de " + CLASSROOM_QUESTION_COUNT + " · tente de novo";
+    void showClassroomPose("reassuring");
+    showClassroomLine(
+      "Quase, meu bem. " + question.hint +
+      " Respira, olha com calma e tenta de novo para mim.",
+    );
+    return;
+  }
+
+  if (classroomQuestionIndex === CLASSROOM_QUESTION_COUNT - 1) {
+    classroomPhase = "reward";
+    classroomProgress.textContent = "aula concluída · 5/5";
+    void showClassroomPose("reward");
+  } else {
+    classroomPhase = "correct";
+    classroomProgress.textContent =
+      classroomQuestionIndex + 1 + " de " +
+      CLASSROOM_QUESTION_COUNT + " corretas";
+    void showClassroomPose("praise");
+  }
+
+  showClassroomLine(CLASSROOM_CORRECT_LINES[classroomQuestionIndex]);
+}
+
+function claimClassroomReward() {
+  // Award once, persist the balance, and surface the result back in the casino.
+  if (
+    classroomPhase !== "reward" ||
+    classroomRewardClaimed ||
+    casinoTokenBalance !== 0
+  ) {
+    return;
+  }
+
+  classroomRewardClaimed = true;
+  casinoTokenBalance += CLASSROOM_REWARD_TOKENS;
+  saveCasinoTokens();
+  renderCasinoTokens();
+  showCasinoMessage("Gojo te deu 5 fichas. Boa garota.", "token", false);
+  classroomDialog.close();
+}
+
+function handleClassroomContinue() {
+  // Finish an active sentence first; only a second activation advances it.
+  if (classroomIsTyping) {
+    finishClassroomTypewriter();
+    return;
+  }
+
+  if (classroomPhase === "intro") {
+    if (classroomIntroIndex < CLASSROOM_INTRO_LINES.length - 1) {
+      classroomIntroIndex += 1;
+      showClassroomIntro();
+    } else {
+      classroomQuestionIndex = 0;
+      showClassroomQuestion();
+    }
+  } else if (classroomPhase === "correct") {
+    classroomQuestionIndex += 1;
+    showClassroomQuestion();
+  } else if (classroomPhase === "wrong") {
+    showClassroomQuestion();
+  } else if (classroomPhase === "reward") {
+    claimClassroomReward();
+  }
+}
+
+function resetClassroomLesson() {
+  // Closing never grants chips and the next visit starts with new arithmetic.
+  clearClassroomTypewriter();
+  classroomPoseRequestId += 1;
+  classroomQuestions = [];
+  classroomIntroIndex = 0;
+  classroomQuestionIndex = 0;
+  classroomPhase = "closed";
+  classroomDialogueFullText = "";
+  classroomVisibleCharacterCount = 0;
+  classroomRewardClaimed = false;
+  classroomProgress.textContent = "5 perguntas · 5 fichas";
+  classroomDialogueText.textContent = CLASSROOM_INTRO_LINES[0];
+  classroomDialogueAnnouncement.textContent = "";
+  classroomAnswers.hidden = true;
+  classroomContinue.hidden = false;
+  classroomContinue.textContent = "CONTINUAR";
+  classroomCharacter.classList.remove("is-visible", "is-entering");
+  classroomCharacter.removeAttribute("src");
+  delete classroomCharacter.dataset.pose;
+  classroomArtStatus.textContent = "preparando a arte da aula...";
+  classroomArtStatus.hidden = false;
+
+  for (const answerButton of classroomAnswerButtons) {
+    answerButton.disabled = false;
+    answerButton.textContent = "";
+    delete answerButton.dataset.answerValue;
+  }
+}
+
+function openClassroom() {
+  // Leave the casino cleanly so its WebGL loop and music pause during class.
+  if (
+    casinoTokenBalance !== 0 ||
+    casinoSpinInProgress ||
+    casinoJackpotOpen ||
+    classroomDialog.open
+  ) {
+    renderCasinoTokens();
+    return;
+  }
+
+  classroomShouldReturnToCasino = true;
+  if (casinoDialog.open) {
+    casinoDialog.close();
+  }
+
+  resetClassroomLesson();
+  classroomQuestions = createClassroomQuestions();
+  classroomDialog.showModal();
+  showClassroomIntro();
+  classroomContinue.focus();
+}
+
+function handleClassroomClose() {
+  // Return to the zero balance or to the freshly awarded five-chip balance.
+  const shouldReturnToCasino = classroomShouldReturnToCasino;
+  classroomShouldReturnToCasino = false;
+  resetClassroomLesson();
+
+  if (shouldReturnToCasino) {
+    openCasino();
+  }
+}
+
 function consumeCasinoBait() {
   // Guarantee the special first result only once per browser when possible.
   casinoBaitConsumed = true;
@@ -434,12 +999,14 @@ function renderCasinoTokens() {
     !casinoSpinInProgress &&
     !casinoJackpotOpen;
   casinoLever.disabled = !canSpin;
+  classroomOpenButton.disabled =
+    casinoTokenBalance !== 0 || casinoSpinInProgress || casinoJackpotOpen;
   casino3D?.setLeverInteractive(canSpin);
 
   if (casinoSpinInProgress) {
     casinoLever.setAttribute("aria-label", "Alavanca acionada; rolos girando");
   } else if (casinoTokenBalance === 0) {
-    casinoLever.setAttribute("aria-label", "Sem fichas; minigame em breve");
+    casinoLever.setAttribute("aria-label", "Sem fichas; ganhe fichas na aula");
   } else {
     casinoLever.setAttribute(
       "aria-label",
@@ -739,6 +1306,8 @@ function openCasino() {
     clearCasinoResultFlash();
   }
 
+  renderCasinoTokens();
+
   syncCasino3DVisibility();
   void ensureCasino3D();
   void reconcileCasinoMusic();
@@ -746,7 +1315,7 @@ function openCasino() {
   if (casinoTokenBalance > 0) {
     casinoLever.focus();
   } else {
-    casinoEmpty.focus();
+    classroomOpenButton.focus();
   }
 }
 
@@ -765,7 +1334,7 @@ function closeCasinoJackpot() {
   if (casinoTokenBalance > 0) {
     casinoLever.focus();
   } else {
-    casinoEmpty.focus();
+    classroomOpenButton.focus();
   }
 }
 
@@ -855,7 +1424,8 @@ function handlePatchNotesShortcut(event) {
     !event.metaKey &&
     !isEditing &&
     !casinoDialog.open &&
-    !achievementsDialog.open
+    !achievementsDialog.open &&
+    !classroomDialog.open
   ) {
     event.preventDefault();
     releasePage = 0;
@@ -1194,6 +1764,13 @@ renderCasinoTokens();
 renderReleasePage();
 casinoOpenButton.addEventListener("click", openCasino);
 achievementsOpenButton.addEventListener("click", openAchievements);
+classroomOpenButton.addEventListener("click", openClassroom);
+classroomContinue.addEventListener("click", handleClassroomContinue);
+for (const answerButton of classroomAnswerButtons) {
+  answerButton.addEventListener("click", () =>
+    handleClassroomAnswer(answerButton),
+  );
+}
 casinoLever.addEventListener("click", startCasinoSpin);
 casinoLever.addEventListener("focus", handleCasinoLeverFocus);
 casinoLever.addEventListener("blur", handleCasinoLeverBlur);
@@ -1206,6 +1783,7 @@ casinoMusic.addEventListener("error", handleCasinoMusicError);
 casinoDialog.addEventListener("close", handleCasinoClose);
 casinoDialog.addEventListener("cancel", handleCasinoCancel);
 casinoDialog.addEventListener("keydown", handleCasinoKeydown);
+classroomDialog.addEventListener("close", handleClassroomClose);
 casinoJackpotContinue.addEventListener("click", closeCasinoJackpot);
 achievementsDialog.addEventListener("close", handleAchievementsClose);
 releasePrevious.addEventListener("click", () => changeReleasePage(-1));

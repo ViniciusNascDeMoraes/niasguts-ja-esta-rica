@@ -85,7 +85,7 @@
               ajude ela a ficar rica doando em
               <a href="https://pixie.gg/niagott" target="_blank" rel="noopener noreferrer">pixie.gg/niagott</a>
             </p>
-            <span class="version-label">versão 1.11</span>
+            <span class="version-label">versão 1.13</span>
           </footer>
         </div>
       </section>
@@ -192,9 +192,15 @@
             <span>🎁 libera conquista</span>
           </aside>
 
-          <section class="casino-empty" id="casino-empty" tabindex="-1" hidden>
+          <section class="casino-empty" id="casino-empty" hidden>
             <strong>SEM FICHAS</strong>
-            <span>MINIGAME EM BREVE</span>
+            <button
+              class="classroom-open-button"
+              id="open-classroom"
+              type="button"
+              aria-haspopup="dialog"
+              aria-controls="classroom-dialog"
+            >GANHAR FICHAS NA AULA</button>
           </section>
 
           <section
@@ -226,6 +232,81 @@
         </div>
 
         <audio id="casino-music" src="assets/musica.mp3" preload="none" loop></audio>
+      </section>
+    </dialog>
+
+    <dialog
+      class="site-dialog classroom-dialog"
+      id="classroom-dialog"
+      aria-labelledby="classroom-title"
+      aria-describedby="classroom-dialogue-announcement"
+    >
+      <section class="classroom-screen" id="classroom-screen">
+        <picture class="classroom-background" aria-hidden="true">
+          <source
+            id="classroom-background-portrait"
+            media="(orientation: portrait)"
+            data-srcset="assets/images/gojo/classroom-portrait.png"
+          >
+          <img
+            id="classroom-background-image"
+            data-src="assets/images/gojo/classroom-landscape.png"
+            alt=""
+            width="1672"
+            height="941"
+            decoding="async"
+          >
+        </picture>
+
+        <form class="dialog-close-form classroom-close-form" method="dialog">
+          <button class="dialog-close" type="submit" aria-label="Fechar aula">×</button>
+        </form>
+
+        <header class="classroom-header">
+          <p class="classroom-kicker">reforço da nanaBet</p>
+          <h2 class="classroom-title" id="classroom-title">Aula particular do Gojo</h2>
+          <p class="classroom-progress" id="classroom-progress">5 perguntas · 5 fichas</p>
+        </header>
+
+        <div class="classroom-stage">
+          <p class="classroom-art-status" id="classroom-art-status" role="status">
+            preparando a arte da aula...
+          </p>
+          <img
+            class="gojo-character"
+            id="gojo-character"
+            alt=""
+            width="1024"
+            height="1536"
+            decoding="async"
+            aria-hidden="true"
+          >
+        </div>
+
+        <section class="classroom-dialogue-box" aria-labelledby="classroom-speaker">
+          <p class="classroom-speaker" id="classroom-speaker">Satoru Gojo</p>
+          <p
+            class="classroom-dialogue-text"
+            id="classroom-dialogue-text"
+            aria-hidden="true"
+          >Então você ficou sem fichas, Nana? Tudo bem. Vem cá, eu cuido de você.</p>
+          <p
+            class="visually-hidden"
+            id="classroom-dialogue-announcement"
+            role="status"
+            aria-live="polite"
+          ></p>
+
+          <div class="classroom-answers" id="classroom-answers" hidden>
+            <button class="classroom-answer" type="button" data-choice-index="0"></button>
+            <button class="classroom-answer" type="button" data-choice-index="1"></button>
+            <button class="classroom-answer" type="button" data-choice-index="2"></button>
+          </div>
+
+          <button class="classroom-continue" id="classroom-continue" type="button">
+            CONTINUAR
+          </button>
+        </section>
       </section>
     </dialog>
 
@@ -302,6 +383,8 @@
         </header>
 
         <ol class="release-list" id="release-list" aria-label="Histórico de versões">
+          <li class="release-entry"><h3>versão 1.13</h3><p>A aula ganhou fundos e seis poses contextuais do Gojo; o tigrinho perdeu os dois traços sob o nariz e manteve apenas os bigodes das bochechas.</p></li>
+          <li class="release-entry"><h3>versão 1.12</h3><p>Quando as fichas acabam, uma aula visual novel com Gojo oferece cinco perguntas de matemática e devolve cinco fichas à Nana.</p></li>
           <li class="release-entry"><h3>versão 1.11</h3><p>As mensagens comuns ganharam destaque, a legenda foi para a lateral e a primeira jogada passou a revelar o pé da prima do vaper em 3D.</p></li>
           <li class="release-entry"><h3>versão 1.10</h3><p>O cassino virou nanaBet, removeu o prêmio de duas fichas, ganhou uma ficha compatível com qualquer fonte, áudio no topo e reabertura corrigida.</p></li>
           <li class="release-entry"><h3>versão 1.9</h3><p>O tigrinho ganhou um rosto chibi correto e o prêmio do jackpot agora fica centralizado à frente de todos os efeitos.</p></li>
@@ -327,7 +410,7 @@
 
         <nav class="release-pagination" aria-label="Paginação dos patch notes">
           <button class="release-page-button" id="release-previous" type="button">ANTERIOR</button>
-          <span class="release-page-status" id="release-page-status" aria-live="polite">1/7</span>
+          <span class="release-page-status" id="release-page-status" aria-live="polite">1/8</span>
           <button class="release-page-button" id="release-next" type="button">PRÓXIMA</button>
         </nav>
       </section>

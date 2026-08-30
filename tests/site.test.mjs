@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
-import { readFile } from "node:fs/promises";
+import { readFile, readdir } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import test from "node:test";
 import vm from "node:vm";
@@ -159,6 +159,41 @@ class FakeElement {
   }
 }
 
+class FakeImage extends FakeElement {
+  // Resolve local sprite requests deterministically, with optional manual delay.
+  constructor(autoLoad = true) {
+    super("img");
+    this.autoLoad = autoLoad;
+    this.complete = false;
+    this.naturalWidth = 0;
+    this.source = "";
+  }
+
+  set src(value) {
+    this.source = String(value);
+    if (this.autoLoad) {
+      this.resolveLoad();
+    }
+  }
+
+  get src() {
+    return this.source;
+  }
+
+  resolveLoad() {
+    if (this.complete) {
+      return;
+    }
+    this.complete = true;
+    this.naturalWidth = 1024;
+    this.dispatch("load");
+  }
+
+  decode() {
+    return Promise.resolve();
+  }
+}
+
 function createPageHarness(options = {}) {
   // Execute the real application script against a deterministic fake page.
   const elements = new Map();
@@ -171,8 +206,20 @@ function createPageHarness(options = {}) {
     new FakeElement("fallback-1"),
     new FakeElement("fallback-2"),
   ];
+  const classroomAnswerButtons = [
+    new FakeElement("classroom-answer-0", { choiceIndex: "0" }),
+    new FakeElement("classroom-answer-1", { choiceIndex: "1" }),
+    new FakeElement("classroom-answer-2", { choiceIndex: "2" }),
+  ];
+  const createdImages = [];
+  class HarnessImage extends FakeImage {
+    constructor() {
+      super(options.imagesAutoLoad !== false);
+      createdImages.push(this);
+    }
+  }
   const releaseEntries = Array.from(
-    { length: 21 },
+    { length: 23 },
     (_, index) => new FakeElement("release-" + index),
   );
   const audio = new FakeElement("casino-music");
@@ -199,6 +246,10 @@ function createPageHarness(options = {}) {
   elements.set("#casino-music", audio);
   getElement("#casino-volume").value = "25";
   getElement("#casino-result-flash").hidden = true;
+  getElement("#classroom-background-portrait").dataset.srcset =
+    "assets/images/gojo/classroom-portrait.png";
+  getElement("#classroom-background-image").dataset.src =
+    "assets/images/gojo/classroom-landscape.png";
 
   const storage = new Map();
   if (options.savedAchievements !== undefined) {
@@ -222,7 +273,12 @@ function createPageHarness(options = {}) {
   const documentListeners = new Map();
   const windowObject = {
     devicePixelRatio: 1,
-    matchMedia: () => ({ matches: true, addEventListener() {} }),
+    matchMedia: (query) => ({
+      matches: query.includes("prefers-reduced-motion")
+        ? options.reducedMotion !== false
+        : true,
+      addEventListener() {},
+    }),
     setTimeout(callback, milliseconds) {
       const timerId = nextTimerId;
       nextTimerId += 1;
@@ -247,6 +303,9 @@ function createPageHarness(options = {}) {
       }
       if (selector === ".release-entry") {
         return releaseEntries;
+      }
+      if (selector === ".classroom-answer") {
+        return classroomAnswerButtons;
       }
       if (selector === ".marin-gif-frame") {
         return [];
@@ -285,6 +344,7 @@ function createPageHarness(options = {}) {
     console,
     Date,
     Intl,
+    Image: HarnessImage,
     Math: fakeMath,
     performance,
     localStorage,
@@ -297,7 +357,9 @@ function createPageHarness(options = {}) {
   return {
     achievementSlots,
     audio,
+    classroomAnswerButtons,
     context,
+    createdImages,
     documentListeners,
     elements,
     fallbackReels,
@@ -331,7 +393,14 @@ async function loadHarness(options = {}) {
   return harness;
 }
 
-test("static page exposes the version 1.11 full-screen experience", async () => {
+async function settleMicrotasks() {
+  // Allow nested image load and decode promises to settle in behavior tests.
+  for (let pass = 0; pass < 6; pass += 1) {
+    await Promise.resolve();
+  }
+}
+
+test("static page exposes the version 1.13 full-screen experience", async () => {
   // Verify deployment markup and all required native controls.
   const html = await readFile(resolve(projectRoot, "index.html"), "utf8");
   assert.match(html, /href="styles\.css"/);
@@ -341,12 +410,21 @@ test("static page exposes the version 1.11 full-screen experience", async () => 
   assert.match(html, /id="casino-jackpot-continue"/);
   assert.match(html, /id="achievements-canvas"/);
   assert.match(html, /id="toggle-casino-music"/);
-  assert.match(html, /versão 1\.11/);
+  assert.match(html, /versão 1\.13/);
   assert.match(html, /id="casino-title">nanaBet<\/h2>/);
   assert.match(html, /class="casino-chip-mark"/);
   assert.match(html, /id="casino-result-flash"/);
+  assert.match(html, /id="open-classroom"/);
+  assert.match(html, /id="classroom-dialog"/);
+  assert.match(html, /id="classroom-background-portrait"/);
+  assert.match(html, /id="classroom-background-image"/);
+  assert.match(html, /id="gojo-character"/);
+  assert.match(html, /data-srcset="assets\/images\/gojo\/classroom-portrait\.png"/);
+  assert.match(html, /data-src="assets\/images\/gojo\/classroom-landscape\.png"/);
+  assert.match(html, /GANHAR FICHAS NA AULA/);
+  assert.equal((html.match(/class="classroom-answer"/g) ?? []).length, 3);
   assert.equal((html.match(/data-prize-id=/g) ?? []).length, 5);
-  assert.equal((html.match(/class="release-entry"/g) ?? []).length, 21);
+  assert.equal((html.match(/class="release-entry"/g) ?? []).length, 23);
   assert.ok(
     html.indexOf('<div class="casino-audio-controls"') <
       html.indexOf('<div class="casino-control-deck">'),
@@ -358,6 +436,8 @@ test("static page exposes the version 1.11 full-screen experience", async () => 
   assert.doesNotMatch(html, /class="casino-tray"/);
   assert.doesNotMatch(html, /vitrine de prêmios muito reais/i);
   assert.doesNotMatch(html, /A BANCA SEMPRE TOMA O CAFÉ/i);
+  assert.doesNotMatch(html, /MINIGAME EM BREVE/i);
+  assert.doesNotMatch(html, /ARTE DO GOJO EM PRODUÇÃO/);
   assert.doesNotMatch(html, /coraç/i);
   assert.doesNotMatch(html, /<style>/);
 });
@@ -376,11 +456,78 @@ test("custom domain and every local media asset are release-ready", async () => 
     "assets/gifs/marin-square.gif",
     "assets/gifs/marin-bisque-doll.gif",
     "assets/gifs/marin-sono-bisque.gif",
+    "assets/images/gojo/classroom-landscape.png",
+    "assets/images/gojo/classroom-portrait.png",
+    "assets/images/gojo/gojo-neutral.png",
+    "assets/images/gojo/gojo-caring.png",
+    "assets/images/gojo/gojo-teaching.png",
+    "assets/images/gojo/gojo-praise.png",
+    "assets/images/gojo/gojo-reassuring.png",
+    "assets/images/gojo/gojo-reward.png",
   ];
   for (const mediaPath of mediaPaths) {
     const bytes = await readFile(resolve(projectRoot, mediaPath));
     assert.ok(bytes.byteLength > 1024, mediaPath + " is unexpectedly small");
   }
+});
+
+test("classroom PNGs keep their expected dimensions and transparency", async () => {
+  // Read the dependency-free PNG IHDR fields used by the responsive art layer.
+  const expectedAssets = [
+    ["classroom-landscape.png", 1672, 941, 2],
+    ["classroom-portrait.png", 941, 1672, 2],
+    ["gojo-neutral.png", 1024, 1536, 6],
+    ["gojo-caring.png", 1024, 1536, 6],
+    ["gojo-teaching.png", 1024, 1536, 6],
+    ["gojo-praise.png", 1024, 1536, 6],
+    ["gojo-reassuring.png", 1024, 1536, 6],
+    ["gojo-reward.png", 1024, 1536, 6],
+  ];
+
+  for (const [filename, width, height, colorType] of expectedAssets) {
+    const bytes = await readFile(
+      resolve(projectRoot, "assets", "images", "gojo", filename),
+    );
+    assert.deepEqual(
+      [...bytes.subarray(0, 8)],
+      [137, 80, 78, 71, 13, 10, 26, 10],
+      filename,
+    );
+    assert.equal(bytes.readUInt32BE(16), width, filename);
+    assert.equal(bytes.readUInt32BE(20), height, filename);
+    assert.equal(bytes[24], 8, filename);
+    assert.equal(bytes[25], colorType, filename);
+  }
+
+  const rootAssetNames = await readdir(resolve(projectRoot, "assets"));
+  assert.equal(
+    rootAssetNames.some((name) => name.startsWith("ChatGPT Image")),
+    false,
+  );
+});
+
+test("the Gojo art briefing defines every delivered local asset", async () => {
+  // Keep the original handoff alongside the integrated production artwork.
+  const briefing = await readFile(
+    resolve(projectRoot, "BRIEFING_ARTE_GOJO.txt"),
+    "utf8",
+  );
+  for (const filename of [
+    "classroom-landscape.png",
+    "classroom-portrait.png",
+    "gojo-neutral.png",
+    "gojo-caring.png",
+    "gojo-teaching.png",
+    "gojo-praise.png",
+    "gojo-reassuring.png",
+    "gojo-reward.png",
+  ]) {
+    assert.match(briefing, new RegExp(filename.replace(".", "\\.")));
+  }
+  assert.match(briefing, /1920 × 1080/);
+  assert.match(briefing, /1080 × 1920/);
+  assert.match(briefing, /1600 × 2400/);
+  assert.match(briefing, /exatamente CINCO fichas/i);
 });
 
 test("vendored Three.js module and MIT notice remain pinned", async () => {
@@ -445,6 +592,10 @@ test("procedural tiger face has two eyes and correctly placed chibi details", as
       "tiger-whisker-right-1",
       "tiger-whisker-right-2",
     ],
+  );
+  assert.deepEqual(
+    names.filter((name) => name.startsWith("tiger-smile-")),
+    [],
   );
 });
 
@@ -808,8 +959,8 @@ test("closing and jackpots cancel ordinary message cards", async () => {
   assert.equal(harness.elements.get("#casino-result-flash").hidden, true);
 });
 
-test("zero chips disable the lever and expose the future minigame notice", async () => {
-  // Show the final loss first, then reveal the no-chip state without a reset path.
+test("zero chips disable the lever and expose the classroom entry", async () => {
+  // Show the final loss first, then reveal the lesson without a reset path.
   const harness = await loadHarness({ savedTokens: 1 });
   vm.runInContext("casinoIsOpen = true", harness.context);
   harness.setRandomValues([0.9, 0, 0.25, 0.5, 0]);
@@ -821,10 +972,256 @@ test("zero chips disable the lever and expose the future minigame notice", async
   harness.runTimer(2000);
   assert.equal(harness.elements.get("#casino-result-flash").hidden, true);
   assert.equal(harness.elements.get("#casino-empty").hidden, false);
+  assert.equal(harness.elements.get("#open-classroom").disabled, false);
   assert.equal(
     harness.elements.get("#spin-casino").getAttribute("aria-label"),
-    "Sem fichas; minigame em breve",
+    "Sem fichas; ganhe fichas na aula",
   );
+});
+
+test("each classroom lesson covers all operations with three valid choices", async () => {
+  // Validate the generated math contract independently of dialogue progression.
+  const harness = await loadHarness();
+  harness.setRandomValues(Array(80).fill(0.37));
+  const questions = JSON.parse(
+    vm.runInContext("JSON.stringify(createClassroomQuestions())", harness.context),
+  );
+
+  assert.equal(questions.length, 5);
+  assert.match(questions[0].expression, /\+/);
+  assert.match(questions[1].expression, /−/);
+  assert.match(questions[2].expression, /×/);
+  assert.match(questions[4].expression, /÷/);
+
+  for (const question of questions) {
+    assert.equal(question.choices.length, 3);
+    assert.equal(new Set(question.choices).size, 3);
+    assert.equal(question.choices.includes(question.answer), true);
+    assert.equal(question.choices.every(Number.isInteger), true);
+    assert.equal(question.choices.every((choice) => choice >= 0), true);
+  }
+});
+
+test("opening class pauses the casino and closing it awards nothing", async () => {
+  // Exercise the modal handoff, audio reset, and cancellation path.
+  const harness = await loadHarness({ savedTokens: 0 });
+  vm.runInContext("openCasino()", harness.context);
+  await Promise.resolve();
+  harness.audio.currentTime = 19;
+  vm.runInContext("openClassroom()", harness.context);
+
+  assert.equal(harness.elements.get("#casino-dialog").open, false);
+  assert.equal(harness.elements.get("#classroom-dialog").open, true);
+  assert.equal(vm.runInContext("casinoIsOpen", harness.context), false);
+  assert.equal(harness.audio.paused, true);
+  assert.equal(harness.audio.currentTime, 0);
+  assert.equal(vm.runInContext("classroomQuestions.length", harness.context), 5);
+  const firstLessonExpression = vm.runInContext(
+    "classroomQuestions[0].expression",
+    harness.context,
+  );
+
+  harness.elements.get("#classroom-dialog").close();
+  assert.equal(vm.runInContext("casinoTokenBalance", harness.context), 0);
+  assert.equal(harness.elements.get("#casino-dialog").open, true);
+  assert.equal(vm.runInContext("classroomPhase", harness.context), "closed");
+
+  harness.setRandomValues(Array(80).fill(0.99));
+  vm.runInContext("openClassroom()", harness.context);
+  assert.equal(harness.elements.get("#classroom-dialog").open, true);
+  assert.notEqual(
+    vm.runInContext("classroomQuestions[0].expression", harness.context),
+    firstLessonExpression,
+  );
+});
+
+test("wrong classroom answers retry and five correct answers award once", async () => {
+  // Complete one deterministic lesson through both feedback branches.
+  const harness = await loadHarness({ savedTokens: 0 });
+  vm.runInContext("openCasino(); openClassroom()", harness.context);
+
+  vm.runInContext("handleClassroomContinue()", harness.context);
+  vm.runInContext("handleClassroomContinue()", harness.context);
+  vm.runInContext("handleClassroomContinue()", harness.context);
+  assert.equal(vm.runInContext("classroomPhase", harness.context), "question");
+
+  const firstExpression = vm.runInContext(
+    "classroomQuestions[0].expression",
+    harness.context,
+  );
+  const firstAnswer = vm.runInContext(
+    "classroomQuestions[0].answer",
+    harness.context,
+  );
+  const wrongButton = harness.classroomAnswerButtons.find(
+    (button) => Number(button.dataset.answerValue) !== firstAnswer,
+  );
+  wrongButton.dispatch("click");
+  assert.equal(vm.runInContext("classroomPhase", harness.context), "wrong");
+  assert.equal(vm.runInContext("classroomQuestionIndex", harness.context), 0);
+  assert.match(
+    harness.elements.get("#classroom-dialogue-text").textContent,
+    /Quase, meu bem\./,
+  );
+
+  vm.runInContext("handleClassroomContinue()", harness.context);
+  assert.equal(
+    vm.runInContext("classroomQuestions[0].expression", harness.context),
+    firstExpression,
+  );
+
+  for (let questionIndex = 0; questionIndex < 5; questionIndex += 1) {
+    const correctAnswer = vm.runInContext(
+      "classroomQuestions[classroomQuestionIndex].answer",
+      harness.context,
+    );
+    const correctButton = harness.classroomAnswerButtons.find(
+      (button) => Number(button.dataset.answerValue) === correctAnswer,
+    );
+    correctButton.dispatch("click");
+
+    if (questionIndex < 4) {
+      assert.equal(vm.runInContext("classroomPhase", harness.context), "correct");
+      vm.runInContext("handleClassroomContinue()", harness.context);
+    }
+  }
+
+  assert.equal(vm.runInContext("classroomPhase", harness.context), "reward");
+  assert.equal(
+    harness.elements.get("#classroom-continue").textContent,
+    "RECEBER 5 FICHAS",
+  );
+  vm.runInContext("handleClassroomContinue()", harness.context);
+
+  assert.equal(vm.runInContext("casinoTokenBalance", harness.context), 5);
+  assert.equal(harness.storage.get("niasguts-casino-fichas-v1"), "5");
+  assert.equal(harness.elements.get("#classroom-dialog").open, false);
+  assert.equal(harness.elements.get("#casino-dialog").open, true);
+  assert.equal(
+    harness.elements.get("#casino-result").textContent,
+    "Gojo te deu 5 fichas. Boa garota.",
+  );
+  assert.equal(harness.elements.get("#casino-result-flash").hidden, false);
+
+  vm.runInContext("claimClassroomReward()", harness.context);
+  assert.equal(vm.runInContext("casinoTokenBalance", harness.context), 5);
+});
+
+test("classroom typewriter completes a line before advancing", async () => {
+  // Preserve native click, Enter, and Space semantics through one continue button.
+  const harness = await loadHarness({ savedTokens: 0, reducedMotion: false });
+  vm.runInContext("openCasino(); openClassroom()", harness.context);
+  assert.equal(vm.runInContext("classroomIsTyping", harness.context), true);
+  assert.equal(harness.elements.get("#classroom-dialogue-text").textContent, "");
+  const fullLine = harness.elements.get(
+    "#classroom-dialogue-announcement",
+  ).textContent;
+
+  vm.runInContext("handleClassroomContinue()", harness.context);
+  assert.equal(vm.runInContext("classroomIntroIndex", harness.context), 0);
+  assert.equal(harness.elements.get("#classroom-dialogue-text").textContent, fullLine);
+  assert.equal(vm.runInContext("classroomIsTyping", harness.context), false);
+
+  vm.runInContext("handleClassroomContinue()", harness.context);
+  assert.equal(vm.runInContext("classroomIntroIndex", harness.context), 1);
+  assert.equal(vm.runInContext("classroomIsTyping", harness.context), true);
+});
+
+test("classroom art loads lazily and follows every dialogue context", async () => {
+  // Map the six delivered poses without touching the initial page request.
+  const harness = await loadHarness({ savedTokens: 0 });
+  assert.equal(harness.createdImages.length, 0);
+  assert.equal(
+    harness.elements.get("#classroom-background-image").src,
+    undefined,
+  );
+
+  vm.runInContext("openCasino(); openClassroom()", harness.context);
+  assert.equal(harness.createdImages.length, 6);
+  assert.equal(
+    harness.elements.get("#classroom-background-portrait").srcset,
+    "assets/images/gojo/classroom-portrait.png",
+  );
+  assert.equal(
+    harness.elements.get("#classroom-background-image").src,
+    "assets/images/gojo/classroom-landscape.png",
+  );
+  await settleMicrotasks();
+  assert.equal(harness.elements.get("#gojo-character").dataset.pose, "caring");
+
+  vm.runInContext("handleClassroomContinue()", harness.context);
+  await settleMicrotasks();
+  assert.equal(harness.elements.get("#gojo-character").dataset.pose, "neutral");
+
+  vm.runInContext("handleClassroomContinue()", harness.context);
+  await settleMicrotasks();
+  assert.equal(
+    harness.elements.get("#gojo-character").dataset.pose,
+    "reassuring",
+  );
+
+  vm.runInContext("handleClassroomContinue()", harness.context);
+  await settleMicrotasks();
+  assert.equal(harness.elements.get("#gojo-character").dataset.pose, "teaching");
+
+  const firstAnswer = vm.runInContext(
+    "classroomQuestions[0].answer",
+    harness.context,
+  );
+  harness.classroomAnswerButtons
+    .find((button) => Number(button.dataset.answerValue) !== firstAnswer)
+    .dispatch("click");
+  await settleMicrotasks();
+  assert.equal(
+    harness.elements.get("#gojo-character").dataset.pose,
+    "reassuring",
+  );
+
+  vm.runInContext("handleClassroomContinue()", harness.context);
+  harness.classroomAnswerButtons
+    .find((button) => Number(button.dataset.answerValue) === firstAnswer)
+    .dispatch("click");
+  await settleMicrotasks();
+  assert.equal(harness.elements.get("#gojo-character").dataset.pose, "praise");
+
+  vm.runInContext(
+    "classroomQuestionIndex = 4; showClassroomQuestion()",
+    harness.context,
+  );
+  const finalAnswer = vm.runInContext(
+    "classroomQuestions[4].answer",
+    harness.context,
+  );
+  harness.classroomAnswerButtons
+    .find((button) => Number(button.dataset.answerValue) === finalAnswer)
+    .dispatch("click");
+  await settleMicrotasks();
+  assert.equal(harness.elements.get("#gojo-character").dataset.pose, "reward");
+  assert.equal(harness.elements.get("#classroom-art-status").hidden, true);
+});
+
+test("a stale classroom pose load cannot replace the latest request", async () => {
+  // Resolve caring after neutral and retain the newer neutral state.
+  const harness = await loadHarness({
+    savedTokens: 0,
+    imagesAutoLoad: false,
+  });
+  vm.runInContext("openCasino(); openClassroom()", harness.context);
+  const neutralImage = harness.createdImages.find((image) =>
+    image.src.endsWith("gojo-neutral.png"),
+  );
+  const caringImage = harness.createdImages.find((image) =>
+    image.src.endsWith("gojo-caring.png"),
+  );
+
+  vm.runInContext("showClassroomPose('neutral')", harness.context);
+  neutralImage.resolveLoad();
+  await settleMicrotasks();
+  assert.equal(harness.elements.get("#gojo-character").dataset.pose, "neutral");
+
+  caringImage.resolveLoad();
+  await settleMicrotasks();
+  assert.equal(harness.elements.get("#gojo-character").dataset.pose, "neutral");
 });
 
 test("storage failure keeps visit progress and exposes both warnings", async () => {
@@ -1001,13 +1398,13 @@ test("secret patch notes paginate three releases and support P toggling", async 
   const harness = await loadHarness();
   assert.deepEqual(
     harness.releaseEntries.map((entry) => entry.hidden),
-    [false, false, false, ...Array(18).fill(true)],
+    [false, false, false, ...Array(20).fill(true)],
   );
-  assert.equal(harness.elements.get("#release-page-status").textContent, "1/7");
+  assert.equal(harness.elements.get("#release-page-status").textContent, "1/8");
   vm.runInContext("changeReleasePage(1)", harness.context);
   assert.deepEqual(
     harness.releaseEntries.map((entry) => entry.hidden),
-    [true, true, true, false, false, false, ...Array(15).fill(true)],
+    [true, true, true, false, false, false, ...Array(17).fill(true)],
   );
 
   const shortcut = {
@@ -1018,6 +1415,10 @@ test("secret patch notes paginate three releases and support P toggling", async 
     metaKey: false,
     preventDefault() {},
   };
+  harness.elements.get("#classroom-dialog").open = true;
+  harness.context.handlePatchNotesShortcut(shortcut);
+  assert.equal(harness.elements.get("#patch-notes-dialog").open, false);
+  harness.elements.get("#classroom-dialog").open = false;
   harness.context.handlePatchNotesShortcut(shortcut);
   assert.equal(harness.elements.get("#patch-notes-dialog").open, true);
   harness.context.handlePatchNotesShortcut(shortcut);
@@ -1033,6 +1434,13 @@ test("CSS keeps colors centralized and every screen viewport-bound", async () =>
   assert.doesNotMatch(css, /overflow:\s*(auto|scroll)/);
   assert.match(css, /html\s*\{[\s\S]*?overflow:\s*hidden/);
   assert.match(css, /\.site-dialog\s*\{[\s\S]*?height:\s*100dvh/);
+  assert.match(css, /\.classroom-screen\s*\{[\s\S]*?height:\s*100%/);
+  assert.match(css, /\.classroom-background,[\s\S]*?position:\s*absolute/);
+  assert.match(css, /\.classroom-background img\s*\{[\s\S]*?object-fit:\s*cover/);
+  assert.match(css, /\.classroom-stage\s*\{[\s\S]*?min-height:\s*0/);
+  assert.match(css, /\.gojo-character\s*\{[\s\S]*?object-fit:\s*contain/);
+  assert.match(css, /\.classroom-dialogue-box\s*\{[\s\S]*?overflow:\s*hidden/);
+  assert.doesNotMatch(css, /\.gojo-placeholder/);
   assert.match(css, /\.slot-lever\s*\{[\s\S]*?width:\s*1px/);
   assert.match(css, /\.slot-lever\s*\{[\s\S]*?pointer-events:\s*none/);
   assert.match(
@@ -1075,6 +1483,7 @@ test("3D source uses centered jackpots, a dancing tiger, and precise lever rayca
   assert.match(source, /intersectObjects\(leverHitMeshes, false\)/);
   assert.doesNotMatch(source, /leverPivot.*leverHitMeshes/);
   assert.doesNotMatch(source, /function createChibiPrize\(/);
+  assert.doesNotMatch(source, /tiger-smile-/);
 });
 
 test("casino source has one font-independent chip and no double payout", async () => {
