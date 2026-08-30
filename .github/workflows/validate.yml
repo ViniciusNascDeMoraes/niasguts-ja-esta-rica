@@ -1,0 +1,30 @@
+name: Validate static site
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          package-manager-cache: false
+
+      - name: Check JavaScript syntax
+        run: |
+          node --check app.js
+          node --check casino-3d.mjs
+
+      - name: Run site tests
+        run: node --test tests/site.test.mjs
