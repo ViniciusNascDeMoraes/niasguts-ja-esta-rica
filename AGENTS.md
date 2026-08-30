@@ -28,9 +28,15 @@
 ## Casino Joke
 
 - The `FIQUE RICA!` button opens the coffee-themed fictional slot machine.
+- Render the machine with native HTML, CSS 3D transforms, and JavaScript. Do not add WebGL, canvas, or a 3D dependency.
+- Use the accessible lever as the only spin control. Keep click, touch, Enter, and Space activation.
+- Build three five-face cylindrical reels and stop them sequentially with deceleration.
 - Allow unlimited spins, but never allow a jackpot or a winning result.
 - Keep coffee references in the symbols or failure messages.
-- Do not add balances, payments, gambling links, sound, or a real-money disclaimer.
+- Use `assets/musica.mp3` as looped casino-only music at 25% initial volume.
+- Start enabled music when the casino opens, pause it when the casino closes, and provide play/pause and volume controls inside the modal.
+- Preserve a manual pause while the page remains open. Do not add other music or sound effects without explicit approval.
+- Do not add balances, payments, gambling links, or a real-money disclaimer.
 
 ## Footer and Releases
 
@@ -53,6 +59,7 @@
   - `1.2`: `593a920` - Pixie donation link.
   - `1.3`: local GIFs, mobile GIF removal, and visible patch notes.
   - `1.4`: Pixie wording and patch-note copy refinements.
+  - `1.5`: 3D casino reels, lever control, staggered animation, and casino music.
 - Update the footer version, patch notes, and this mapping together for each future user-visible release.
 
 ## Architecture and Delivery
