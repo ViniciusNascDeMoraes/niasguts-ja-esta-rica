@@ -198,7 +198,7 @@
 
       .counter {
         display: grid;
-        grid-template-columns: repeat(5, minmax(0, 1fr));
+        grid-template-columns: repeat(6, minmax(0, 1fr));
         gap: clamp(0.45rem, 1.5vw, 0.9rem);
         width: 100%;
       }
@@ -275,6 +275,12 @@
         }
       }
 
+      @media (max-width: 48rem) {
+        .counter {
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+        }
+      }
+
       @media (max-width: 34rem) {
         .card {
           box-shadow:
@@ -284,12 +290,6 @@
 
         .counter {
           grid-template-columns: repeat(2, minmax(0, 1fr));
-        }
-
-        .counter-part:last-child {
-          grid-column: 1 / -1;
-          width: calc(50% - 0.25rem);
-          justify-self: center;
         }
       }
 
@@ -345,6 +345,10 @@
             <strong class="counter-value" id="seconds">--</strong>
             <span class="counter-unit">segundos</span>
           </div>
+          <div class="counter-part">
+            <strong class="counter-value" id="milliseconds">---</strong>
+            <span class="counter-unit">milissegundos</span>
+          </div>
         </div>
 
         <p class="since">desde 04 de outubro de 2000, 00:00 · Porto Alegre</p>
@@ -382,6 +386,7 @@
         hours: document.querySelector("#hours"),
         minutes: document.querySelector("#minutes"),
         seconds: document.querySelector("#seconds"),
+        milliseconds: document.querySelector("#milliseconds"),
       };
 
       function getPortoAlegreParts(date) {
@@ -469,31 +474,28 @@
           (remainingMilliseconds % (MILLISECONDS_PER_SECOND * SECONDS_PER_MINUTE)) /
             MILLISECONDS_PER_SECOND,
         );
+        const milliseconds = remainingMilliseconds % MILLISECONDS_PER_SECOND;
 
         counterValues.years.textContent = String(years).padStart(2, "0");
         counterValues.days.textContent = String(days).padStart(3, "0");
         counterValues.hours.textContent = String(hours).padStart(2, "0");
         counterValues.minutes.textContent = String(minutes).padStart(2, "0");
         counterValues.seconds.textContent = String(seconds).padStart(2, "0");
+        counterValues.milliseconds.textContent = String(milliseconds).padStart(3, "0");
         counter.setAttribute(
           "aria-label",
-          `${years} anos, ${days} dias, ${hours} horas, ${minutes} minutos e ${seconds} segundos`,
+          `${years} anos, ${days} dias, ${hours} horas, ${minutes} minutos, ` +
+            `${seconds} segundos e ${milliseconds} milissegundos`,
         );
       }
 
-      function scheduleNextUpdate() {
-        // Align every refresh with the next real clock second.
-        const delay = MILLISECONDS_PER_SECOND - (Date.now() % MILLISECONDS_PER_SECOND);
-
-        window.setTimeout(() => {
-          // Refresh from the current clock before scheduling the next update.
-          updateCounter();
-          scheduleNextUpdate();
-        }, delay);
+      function animateCounter() {
+        // Refresh on every screen redraw so the milliseconds follow the real clock.
+        updateCounter();
+        window.requestAnimationFrame(animateCounter);
       }
 
-      updateCounter();
-      scheduleNextUpdate();
+      animateCounter();
     </script>
   </body>
 </html>
