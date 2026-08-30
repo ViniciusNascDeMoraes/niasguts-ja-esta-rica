@@ -130,13 +130,6 @@
         transform: rotate(-12deg);
       }
 
-      .sparkle-right {
-        top: clamp(4rem, 9vw, 6rem);
-        right: clamp(1.25rem, 5vw, 4rem);
-        color: var(--red);
-        animation-delay: -1.1s;
-      }
-
       .eyebrow {
         display: inline-block;
         margin: 0 0 0.75rem;
@@ -258,11 +251,6 @@
         font-weight: 700;
       }
 
-      .heart {
-        color: var(--pink);
-        font-size: 1.15em;
-      }
-
       @keyframes float {
         0%,
         100% {
@@ -303,10 +291,6 @@
           width: calc(50% - 0.25rem);
           justify-self: center;
         }
-
-        .sparkle-right {
-          display: none;
-        }
       }
 
       @media (prefers-reduced-motion: reduce) {
@@ -325,7 +309,6 @@
     <main class="page">
       <section class="card" aria-labelledby="question">
         <span class="sparkle sparkle-left" aria-hidden="true">✦</span>
-        <span class="sparkle sparkle-right" aria-hidden="true">♡</span>
 
         <p class="eyebrow">status financeiro em tempo real</p>
         <h1 id="question">niasguts já está rica?</h1>
@@ -364,10 +347,7 @@
           </div>
         </div>
 
-        <p class="since">
-          desde 04 de outubro de 2000, 00:00 · São Paulo
-          <span class="heart" aria-hidden="true">♡</span>
-        </p>
+        <p class="since">desde 04 de outubro de 2000, 00:00 · Porto Alegre</p>
       </section>
     </main>
 
@@ -383,9 +363,10 @@
       const HOURS_PER_DAY = 24;
       const MILLISECONDS_PER_DAY =
         MILLISECONDS_PER_SECOND * SECONDS_PER_MINUTE * MINUTES_PER_HOUR * HOURS_PER_DAY;
-      const SAO_PAULO_TIME_ZONE = "America/Sao_Paulo";
-      const saoPauloFormatter = new Intl.DateTimeFormat("en-CA", {
-        timeZone: SAO_PAULO_TIME_ZONE,
+      // IANA groups Rio Grande do Sul under the America/Sao_Paulo ruleset.
+      const PORTO_ALEGRE_TIME_ZONE = "America/Sao_Paulo";
+      const portoAlegreFormatter = new Intl.DateTimeFormat("en-CA", {
+        timeZone: PORTO_ALEGRE_TIME_ZONE,
         year: "numeric",
         month: "2-digit",
         day: "2-digit",
@@ -403,11 +384,11 @@
         seconds: document.querySelector("#seconds"),
       };
 
-      function getSaoPauloParts(date) {
-        // Read an instant as calendar fields in Sao Paulo.
+      function getPortoAlegreParts(date) {
+        // Read an instant as calendar fields in Porto Alegre.
         const fields = {};
 
-        for (const part of saoPauloFormatter.formatToParts(date)) {
+        for (const part of portoAlegreFormatter.formatToParts(date)) {
           if (part.type !== "literal") {
             fields[part.type] = Number(part.value);
           }
@@ -416,14 +397,14 @@
         return fields;
       }
 
-      function getSaoPauloMidnight(year, month, day) {
-        // Convert a Sao Paulo calendar midnight into an exact instant.
+      function getPortoAlegreMidnight(year, month, day) {
+        // Convert a Porto Alegre calendar midnight into an exact instant.
         const targetAsUtc = Date.UTC(year, month - 1, day);
         let instant = targetAsUtc;
         const offsetCorrectionPasses = 3;
 
         for (let pass = 0; pass < offsetCorrectionPasses; pass += 1) {
-          const fields = getSaoPauloParts(new Date(instant));
+          const fields = getPortoAlegreParts(new Date(instant));
           const displayedAsUtc = Date.UTC(
             fields.year,
             fields.month - 1,
@@ -438,7 +419,7 @@
         return new Date(instant);
       }
 
-      const birthInstant = getSaoPauloMidnight(BIRTH_YEAR, BIRTH_MONTH, BIRTH_DAY);
+      const birthInstant = getPortoAlegreMidnight(BIRTH_YEAR, BIRTH_MONTH, BIRTH_DAY);
 
       function updateCounter() {
         // Show the completed years and elapsed time since the latest birthday.
@@ -453,8 +434,8 @@
           return;
         }
 
-        let latestBirthdayYear = getSaoPauloParts(now).year;
-        let latestBirthday = getSaoPauloMidnight(
+        let latestBirthdayYear = getPortoAlegreParts(now).year;
+        let latestBirthday = getPortoAlegreMidnight(
           latestBirthdayYear,
           BIRTH_MONTH,
           BIRTH_DAY,
@@ -462,7 +443,7 @@
 
         if (now < latestBirthday) {
           latestBirthdayYear -= 1;
-          latestBirthday = getSaoPauloMidnight(
+          latestBirthday = getPortoAlegreMidnight(
             latestBirthdayYear,
             BIRTH_MONTH,
             BIRTH_DAY,
