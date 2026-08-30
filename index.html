@@ -493,6 +493,15 @@
       const HOURS_PER_DAY = 24;
       const MILLISECONDS_PER_DAY =
         MILLISECONDS_PER_SECOND * SECONDS_PER_MINUTE * MINUTES_PER_HOUR * HOURS_PER_DAY;
+      const NAME_VARIATIONS = [
+        "amanda",
+        "nana",
+        "niasguts",
+        "nia",
+        "vito corleone de saia",
+        "diabo loiro",
+        "demonio de porto alegre",
+      ];
       const MARIN_GIFS = [
         {
           postId: "15174917057877362565",
@@ -722,6 +731,13 @@
         const delay = MILLISECONDS_PER_SECOND - (Date.now() % MILLISECONDS_PER_SECOND);
         window.setTimeout(scheduleNextUpdate, delay);
       }
+
+      // Pick one displayed name for this page visit.
+      const selectedName =
+        NAME_VARIATIONS[Math.floor(Math.random() * NAME_VARIATIONS.length)];
+      const questionText = `${selectedName} já está rica?`;
+      document.querySelector("#question").textContent = questionText;
+      document.title = questionText;
 
       showRandomMarinGifs();
       scheduleNextUpdate();
