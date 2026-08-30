@@ -134,20 +134,31 @@
         color: inherit;
       }
 
-      .marin-embed-jump {
+      .marin-embed-left {
         top: 18%;
         left: 0;
         width: clamp(6.5rem, 8vw, 8.5rem);
-        aspect-ratio: 498 / 370;
         transform: translateX(0.75rem) rotate(-4deg);
       }
 
-      .marin-embed-chibi {
+      .marin-embed-right {
         right: 0;
         bottom: 18%;
         width: clamp(6rem, 7vw, 7.75rem);
-        aspect-ratio: 487 / 498;
         transform: translateX(-0.75rem) rotate(4deg);
+      }
+
+      .marin-fallback {
+        grid-column: 1 / -1;
+        margin: 0;
+        color: var(--ink);
+        font-size: 0.75rem;
+        font-weight: 700;
+        pointer-events: auto;
+      }
+
+      .marin-fallback a {
+        color: var(--pink-dark);
       }
 
       .card::before {
@@ -257,7 +268,7 @@
 
       .counter {
         display: grid;
-        grid-template-columns: repeat(6, minmax(0, 1fr));
+        grid-template-columns: repeat(5, minmax(0, 1fr));
         gap: clamp(0.45rem, 1.5vw, 0.9rem);
         width: 100%;
       }
@@ -310,6 +321,14 @@
         font-weight: 700;
       }
 
+      .credit {
+        margin: 0.45rem 0 0;
+        color: var(--ink);
+        font-size: clamp(0.62rem, 1.7vw, 0.75rem);
+        font-weight: 700;
+        opacity: 0.62;
+      }
+
       @keyframes float {
         0%,
         100% {
@@ -356,18 +375,12 @@
           width: 100%;
         }
 
-        .marin-embed-jump {
+        .marin-embed-left {
           transform: rotate(-3deg);
         }
 
-        .marin-embed-chibi {
+        .marin-embed-right {
           transform: rotate(3deg);
-        }
-      }
-
-      @media (max-width: 48rem) {
-        .counter {
-          grid-template-columns: repeat(3, minmax(0, 1fr));
         }
       }
 
@@ -380,6 +393,12 @@
 
         .counter {
           grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .counter-part:last-child {
+          grid-column: 1 / -1;
+          width: calc(50% - 0.25rem);
+          justify-self: center;
         }
 
         .marin-decorations {
@@ -440,63 +459,28 @@
             <strong class="counter-value" id="seconds">--</strong>
             <span class="counter-unit">segundos</span>
           </div>
-          <div class="counter-part">
-            <strong class="counter-value" id="milliseconds">---</strong>
-            <span class="counter-unit">milissegundos</span>
-          </div>
         </div>
 
         <p class="since">desde 04 de outubro de 2000, 00:00 · Porto Alegre</p>
+        <p class="credit">agradecimentos ao @vapercarioca pela ideia no chat da twitch</p>
       </section>
 
       <aside class="marin-decorations" aria-label="Marin Kitagawa">
-        <div class="marin-embed marin-embed-jump">
-          <div
-            class="tenor-gif-embed"
-            data-postid="4669622031982443835"
-            data-share-method="host"
-            data-aspect-ratio="1.34595"
-            data-width="100%"
-          >
-            <a
-              href="https://tenor.com/view/my-dress-up-darling-kitagawa-marin-%E5%96%9C%E5%A4%9A%E5%B7%9D-%E6%B5%B7%E5%A4%A2-%E5%96%9C%E5%A4%9A%E5%B7%9D-%E6%B5%B7%E5%A4%A2-gif-4669622031982443835"
-              rel="noopener noreferrer"
-              target="_blank"
-            >Marin Kitagawa pulando</a>
-            no
-            <a
-              href="https://tenor.com/search/marin-kitagawa-stickers"
-              rel="noopener noreferrer"
-              target="_blank"
-            >Tenor</a>
-          </div>
-        </div>
+        <div class="marin-embed marin-embed-left"></div>
+        <div class="marin-embed marin-embed-right"></div>
 
-        <div class="marin-embed marin-embed-chibi">
-          <div
-            class="tenor-gif-embed"
-            data-postid="5993688566449789421"
-            data-share-method="host"
-            data-aspect-ratio="0.977912"
-            data-width="100%"
-          >
+        <noscript>
+          <p class="marin-fallback">
             <a
-              href="https://tenor.com/view/my-dress-up-darling-my-dress-up-darling-season-2-marin-kitagawa-my-dress-up-darling-chibi-marin-chibi-gif-5993688566449789421"
+              href="https://tenor.com/pt-BR/search/marin-kitagawa-gifs"
               rel="noopener noreferrer"
               target="_blank"
-            >Marin Kitagawa chibi surpresa</a>
-            no
-            <a
-              href="https://tenor.com/search/marin-kitagawa-stickers"
-              rel="noopener noreferrer"
-              target="_blank"
-            >Tenor</a>
-          </div>
-        </div>
+            >GIFs da Marin Kitagawa no Tenor</a>
+          </p>
+        </noscript>
       </aside>
     </main>
 
-    <script async src="https://tenor.com/embed.js"></script>
     <script>
       "use strict";
 
@@ -509,6 +493,64 @@
       const HOURS_PER_DAY = 24;
       const MILLISECONDS_PER_DAY =
         MILLISECONDS_PER_SECOND * SECONDS_PER_MINUTE * MINUTES_PER_HOUR * HOURS_PER_DAY;
+      const MARIN_GIFS = [
+        {
+          postId: "15174917057877362565",
+          url: "https://tenor.com/pt-BR/view/my-dress-up-darling-my-dress-up-darling-season-2-marin-kitagawa-my-dress-up-darling-chibi-marin-chibi-gif-15174917057877362565",
+          description: "Marin Kitagawa chibi",
+          width: 487,
+          height: 498,
+        },
+        {
+          postId: "24940756",
+          url: "https://tenor.com/pt-BR/view/marin-cry-marin-sad-marin-kitagawa-marin-kitagawa-gif-24940756",
+          description: "Marin Kitagawa chorando",
+          width: 640,
+          height: 576,
+        },
+        {
+          postId: "5644360806955828657",
+          url: "https://tenor.com/pt-BR/view/my-dress-up-darling-sono-bisque-doll-wa-koi-wo-suru-sono-bisque-doll-marin-kitagawa-love-gif-5644360806955828657",
+          description: "Marin Kitagawa apaixonada",
+          width: 426,
+          height: 320,
+        },
+        {
+          postId: "14798750337503680499",
+          url: "https://tenor.com/pt-BR/view/marin-marin-kitagawa-kitagawa-bisque-bisque-doll-gif-14798750337503680499",
+          description: "Marin Kitagawa em My Dress-Up Darling",
+          width: 498,
+          height: 281,
+        },
+        {
+          postId: "18353529066937443852",
+          url: "https://tenor.com/pt-BR/view/marin-kitagawa-marin-peak-my-dress-up-darling-its-peak-gif-18353529066937443852",
+          description: "Marin Kitagawa dizendo que chegou ao auge",
+          width: 422,
+          height: 498,
+        },
+        {
+          postId: "2131086954871040042",
+          url: "https://tenor.com/pt-BR/view/marin-kitagawa-gif-2131086954871040042",
+          description: "Marin Kitagawa",
+          width: 498,
+          height: 498,
+        },
+        {
+          postId: "24693857",
+          url: "https://tenor.com/pt-BR/view/marin-kitagawa-marin-kitagawa-kitagawa-marin-bisque-doll-gif-24693857",
+          description: "Marin Kitagawa em Bisque Doll",
+          width: 636,
+          height: 640,
+        },
+        {
+          postId: "24864114",
+          url: "https://tenor.com/pt-BR/view/marin-kitagawa-marin-kitagawa-kitagawa-marin-sono-bisque-gif-24864114",
+          description: "Marin Kitagawa em Sono Bisque Doll",
+          width: 401,
+          height: 498,
+        },
+      ];
       // IANA groups Rio Grande do Sul under the America/Sao_Paulo ruleset.
       const PORTO_ALEGRE_TIME_ZONE = "America/Sao_Paulo";
       const portoAlegreFormatter = new Intl.DateTimeFormat("en-CA", {
@@ -528,8 +570,53 @@
         hours: document.querySelector("#hours"),
         minutes: document.querySelector("#minutes"),
         seconds: document.querySelector("#seconds"),
-        milliseconds: document.querySelector("#milliseconds"),
       };
+
+      function showRandomMarinGifs() {
+        // Display two distinct Marin GIFs before loading the Tenor embed script.
+        const availableGifs = [...MARIN_GIFS];
+        const embedSlots = document.querySelectorAll(".marin-embed");
+
+        for (let index = 0; index < embedSlots.length; index += 1) {
+          const randomIndex =
+            index + Math.floor(Math.random() * (availableGifs.length - index));
+          [availableGifs[index], availableGifs[randomIndex]] = [
+            availableGifs[randomIndex],
+            availableGifs[index],
+          ];
+
+          const gif = availableGifs[index];
+          const slot = embedSlots[index];
+          const embed = document.createElement("div");
+          const gifLink = document.createElement("a");
+          const tenorLink = document.createElement("a");
+
+          slot.style.aspectRatio = `${gif.width} / ${gif.height}`;
+          embed.className = "tenor-gif-embed";
+          embed.dataset.postid = gif.postId;
+          embed.dataset.shareMethod = "host";
+          embed.dataset.aspectRatio = String(gif.width / gif.height);
+          embed.dataset.width = "100%";
+
+          gifLink.href = gif.url;
+          gifLink.rel = "noopener noreferrer";
+          gifLink.target = "_blank";
+          gifLink.textContent = gif.description;
+
+          tenorLink.href = "https://tenor.com/pt-BR/search/marin-kitagawa-gifs";
+          tenorLink.rel = "noopener noreferrer";
+          tenorLink.target = "_blank";
+          tenorLink.textContent = "Tenor";
+
+          embed.append(gifLink, " no ", tenorLink);
+          slot.append(embed);
+        }
+
+        const tenorScript = document.createElement("script");
+        tenorScript.async = true;
+        tenorScript.src = "https://tenor.com/embed.js";
+        document.body.append(tenorScript);
+      }
 
       function getPortoAlegreParts(date) {
         // Read an instant as calendar fields in Porto Alegre.
@@ -616,28 +703,28 @@
           (remainingMilliseconds % (MILLISECONDS_PER_SECOND * SECONDS_PER_MINUTE)) /
             MILLISECONDS_PER_SECOND,
         );
-        const milliseconds = remainingMilliseconds % MILLISECONDS_PER_SECOND;
 
         counterValues.years.textContent = String(years).padStart(2, "0");
         counterValues.days.textContent = String(days).padStart(3, "0");
         counterValues.hours.textContent = String(hours).padStart(2, "0");
         counterValues.minutes.textContent = String(minutes).padStart(2, "0");
         counterValues.seconds.textContent = String(seconds).padStart(2, "0");
-        counterValues.milliseconds.textContent = String(milliseconds).padStart(3, "0");
         counter.setAttribute(
           "aria-label",
           `${years} anos, ${days} dias, ${hours} horas, ${minutes} minutos, ` +
-            `${seconds} segundos e ${milliseconds} milissegundos`,
+            `${seconds} segundos`,
         );
       }
 
-      function animateCounter() {
-        // Refresh on every screen redraw so the milliseconds follow the real clock.
+      function scheduleNextUpdate() {
+        // Refresh now and align the next update with the next real clock second.
         updateCounter();
-        window.requestAnimationFrame(animateCounter);
+        const delay = MILLISECONDS_PER_SECOND - (Date.now() % MILLISECONDS_PER_SECOND);
+        window.setTimeout(scheduleNextUpdate, delay);
       }
 
-      animateCounter();
+      showRandomMarinGifs();
+      scheduleNextUpdate();
     </script>
   </body>
 </html>
