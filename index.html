@@ -687,7 +687,7 @@
           </div>
         </div>
 
-        <p class="since">desde 04 de outubro de 2000, 00:00 · Porto Alegre</p>
+        <p class="since">desde 04 de outubro de 2000, 12:16 · Porto Alegre</p>
         <p class="credit">agradecimentos ao @vapercarioca pela ideia no chat da twitch</p>
       </section>
 
@@ -747,6 +747,8 @@
       const BIRTH_YEAR = 2000;
       const BIRTH_MONTH = 10;
       const BIRTH_DAY = 4;
+      const BIRTH_HOUR = 12;
+      const BIRTH_MINUTE = 16;
       const MILLISECONDS_PER_SECOND = 1000;
       const SECONDS_PER_MINUTE = 60;
       const MINUTES_PER_HOUR = 60;
@@ -979,9 +981,15 @@
         return fields;
       }
 
-      function getPortoAlegreMidnight(year, month, day) {
-        // Convert a Porto Alegre calendar midnight into an exact instant.
-        const targetAsUtc = Date.UTC(year, month - 1, day);
+      function getPortoAlegreBirthday(year) {
+        // Convert the birthday time in Porto Alegre into an exact instant.
+        const targetAsUtc = Date.UTC(
+          year,
+          BIRTH_MONTH - 1,
+          BIRTH_DAY,
+          BIRTH_HOUR,
+          BIRTH_MINUTE,
+        );
         let instant = targetAsUtc;
         const offsetCorrectionPasses = 3;
 
@@ -1001,7 +1009,7 @@
         return new Date(instant);
       }
 
-      const birthInstant = getPortoAlegreMidnight(BIRTH_YEAR, BIRTH_MONTH, BIRTH_DAY);
+      const birthInstant = getPortoAlegreBirthday(BIRTH_YEAR);
 
       function updateCounter() {
         // Show the completed years and elapsed time since the latest birthday.
@@ -1017,19 +1025,11 @@
         }
 
         let latestBirthdayYear = getPortoAlegreParts(now).year;
-        let latestBirthday = getPortoAlegreMidnight(
-          latestBirthdayYear,
-          BIRTH_MONTH,
-          BIRTH_DAY,
-        );
+        let latestBirthday = getPortoAlegreBirthday(latestBirthdayYear);
 
         if (now < latestBirthday) {
           latestBirthdayYear -= 1;
-          latestBirthday = getPortoAlegreMidnight(
-            latestBirthdayYear,
-            BIRTH_MONTH,
-            BIRTH_DAY,
-          );
+          latestBirthday = getPortoAlegreBirthday(latestBirthdayYear);
         }
 
         let remainingMilliseconds = now - latestBirthday;
