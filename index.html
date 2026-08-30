@@ -116,7 +116,7 @@
         pointer-events: none;
       }
 
-      .marin-embed {
+      .marin-gif-frame {
         position: absolute;
         z-index: 2;
         display: grid;
@@ -132,46 +132,34 @@
         pointer-events: auto;
       }
 
-      .marin-embed .tenor-gif-embed {
-        width: 100% !important;
-      }
-
-      .marin-embed iframe {
+      .marin-gif-frame a,
+      .marin-gif-frame img {
         display: block;
-        width: 100% !important;
-        height: 100% !important;
-        border: 0;
+        width: 100%;
+        height: 100%;
       }
 
-      .marin-embed a {
-        color: inherit;
+      .marin-gif-frame img {
+        object-fit: cover;
       }
 
-      .marin-embed-left {
+      .marin-gif-frame a:focus-visible {
+        outline: 0.2rem solid var(--tie-red);
+        outline-offset: -0.35rem;
+      }
+
+      .marin-gif-left {
         top: 18%;
         left: 0;
         width: clamp(6.5rem, 8vw, 8.5rem);
         transform: translateX(0.75rem) rotate(-4deg);
       }
 
-      .marin-embed-right {
+      .marin-gif-right {
         right: 0;
         bottom: 18%;
         width: clamp(6rem, 7vw, 7.75rem);
         transform: translateX(-0.75rem) rotate(4deg);
-      }
-
-      .marin-fallback {
-        grid-column: 1 / -1;
-        margin: 0;
-        color: var(--navy-deep);
-        font-size: 0.75rem;
-        font-weight: 700;
-        pointer-events: auto;
-      }
-
-      .marin-fallback a {
-        color: var(--hair-pink-dark);
       }
 
       .card::before {
@@ -272,7 +260,8 @@
 
       .rich-button,
       .spin-button,
-      .casino-close {
+      .patch-notes-button,
+      .dialog-close {
         color: inherit;
         font: inherit;
         border: 0;
@@ -305,19 +294,20 @@
 
       .rich-button:active,
       .spin-button:active,
-      .casino-close:active {
+      .dialog-close:active {
         box-shadow: none;
         transform: translate(0.18rem, 0.2rem);
       }
 
       .rich-button:focus-visible,
       .spin-button:focus-visible,
-      .casino-close:focus-visible {
+      .patch-notes-button:focus-visible,
+      .dialog-close:focus-visible {
         outline: 0.2rem solid var(--tie-red);
         outline-offset: 0.2rem;
       }
 
-      .casino-dialog {
+      .site-dialog {
         width: min(calc(100% - 2rem), 30rem);
         max-height: calc(100svh - 2rem);
         margin: auto;
@@ -328,12 +318,12 @@
         border: 0;
       }
 
-      .casino-dialog::backdrop {
+      .site-dialog::backdrop {
         background: var(--dialog-backdrop);
         backdrop-filter: blur(0.2rem);
       }
 
-      .casino-panel {
+      .dialog-panel {
         position: relative;
         padding: clamp(1.5rem, 6vw, 2.5rem);
         text-align: center;
@@ -343,11 +333,11 @@
         box-shadow: 0.55rem 0.65rem 0 var(--navy-deep);
       }
 
-      .casino-close-form {
+      .dialog-close-form {
         margin: 0;
       }
 
-      .casino-close {
+      .dialog-close {
         position: absolute;
         top: 0.7rem;
         right: 0.7rem;
@@ -541,6 +531,93 @@
         outline-offset: 0.2rem;
       }
 
+      .release-info {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.45rem;
+        margin-top: 0.8rem;
+        color: var(--navy-deep);
+        font-size: clamp(0.66rem, 1.8vw, 0.8rem);
+        font-weight: 900;
+      }
+
+      .version-label {
+        letter-spacing: 0.04em;
+      }
+
+      .patch-notes-button {
+        padding: 0.15rem 0.2rem;
+        color: var(--hair-pink-dark);
+        font-size: inherit;
+        font-weight: 900;
+        text-decoration: underline;
+        text-decoration-color: var(--hair-pink);
+        text-underline-offset: 0.18em;
+        background: transparent;
+      }
+
+      .patch-notes-button:hover {
+        color: var(--tie-red);
+      }
+
+      .patch-notes-dialog {
+        width: min(calc(100% - 2rem), 40rem);
+      }
+
+      .patch-notes-panel {
+        text-align: left;
+      }
+
+      .patch-notes-kicker {
+        margin: 0;
+        color: var(--hair-pink-dark);
+        font-size: 0.7rem;
+        font-weight: 900;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+      }
+
+      .patch-notes-title {
+        margin: 0.4rem 3rem 0 0;
+        font-size: clamp(1.7rem, 7vw, 2.6rem);
+        line-height: 1;
+      }
+
+      .release-list {
+        display: grid;
+        gap: 0.75rem;
+        margin: 1.25rem 0 0;
+        padding: 0;
+        list-style: none;
+      }
+
+      .release-entry {
+        padding: 0.85rem 1rem;
+        background: var(--white);
+        border: 0.12rem solid var(--navy-deep);
+        border-radius: 0.85rem;
+        box-shadow: 0.14rem 0.16rem 0 var(--navy-deep);
+      }
+
+      .release-entry:first-child {
+        background: var(--hair-pink-soft);
+        border-color: var(--hair-pink-dark);
+      }
+
+      .release-entry h3 {
+        margin: 0;
+        color: var(--hair-pink-dark);
+        font-size: 0.9rem;
+      }
+
+      .release-entry p {
+        margin: 0.35rem 0 0;
+        font-size: 0.8rem;
+        font-weight: 700;
+        line-height: 1.4;
+      }
+
       @keyframes reel-spin {
         0%,
         100% {
@@ -594,17 +671,17 @@
           gap: clamp(1rem, 5vw, 3rem);
         }
 
-        .marin-embed {
+        .marin-gif-frame {
           position: relative;
           inset: auto;
           width: 100%;
         }
 
-        .marin-embed-left {
+        .marin-gif-left {
           transform: rotate(-3deg);
         }
 
-        .marin-embed-right {
+        .marin-gif-right {
           transform: rotate(3deg);
         }
       }
@@ -627,16 +704,15 @@
         }
 
         .marin-decorations {
-          grid-template-columns: minmax(0, 6.5rem) minmax(0, 6rem);
-          gap: 0.85rem;
+          display: none;
         }
 
-        .casino-dialog {
+        .site-dialog {
           width: min(calc(100% - 1rem), 30rem);
           max-height: calc(100svh - 1rem);
         }
 
-        .casino-panel {
+        .dialog-panel {
           padding: 1.35rem 0.85rem;
           border-radius: 1.1rem;
           box-shadow: 0.3rem 0.35rem 0 var(--navy-deep);
@@ -709,39 +785,42 @@
           </div>
         </div>
 
-        <p class="since">desde 04 de outubro de 2000, 12:16 · Porto Alegre</p>
-        <p class="credit">agradecimentos ao @vapercarioca pela ideia no chat da twitch</p>
-        <p class="donation">
-          ajudando ela a ficar rica doando em
-          <a href="https://pixie.gg/niagott" target="_blank" rel="noopener noreferrer">pixie.gg/niagott</a>
-        </p>
+        <footer class="site-footer">
+          <p class="since">desde 04 de outubro de 2000, 12:16 · Porto Alegre</p>
+          <p class="credit">agradecimentos ao @vapercarioca pela ideia no chat da twitch</p>
+          <p class="donation">
+            ajudando ela a ficar rica doando em
+            <a href="https://pixie.gg/niagott" target="_blank" rel="noopener noreferrer">pixie.gg/niagott</a>
+          </p>
+          <div class="release-info">
+            <span class="version-label">versão 1.3</span>
+            <span aria-hidden="true">·</span>
+            <button
+              class="patch-notes-button"
+              id="open-patch-notes"
+              type="button"
+              aria-haspopup="dialog"
+              aria-controls="patch-notes-dialog"
+            >PATCH NOTES</button>
+          </div>
+        </footer>
       </section>
 
       <aside class="marin-decorations" aria-label="Marin Kitagawa">
-        <div class="marin-embed marin-embed-left"></div>
-        <div class="marin-embed marin-embed-right"></div>
-
-        <noscript>
-          <p class="marin-fallback">
-            <a
-              href="https://tenor.com/pt-BR/search/marin-kitagawa-gifs"
-              rel="noopener noreferrer"
-              target="_blank"
-            >GIFs da Marin Kitagawa no Tenor</a>
-          </p>
-        </noscript>
+        <div class="marin-gif-frame marin-gif-left"></div>
+        <div class="marin-gif-frame marin-gif-right"></div>
       </aside>
     </main>
 
     <dialog
-      class="casino-dialog"
+      class="site-dialog"
       id="casino-dialog"
       aria-labelledby="casino-title"
       aria-describedby="casino-description"
     >
-      <div class="casino-panel">
-        <form class="casino-close-form" method="dialog">
-          <button class="casino-close" type="submit" aria-label="Fechar simulador">×</button>
+      <div class="dialog-panel">
+        <form class="dialog-close-form" method="dialog">
+          <button class="dialog-close" type="submit" aria-label="Fechar simulador">×</button>
         </form>
 
         <p class="casino-kicker">simulador 100% confiável</p>
@@ -764,6 +843,76 @@
           pronta para tentar?
         </p>
         <button class="spin-button" id="spin-casino" type="button" autofocus>GIRAR</button>
+      </div>
+    </dialog>
+
+    <dialog
+      class="site-dialog patch-notes-dialog"
+      id="patch-notes-dialog"
+      aria-labelledby="patch-notes-title"
+    >
+      <div class="dialog-panel patch-notes-panel">
+        <form class="dialog-close-form" method="dialog">
+          <button class="dialog-close" type="submit" aria-label="Fechar patch notes">×</button>
+        </form>
+
+        <p class="patch-notes-kicker">histórico da riqueza</p>
+        <h2 class="patch-notes-title" id="patch-notes-title">Patch notes</h2>
+
+        <ol class="release-list" aria-label="Histórico de versões">
+          <li class="release-entry">
+            <h3>versão 1.3</h3>
+            <p>Os oito GIFs da Marin agora são locais, somem no mobile e o histórico de versões chegou ao rodapé.</p>
+          </li>
+          <li class="release-entry">
+            <h3>versão 1.2</h3>
+            <p>O link de doação do Pixie foi adicionado.</p>
+          </li>
+          <li class="release-entry">
+            <h3>versão 1.1</h3>
+            <p>O horário de nascimento foi corrigido para 12:16 em Porto Alegre.</p>
+          </li>
+          <li class="release-entry">
+            <h3>versão 1.0</h3>
+            <p>O aviso redundante do cassino foi removido.</p>
+          </li>
+          <li class="release-entry">
+            <h3>versão 0.9</h3>
+            <p>“barista de porto alegre” virou uma opção entre os nomes aleatórios.</p>
+          </li>
+          <li class="release-entry">
+            <h3>versão 0.8</h3>
+            <p>O café e o minijogo do tigrinho que sempre dá errado foram adicionados.</p>
+          </li>
+          <li class="release-entry">
+            <h3>versão 0.7</h3>
+            <p>A página ganhou uma paleta inspirada na Marin Kitagawa.</p>
+          </li>
+          <li class="release-entry">
+            <h3>versão 0.6</h3>
+            <p>O nome exibido na pergunta passou a ser sorteado a cada carregamento.</p>
+          </li>
+          <li class="release-entry">
+            <h3>versão 0.5</h3>
+            <p>Oito GIFs passaram a disputar dois espaços, os milissegundos saíram e o crédito da Twitch entrou.</p>
+          </li>
+          <li class="release-entry">
+            <h3>versão 0.4</h3>
+            <p>Os primeiros GIFs da Marin foram colocados ao redor do contador.</p>
+          </li>
+          <li class="release-entry">
+            <h3>versão 0.3</h3>
+            <p>Os milissegundos foram adicionados temporariamente ao contador.</p>
+          </li>
+          <li class="release-entry">
+            <h3>versão 0.2</h3>
+            <p>O local foi corrigido para Porto Alegre e os corações foram removidos.</p>
+          </li>
+          <li class="release-entry">
+            <h3>versão 0.1</h3>
+            <p>Nasceu o contador oficial para descobrir se niasguts já está rica.</p>
+          </li>
+        </ol>
       </div>
     </dialog>
 
@@ -808,62 +957,67 @@
       ];
       const MARIN_GIFS = [
         {
-          postId: "15174917057877362565",
-          url: "https://tenor.com/pt-BR/view/my-dress-up-darling-my-dress-up-darling-season-2-marin-kitagawa-my-dress-up-darling-chibi-marin-chibi-gif-15174917057877362565",
+          src: "assets/gifs/marin-chibi.gif",
+          sourceUrl: "https://tenor.com/pt-BR/view/my-dress-up-darling-my-dress-up-darling-season-2-marin-kitagawa-my-dress-up-darling-chibi-marin-chibi-gif-15174917057877362565",
           description: "Marin Kitagawa chibi",
           width: 487,
           height: 498,
         },
         {
-          postId: "24940756",
-          url: "https://tenor.com/pt-BR/view/marin-cry-marin-sad-marin-kitagawa-marin-kitagawa-gif-24940756",
+          src: "assets/gifs/marin-cry.gif",
+          sourceUrl: "https://tenor.com/pt-BR/view/marin-cry-marin-sad-marin-kitagawa-marin-kitagawa-gif-24940756",
           description: "Marin Kitagawa chorando",
           width: 640,
           height: 576,
         },
         {
-          postId: "5644360806955828657",
-          url: "https://tenor.com/pt-BR/view/my-dress-up-darling-sono-bisque-doll-wa-koi-wo-suru-sono-bisque-doll-marin-kitagawa-love-gif-5644360806955828657",
+          src: "assets/gifs/marin-love.gif",
+          sourceUrl: "https://tenor.com/pt-BR/view/my-dress-up-darling-sono-bisque-doll-wa-koi-wo-suru-sono-bisque-doll-marin-kitagawa-love-gif-5644360806955828657",
           description: "Marin Kitagawa apaixonada",
           width: 426,
           height: 320,
         },
         {
-          postId: "14798750337503680499",
-          url: "https://tenor.com/pt-BR/view/marin-marin-kitagawa-kitagawa-bisque-bisque-doll-gif-14798750337503680499",
+          src: "assets/gifs/marin-bisque.gif",
+          sourceUrl: "https://tenor.com/pt-BR/view/marin-marin-kitagawa-kitagawa-bisque-bisque-doll-gif-14798750337503680499",
           description: "Marin Kitagawa em My Dress-Up Darling",
           width: 498,
           height: 281,
         },
         {
-          postId: "18353529066937443852",
-          url: "https://tenor.com/pt-BR/view/marin-kitagawa-marin-peak-my-dress-up-darling-its-peak-gif-18353529066937443852",
+          src: "assets/gifs/marin-peak.gif",
+          sourceUrl: "https://tenor.com/pt-BR/view/marin-kitagawa-marin-peak-my-dress-up-darling-its-peak-gif-18353529066937443852",
           description: "Marin Kitagawa dizendo que chegou ao auge",
           width: 422,
           height: 498,
         },
         {
-          postId: "2131086954871040042",
-          url: "https://tenor.com/pt-BR/view/marin-kitagawa-gif-2131086954871040042",
+          src: "assets/gifs/marin-square.gif",
+          sourceUrl: "https://tenor.com/pt-BR/view/marin-kitagawa-gif-2131086954871040042",
           description: "Marin Kitagawa",
           width: 498,
           height: 498,
         },
         {
-          postId: "24693857",
-          url: "https://tenor.com/pt-BR/view/marin-kitagawa-marin-kitagawa-kitagawa-marin-bisque-doll-gif-24693857",
+          src: "assets/gifs/marin-bisque-doll.gif",
+          sourceUrl: "https://tenor.com/pt-BR/view/marin-kitagawa-marin-kitagawa-kitagawa-marin-bisque-doll-gif-24693857",
           description: "Marin Kitagawa em Bisque Doll",
           width: 636,
           height: 640,
         },
         {
-          postId: "24864114",
-          url: "https://tenor.com/pt-BR/view/marin-kitagawa-marin-kitagawa-kitagawa-marin-sono-bisque-gif-24864114",
+          src: "assets/gifs/marin-sono-bisque.gif",
+          sourceUrl: "https://tenor.com/pt-BR/view/marin-kitagawa-marin-kitagawa-kitagawa-marin-sono-bisque-gif-24864114",
           description: "Marin Kitagawa em Sono Bisque Doll",
           width: 401,
           height: 498,
         },
       ];
+      const MOBILE_GIF_MAX_WIDTH_REM = 34;
+      const mobileGifMediaQuery = window.matchMedia(
+        `(max-width: ${MOBILE_GIF_MAX_WIDTH_REM}rem)`,
+      );
+      const selectedMarinGifs = [];
       // IANA groups Rio Grande do Sul under the America/Sao_Paulo ruleset.
       const PORTO_ALEGRE_TIME_ZONE = "America/Sao_Paulo";
       const portoAlegreFormatter = new Intl.DateTimeFormat("en-CA", {
@@ -890,57 +1044,68 @@
       const slotMachine = document.querySelector("#slot-machine");
       const slotReels = document.querySelectorAll(".slot-reel");
       const casinoResult = document.querySelector("#casino-result");
+      const patchNotesDialog = document.querySelector("#patch-notes-dialog");
+      const patchNotesOpenButton = document.querySelector("#open-patch-notes");
+      const marinGifFrames = document.querySelectorAll(".marin-gif-frame");
 
       function showRandomMarinGifs() {
-        // Display two distinct Marin GIFs before loading the Tenor embed script.
-        const availableGifs = [...MARIN_GIFS];
-        const embedSlots = document.querySelectorAll(".marin-embed");
-
-        for (let index = 0; index < embedSlots.length; index += 1) {
-          const randomIndex =
-            index + Math.floor(Math.random() * (availableGifs.length - index));
-          [availableGifs[index], availableGifs[randomIndex]] = [
-            availableGifs[randomIndex],
-            availableGifs[index],
-          ];
-
-          const gif = availableGifs[index];
-          const slot = embedSlots[index];
-          const embed = document.createElement("div");
-          const gifLink = document.createElement("a");
-          const tenorLink = document.createElement("a");
-
-          slot.style.aspectRatio = `${gif.width} / ${gif.height}`;
-          embed.className = "tenor-gif-embed";
-          embed.dataset.postid = gif.postId;
-          embed.dataset.shareMethod = "host";
-          embed.dataset.aspectRatio = String(gif.width / gif.height);
-          embed.dataset.width = "100%";
-
-          gifLink.href = gif.url;
-          gifLink.rel = "noopener noreferrer";
-          gifLink.target = "_blank";
-          gifLink.textContent = gif.description;
-
-          tenorLink.href = "https://tenor.com/pt-BR/search/marin-kitagawa-gifs";
-          tenorLink.rel = "noopener noreferrer";
-          tenorLink.target = "_blank";
-          tenorLink.textContent = "Tenor";
-
-          embed.append(gifLink, " no ", tenorLink);
-          slot.append(embed);
+        // Keep two selected local Marin GIFs visible only outside mobile layouts.
+        for (const gifFrame of marinGifFrames) {
+          gifFrame.replaceChildren();
         }
 
-        const tenorScript = document.createElement("script");
-        tenorScript.async = true;
-        tenorScript.src = "https://tenor.com/embed.js";
-        document.body.append(tenorScript);
+        if (mobileGifMediaQuery.matches) {
+          return;
+        }
+
+        if (selectedMarinGifs.length === 0) {
+          const availableGifs = [...MARIN_GIFS];
+
+          for (let index = 0; index < marinGifFrames.length; index += 1) {
+            const randomIndex =
+              index + Math.floor(Math.random() * (availableGifs.length - index));
+            [availableGifs[index], availableGifs[randomIndex]] = [
+              availableGifs[randomIndex],
+              availableGifs[index],
+            ];
+          }
+
+          selectedMarinGifs.push(...availableGifs.slice(0, marinGifFrames.length));
+        }
+
+        for (let index = 0; index < marinGifFrames.length; index += 1) {
+          const gif = selectedMarinGifs[index];
+          const gifFrame = marinGifFrames[index];
+          const sourceLink = document.createElement("a");
+          const gifImage = document.createElement("img");
+
+          gifFrame.style.aspectRatio = `${gif.width} / ${gif.height}`;
+          sourceLink.href = gif.sourceUrl;
+          sourceLink.rel = "noopener noreferrer";
+          sourceLink.target = "_blank";
+          sourceLink.setAttribute("aria-label", `${gif.description} no Tenor`);
+          gifImage.src = gif.src;
+          gifImage.alt = gif.description;
+          gifImage.width = gif.width;
+          gifImage.height = gif.height;
+          gifImage.decoding = "async";
+
+          sourceLink.append(gifImage);
+          gifFrame.append(sourceLink);
+        }
       }
 
       function openCasino() {
         // Open the fictional casino as a modal dialog.
         if (!casinoDialog.open) {
           casinoDialog.showModal();
+        }
+      }
+
+      function openPatchNotes() {
+        // Open the release history as a modal dialog.
+        if (!patchNotesDialog.open) {
+          patchNotesDialog.showModal();
         }
       }
 
@@ -1099,6 +1264,8 @@
 
       casinoOpenButton.addEventListener("click", openCasino);
       casinoSpinButton.addEventListener("click", startCasinoSpin);
+      patchNotesOpenButton.addEventListener("click", openPatchNotes);
+      mobileGifMediaQuery.addEventListener("change", showRandomMarinGifs);
 
       // Pick one displayed name for this page visit.
       const selectedName =
