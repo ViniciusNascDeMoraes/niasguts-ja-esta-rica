@@ -7,20 +7,31 @@
       name="description"
       content="O contador oficial para descobrir se niasguts já está rica."
     >
-    <meta name="theme-color" content="#ff4f91">
+    <meta name="theme-color" content="#2f3b63">
     <title>niasguts já está rica?</title>
 
     <style>
       :root {
-        --ink: #17131d;
-        --paper: #fff9fb;
-        --blush: #ffd5e5;
-        --pink: #ff4f91;
-        --pink-dark: #d91f64;
-        --red: #ef3340;
-        --gold: #ffd666;
-        --lavender: #c7b5ff;
-        --shadow: rgba(23, 19, 29, 0.22);
+        --navy-deep: #171b2e;
+        --navy: #2f3b63;
+        --shirt: #fffaf6;
+        --white: #ffffff;
+        --hair-blonde: #f4c875;
+        --hair-blonde-soft: #ffe8b7;
+        --hair-pink: #ef8fa8;
+        --hair-pink-dark: #b9345b;
+        --hair-pink-soft: #f9ceda;
+        --tie-red: #b82f42;
+        --skirt-blue: #8fcde0;
+        --skirt-blue-soft: #d8eff6;
+        --shadow: rgba(23, 27, 46, 0.22);
+        --shirt-glow: rgba(255, 250, 246, 0.95);
+        --white-glow: rgba(255, 255, 255, 0.8);
+        --navy-pattern: rgba(23, 27, 46, 0.16);
+        --hair-pink-pattern: rgba(239, 143, 168, 0.1);
+        --hair-pink-haze: rgba(239, 143, 168, 0.16);
+        --shirt-stripe: rgba(255, 250, 246, 0.34);
+        --hair-pink-ring: rgba(239, 143, 168, 0.12);
       }
 
       *,
@@ -38,12 +49,12 @@
         min-height: 100svh;
         margin: 0;
         overflow-x: hidden;
-        color: var(--ink);
+        color: var(--navy-deep);
         font-family: "Arial Rounded MT Bold", "Trebuchet MS", "Segoe UI", sans-serif;
         background:
-          radial-gradient(circle at 14% 18%, rgba(255, 255, 255, 0.95) 0 0.45rem, transparent 0.5rem),
-          radial-gradient(circle at 88% 78%, rgba(255, 255, 255, 0.8) 0 0.3rem, transparent 0.35rem),
-          linear-gradient(135deg, #ffd8e6 0%, #fff0bd 48%, #f1ddff 100%);
+          radial-gradient(circle at 14% 18%, var(--shirt-glow) 0 0.45rem, transparent 0.5rem),
+          radial-gradient(circle at 88% 78%, var(--white-glow) 0 0.3rem, transparent 0.35rem),
+          linear-gradient(135deg, var(--hair-pink-soft) 0%, var(--hair-blonde-soft) 48%, var(--skirt-blue-soft) 100%);
       }
 
       body::before {
@@ -51,8 +62,8 @@
         inset: 0;
         z-index: -2;
         background-image:
-          radial-gradient(circle, rgba(23, 19, 29, 0.16) 0 0.08rem, transparent 0.09rem),
-          linear-gradient(45deg, transparent 47%, rgba(255, 79, 145, 0.1) 48% 52%, transparent 53%);
+          radial-gradient(circle, var(--navy-pattern) 0 0.08rem, transparent 0.09rem),
+          linear-gradient(45deg, transparent 47%, var(--hair-pink-pattern) 48% 52%, transparent 53%);
         background-size: 1.15rem 1.15rem, 4rem 4rem;
         content: "";
         opacity: 0.55;
@@ -62,7 +73,7 @@
         position: fixed;
         inset: 0;
         z-index: -1;
-        background: radial-gradient(circle at center, transparent 35%, rgba(255, 79, 145, 0.16) 100%);
+        background: radial-gradient(circle at center, transparent 35%, var(--hair-pink-haze) 100%);
         content: "";
         pointer-events: none;
       }
@@ -85,12 +96,12 @@
         margin-inline: auto;
         text-align: center;
         background:
-          linear-gradient(var(--paper), var(--paper)) padding-box,
-          linear-gradient(115deg, var(--ink), var(--pink), var(--red), var(--ink)) border-box;
+          linear-gradient(var(--shirt), var(--shirt)) padding-box,
+          linear-gradient(115deg, var(--navy-deep), var(--hair-pink), var(--tie-red), var(--navy)) border-box;
         border: 0.3rem solid transparent;
         border-radius: clamp(1.5rem, 4vw, 3rem);
         box-shadow:
-          0.7rem 0.8rem 0 var(--ink),
+          0.7rem 0.8rem 0 var(--navy-deep),
           0 1.8rem 4rem var(--shadow);
         isolation: isolate;
       }
@@ -109,13 +120,13 @@
         display: grid;
         overflow: hidden;
         place-items: center;
-        color: var(--pink-dark);
+        color: var(--hair-pink-dark);
         font-size: 0.72rem;
         font-weight: 900;
-        background: var(--paper);
-        border: 0.16rem solid var(--ink);
+        background: var(--shirt);
+        border: 0.16rem solid var(--navy-deep);
         border-radius: 1rem;
-        box-shadow: 0.28rem 0.32rem 0 var(--ink);
+        box-shadow: 0.28rem 0.32rem 0 var(--navy-deep);
         pointer-events: auto;
       }
 
@@ -151,14 +162,14 @@
       .marin-fallback {
         grid-column: 1 / -1;
         margin: 0;
-        color: var(--ink);
+        color: var(--navy-deep);
         font-size: 0.75rem;
         font-weight: 700;
         pointer-events: auto;
       }
 
       .marin-fallback a {
-        color: var(--pink-dark);
+        color: var(--hair-pink-dark);
       }
 
       .card::before {
@@ -168,8 +179,8 @@
         left: 0;
         height: 1.15rem;
         background:
-          linear-gradient(135deg, transparent 25%, rgba(255, 255, 255, 0.34) 25% 50%, transparent 50% 75%, rgba(255, 255, 255, 0.34) 75%) 0 0 / 1rem 1rem,
-          var(--ink);
+          linear-gradient(135deg, transparent 25%, var(--shirt-stripe) 25% 50%, transparent 50% 75%, var(--shirt-stripe) 75%) 0 0 / 1rem 1rem,
+          var(--navy);
         content: "";
       }
 
@@ -180,14 +191,14 @@
         z-index: -1;
         width: 10rem;
         height: 10rem;
-        border: 1.5rem solid rgba(255, 79, 145, 0.12);
+        border: 1.5rem solid var(--hair-pink-ring);
         border-radius: 50%;
         content: "";
       }
 
       .sparkle {
         position: absolute;
-        color: var(--pink);
+        color: var(--hair-pink);
         font-size: clamp(1.5rem, 4vw, 2.75rem);
         line-height: 1;
         user-select: none;
@@ -204,12 +215,12 @@
         display: inline-block;
         margin: 0 0 0.75rem;
         padding: 0.35rem 0.85rem;
-        color: var(--paper);
+        color: var(--shirt);
         font-size: clamp(0.68rem, 2vw, 0.82rem);
         font-weight: 900;
         letter-spacing: 0.15em;
         text-transform: uppercase;
-        background: var(--ink);
+        background: var(--navy);
         border-radius: 999px;
         transform: rotate(-1deg);
       }
@@ -237,29 +248,29 @@
         z-index: -1;
         width: 112%;
         height: 86%;
-        background: var(--gold);
-        border: 0.22rem solid var(--ink);
+        background: var(--hair-blonde);
+        border: 0.22rem solid var(--navy-deep);
         border-radius: 48% 52% 45% 55% / 52% 44% 56% 48%;
-        box-shadow: 0.35rem 0.4rem 0 var(--ink);
+        box-shadow: 0.35rem 0.4rem 0 var(--navy-deep);
         content: "";
       }
 
       .answer {
         margin: 0;
         padding: 0.05em 0.32em 0.12em;
-        color: var(--red);
+        color: var(--tie-red);
         font-size: clamp(5rem, 20vw, 11rem);
         font-weight: 1000;
         line-height: 0.9;
         letter-spacing: -0.08em;
         text-shadow:
-          0.035em 0.035em 0 var(--paper),
-          0.065em 0.065em 0 var(--ink);
+          0.035em 0.035em 0 var(--shirt),
+          0.065em 0.065em 0 var(--navy-deep);
       }
 
       .counter-heading {
         margin: 0 0 1rem;
-        color: var(--pink-dark);
+        color: var(--hair-pink-dark);
         font-size: clamp(0.9rem, 2.4vw, 1.1rem);
         font-weight: 900;
         letter-spacing: 0.08em;
@@ -276,23 +287,28 @@
       .counter-part {
         min-width: 0;
         padding: clamp(0.7rem, 2.5vw, 1.15rem) 0.3rem;
-        background: #ffffff;
-        border: 0.16rem solid var(--ink);
+        background: var(--white);
+        border: 0.16rem solid var(--navy-deep);
         border-radius: 1rem;
-        box-shadow: 0.22rem 0.25rem 0 var(--ink);
+        box-shadow: 0.22rem 0.25rem 0 var(--navy-deep);
       }
 
       .counter-part:nth-child(2n) {
-        background: var(--blush);
+        background: var(--hair-pink-soft);
         transform: translateY(0.35rem);
       }
 
       .counter-part:nth-child(3) {
-        background: #fff0ae;
+        background: var(--hair-blonde);
       }
 
       .counter-part:nth-child(4) {
-        background: #ece6ff;
+        background: var(--skirt-blue);
+      }
+
+      .counter-part:nth-child(5) {
+        color: var(--shirt);
+        background: var(--navy);
       }
 
       .counter-value {
@@ -323,7 +339,7 @@
 
       .credit {
         margin: 0.45rem 0 0;
-        color: var(--ink);
+        color: var(--navy-deep);
         font-size: clamp(0.62rem, 1.7vw, 0.75rem);
         font-weight: 700;
         opacity: 0.62;
@@ -387,7 +403,7 @@
       @media (max-width: 34rem) {
         .card {
           box-shadow:
-            0.4rem 0.45rem 0 var(--ink),
+            0.4rem 0.45rem 0 var(--navy-deep),
             0 1.2rem 2.5rem var(--shadow);
         }
 
