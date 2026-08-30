@@ -32,6 +32,8 @@
         --hair-pink-haze: rgba(239, 143, 168, 0.16);
         --shirt-stripe: rgba(255, 250, 246, 0.34);
         --hair-pink-ring: rgba(239, 143, 168, 0.12);
+        --dialog-backdrop: rgba(23, 27, 46, 0.72);
+        --reel-cycle: 0.18s;
       }
 
       *,
@@ -234,10 +236,26 @@
         text-wrap: balance;
       }
 
+      .barista-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        margin: 0.85rem auto 0;
+        padding: 0.35rem 0.75rem;
+        color: var(--navy-deep);
+        font-size: clamp(0.68rem, 2vw, 0.82rem);
+        font-weight: 900;
+        background: var(--skirt-blue-soft);
+        border: 0.14rem solid var(--navy-deep);
+        border-radius: 999px;
+        box-shadow: 0.18rem 0.2rem 0 var(--navy-deep);
+        transform: rotate(1deg);
+      }
+
       .verdict {
         position: relative;
         display: inline-grid;
-        margin: clamp(1.25rem, 4vw, 2.25rem) 0 clamp(1.5rem, 5vw, 3rem);
+        margin: clamp(1.25rem, 4vw, 2.25rem) 0 clamp(0.9rem, 3vw, 1.5rem);
         place-items: center;
         transform: rotate(-2deg);
         animation: float 3.4s ease-in-out infinite;
@@ -266,6 +284,185 @@
         text-shadow:
           0.035em 0.035em 0 var(--shirt),
           0.065em 0.065em 0 var(--navy-deep);
+      }
+
+      .rich-button,
+      .spin-button,
+      .casino-close {
+        color: inherit;
+        font: inherit;
+        border: 0;
+        cursor: pointer;
+      }
+
+      .rich-button,
+      .spin-button {
+        font-weight: 1000;
+        letter-spacing: 0.04em;
+        border: 0.18rem solid var(--navy-deep);
+        border-radius: 999px;
+        box-shadow: 0.28rem 0.32rem 0 var(--navy-deep);
+      }
+
+      .rich-button {
+        display: block;
+        margin: 0 auto clamp(1.5rem, 5vw, 3rem);
+        padding: 0.7rem 1.4rem;
+        color: var(--navy-deep);
+        font-size: clamp(0.88rem, 2.5vw, 1.05rem);
+        background: var(--hair-pink);
+        transform: rotate(-1deg);
+      }
+
+      .rich-button:hover {
+        background: var(--hair-blonde);
+        transform: rotate(1deg) translateY(-0.12rem);
+      }
+
+      .rich-button:active,
+      .spin-button:active,
+      .casino-close:active {
+        box-shadow: none;
+        transform: translate(0.18rem, 0.2rem);
+      }
+
+      .rich-button:focus-visible,
+      .spin-button:focus-visible,
+      .casino-close:focus-visible {
+        outline: 0.2rem solid var(--tie-red);
+        outline-offset: 0.2rem;
+      }
+
+      .casino-dialog {
+        width: min(calc(100% - 2rem), 30rem);
+        max-height: calc(100svh - 2rem);
+        margin: auto;
+        padding: 0;
+        overflow-y: auto;
+        color: var(--navy-deep);
+        background: transparent;
+        border: 0;
+      }
+
+      .casino-dialog::backdrop {
+        background: var(--dialog-backdrop);
+        backdrop-filter: blur(0.2rem);
+      }
+
+      .casino-panel {
+        position: relative;
+        padding: clamp(1.5rem, 6vw, 2.5rem);
+        text-align: center;
+        background: var(--shirt);
+        border: 0.25rem solid var(--navy-deep);
+        border-radius: 1.5rem;
+        box-shadow: 0.55rem 0.65rem 0 var(--navy-deep);
+      }
+
+      .casino-close-form {
+        margin: 0;
+      }
+
+      .casino-close {
+        position: absolute;
+        top: 0.7rem;
+        right: 0.7rem;
+        display: grid;
+        width: 2.35rem;
+        height: 2.35rem;
+        padding: 0;
+        place-items: center;
+        color: var(--navy-deep);
+        font-size: 1.35rem;
+        font-weight: 1000;
+        line-height: 1;
+        background: var(--hair-pink-soft);
+        border: 0.14rem solid var(--navy-deep);
+        border-radius: 50%;
+        box-shadow: 0.14rem 0.16rem 0 var(--navy-deep);
+      }
+
+      .casino-kicker {
+        margin: 0;
+        color: var(--hair-pink-dark);
+        font-size: 0.7rem;
+        font-weight: 900;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+      }
+
+      .casino-title {
+        margin: 0.4rem 2rem 0;
+        font-size: clamp(1.7rem, 7vw, 2.6rem);
+        line-height: 1;
+      }
+
+      .casino-description {
+        margin: 0.75rem auto 0;
+        font-size: 0.9rem;
+        font-weight: 700;
+      }
+
+      .slot-machine {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: clamp(0.4rem, 2vw, 0.75rem);
+        margin: 1.25rem 0 1rem;
+        padding: clamp(0.65rem, 3vw, 1rem);
+        background: var(--navy);
+        border: 0.18rem solid var(--navy-deep);
+        border-radius: 1rem;
+        box-shadow: 0.25rem 0.3rem 0 var(--navy-deep);
+      }
+
+      .slot-reel {
+        display: grid;
+        min-width: 0;
+        min-height: 5rem;
+        place-items: center;
+        font-size: clamp(2.3rem, 10vw, 3.4rem);
+        line-height: 1;
+        background: var(--white);
+        border: 0.14rem solid var(--navy-deep);
+        border-radius: 0.75rem;
+      }
+
+      .slot-reel:nth-child(2) {
+        background: var(--hair-blonde-soft);
+      }
+
+      .slot-reel:nth-child(3) {
+        background: var(--skirt-blue-soft);
+      }
+
+      .slot-machine.is-spinning .slot-reel {
+        animation: reel-spin var(--reel-cycle) linear infinite;
+      }
+
+      .casino-result {
+        min-height: 2.5em;
+        margin: 0 0 0.9rem;
+        color: var(--hair-pink-dark);
+        font-size: 0.92rem;
+        font-weight: 900;
+      }
+
+      .spin-button {
+        padding: 0.65rem 1.5rem;
+        color: var(--shirt);
+        background: var(--tie-red);
+      }
+
+      .spin-button:disabled {
+        cursor: wait;
+        opacity: 0.62;
+      }
+
+      .casino-note {
+        margin: 1rem 0 0;
+        font-size: 0.66rem;
+        font-weight: 700;
+        opacity: 0.7;
       }
 
       .counter-heading {
@@ -345,6 +542,19 @@
         opacity: 0.62;
       }
 
+      @keyframes reel-spin {
+        0%,
+        100% {
+          filter: blur(0);
+          transform: translateY(-0.35rem);
+        }
+
+        50% {
+          filter: blur(0.08rem);
+          transform: translateY(0.35rem) scale(0.96);
+        }
+      }
+
       @keyframes float {
         0%,
         100% {
@@ -421,6 +631,21 @@
           grid-template-columns: minmax(0, 6.5rem) minmax(0, 6rem);
           gap: 0.85rem;
         }
+
+        .casino-dialog {
+          width: min(calc(100% - 1rem), 30rem);
+          max-height: calc(100svh - 1rem);
+        }
+
+        .casino-panel {
+          padding: 1.35rem 0.85rem;
+          border-radius: 1.1rem;
+          box-shadow: 0.3rem 0.35rem 0 var(--navy-deep);
+        }
+
+        .slot-reel {
+          min-height: 4.25rem;
+        }
       }
 
       @media (prefers-reduced-motion: reduce) {
@@ -442,10 +667,19 @@
 
         <p class="eyebrow">status financeiro em tempo real</p>
         <h1 id="question">niasguts já está rica?</h1>
+        <p class="barista-badge"><span aria-hidden="true">☕</span> barista de Porto Alegre</p>
 
         <div class="verdict">
           <p class="answer" aria-label="Não">NÃO</p>
         </div>
+
+        <button
+          class="rich-button"
+          id="open-casino"
+          type="button"
+          aria-haspopup="dialog"
+          aria-controls="casino-dialog"
+        >FIQUE RICA!</button>
 
         <p class="counter-heading">tempo oficialmente não rica</p>
         <div
@@ -497,6 +731,41 @@
       </aside>
     </main>
 
+    <dialog
+      class="casino-dialog"
+      id="casino-dialog"
+      aria-labelledby="casino-title"
+      aria-describedby="casino-description"
+    >
+      <div class="casino-panel">
+        <form class="casino-close-form" method="dialog">
+          <button class="casino-close" type="submit" aria-label="Fechar simulador">×</button>
+        </form>
+
+        <p class="casino-kicker">simulador 100% confiável</p>
+        <h2 class="casino-title" id="casino-title">Tigrinho da Barista</h2>
+        <p class="casino-description" id="casino-description">
+          Três símbolos iguais deixam você rica. Talvez.
+        </p>
+
+        <div
+          class="slot-machine"
+          id="slot-machine"
+          aria-label="Resultado inicial: café, tigre e sete"
+        >
+          <span class="slot-reel" aria-hidden="true">☕</span>
+          <span class="slot-reel" aria-hidden="true">🐯</span>
+          <span class="slot-reel" aria-hidden="true">7</span>
+        </div>
+
+        <p class="casino-result" id="casino-result" role="status" aria-live="polite">
+          pronta para tentar?
+        </p>
+        <button class="spin-button" id="spin-casino" type="button" autofocus>GIRAR</button>
+        <p class="casino-note">simulação de brincadeira — sem dinheiro real</p>
+      </div>
+    </dialog>
+
     <script>
       "use strict";
 
@@ -517,6 +786,21 @@
         "vito corleone de saia",
         "diabo loiro",
         "demonio de porto alegre",
+      ];
+      const SPIN_DURATION_MS = 850;
+      const SLOT_SYMBOLS = [
+        { character: "☕", label: "café" },
+        { character: "🐯", label: "tigre" },
+        { character: "💎", label: "diamante" },
+        { character: "🍒", label: "cerejas" },
+        { character: "7", label: "sete" },
+      ];
+      const CASINO_FAILURE_MESSAGES = [
+        "quase! mas o tigrinho ficou com tudo.",
+        "a banca venceu. continua não rica.",
+        "deu green... para a casa.",
+        "o prêmio foi um café imaginário.",
+        "resultado oficial: zero reais e muita experiência.",
       ];
       const MARIN_GIFS = [
         {
@@ -596,6 +880,12 @@
         minutes: document.querySelector("#minutes"),
         seconds: document.querySelector("#seconds"),
       };
+      const casinoDialog = document.querySelector("#casino-dialog");
+      const casinoOpenButton = document.querySelector("#open-casino");
+      const casinoSpinButton = document.querySelector("#spin-casino");
+      const slotMachine = document.querySelector("#slot-machine");
+      const slotReels = document.querySelectorAll(".slot-reel");
+      const casinoResult = document.querySelector("#casino-result");
 
       function showRandomMarinGifs() {
         // Display two distinct Marin GIFs before loading the Tenor embed script.
@@ -641,6 +931,63 @@
         tenorScript.async = true;
         tenorScript.src = "https://tenor.com/embed.js";
         document.body.append(tenorScript);
+      }
+
+      function openCasino() {
+        // Open the fictional casino as a modal dialog.
+        if (!casinoDialog.open) {
+          casinoDialog.showModal();
+        }
+      }
+
+      function finishCasinoSpin() {
+        // Finish the spin with a randomized outcome that can never be a jackpot.
+        const outcome = [];
+
+        for (let reelIndex = 0; reelIndex < slotReels.length; reelIndex += 1) {
+          outcome.push(SLOT_SYMBOLS[Math.floor(Math.random() * SLOT_SYMBOLS.length)]);
+        }
+
+        const allSymbolsMatch =
+          outcome[0] === outcome[1] && outcome[1] === outcome[2];
+
+        if (allSymbolsMatch) {
+          const winningIndex = SLOT_SYMBOLS.indexOf(outcome[0]);
+          let replacementIndex = Math.floor(Math.random() * (SLOT_SYMBOLS.length - 1));
+
+          if (replacementIndex >= winningIndex) {
+            replacementIndex += 1;
+          }
+
+          outcome[outcome.length - 1] = SLOT_SYMBOLS[replacementIndex];
+        }
+
+        const outcomeLabels = [];
+
+        for (let reelIndex = 0; reelIndex < slotReels.length; reelIndex += 1) {
+          slotReels[reelIndex].textContent = outcome[reelIndex].character;
+          outcomeLabels.push(outcome[reelIndex].label);
+        }
+
+        slotMachine.classList.remove("is-spinning");
+        slotMachine.removeAttribute("aria-busy");
+        slotMachine.setAttribute("aria-label", `Resultado: ${outcomeLabels.join(", ")}`);
+        casinoResult.textContent =
+          CASINO_FAILURE_MESSAGES[
+            Math.floor(Math.random() * CASINO_FAILURE_MESSAGES.length)
+          ];
+        casinoSpinButton.disabled = false;
+        casinoSpinButton.textContent = "GIRAR DE NOVO";
+      }
+
+      function startCasinoSpin() {
+        // Start one free fictional spin and prevent overlapping attempts.
+        casinoSpinButton.disabled = true;
+        casinoSpinButton.textContent = "GIRANDO...";
+        casinoResult.textContent = "os rolos estão girando...";
+        slotMachine.classList.add("is-spinning");
+        slotMachine.setAttribute("aria-busy", "true");
+        window.setTimeout(finishCasinoSpin, SPIN_DURATION_MS);
       }
 
       function getPortoAlegreParts(date) {
@@ -747,6 +1094,9 @@
         const delay = MILLISECONDS_PER_SECOND - (Date.now() % MILLISECONDS_PER_SECOND);
         window.setTimeout(scheduleNextUpdate, delay);
       }
+
+      casinoOpenButton.addEventListener("click", openCasino);
+      casinoSpinButton.addEventListener("click", startCasinoSpin);
 
       // Pick one displayed name for this page visit.
       const selectedName =
