@@ -913,6 +913,27 @@ h1 {
   pointer-events: auto;
 }
 
+.slot-machine.is-ready .casino-jackpot {
+  background: transparent;
+}
+
+.slot-machine.is-ready .jackpot-flash,
+.slot-machine.is-ready .jackpot-rays,
+.slot-machine.is-ready .jackpot-confetti {
+  display: none;
+}
+
+.slot-machine.is-jackpot .casino-close-form,
+.slot-machine.is-jackpot .casino-marquee,
+.slot-machine.is-jackpot .casino-token-hud,
+.slot-machine.is-jackpot .casino-control-deck,
+.slot-machine.is-jackpot .casino-loading,
+.slot-machine.is-jackpot .casino-reel-fallback,
+.slot-machine.is-jackpot .lever-label,
+.slot-machine.is-jackpot .casino-empty {
+  visibility: hidden;
+}
+
 .jackpot-flash,
 .jackpot-rays,
 .jackpot-confetti {

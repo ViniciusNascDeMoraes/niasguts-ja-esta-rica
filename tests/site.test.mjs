@@ -318,7 +318,7 @@ async function loadHarness(options = {}) {
   return harness;
 }
 
-test("static page exposes the version 1.8 full-screen experience", async () => {
+test("static page exposes the version 1.9 full-screen experience", async () => {
   // Verify deployment markup and all required native controls.
   const html = await readFile(resolve(projectRoot, "index.html"), "utf8");
   assert.match(html, /href="styles\.css"/);
@@ -328,9 +328,9 @@ test("static page exposes the version 1.8 full-screen experience", async () => {
   assert.match(html, /id="casino-jackpot-continue"/);
   assert.match(html, /id="achievements-canvas"/);
   assert.match(html, /id="toggle-casino-music"/);
-  assert.match(html, /versão 1\.8/);
+  assert.match(html, /versão 1\.9/);
   assert.equal((html.match(/data-prize-id=/g) ?? []).length, 5);
-  assert.equal((html.match(/class="release-entry"/g) ?? []).length, 18);
+  assert.equal((html.match(/class="release-entry"/g) ?? []).length, 19);
   assert.doesNotMatch(html, /aria-controls="patch-notes-dialog"/);
   assert.doesNotMatch(html, /aperte\s+p/i);
   assert.doesNotMatch(html, /coraç/i);
@@ -384,6 +384,96 @@ test("vendored Three.js module and MIT notice remain pinned", async () => {
   );
   assert.equal(typeof casinoModule.createCasino3D, "function");
   assert.equal(typeof casinoModule.createAchievements3D, "function");
+});
+
+test("procedural tiger face has two eyes and correctly placed chibi details", async () => {
+  // Guard the face against duplicate eyes or forehead whiskers.
+  const casinoModule = await import(
+    pathToFileURL(resolve(projectRoot, "casino-3d.mjs")).href
+  );
+  const tiger = casinoModule.createTigerModel({
+    hairBlonde: "#f5c06b",
+    hairBlondeSoft: "#ffe7b5",
+    hairPink: "#ef6f9b",
+    navyDeep: "#171b2e",
+  });
+  const names = [];
+  tiger.traverse((object) => names.push(object.name));
+
+  assert.deepEqual(
+    names.filter((name) => name.startsWith("tiger-eye-")).sort(),
+    ["tiger-eye-left", "tiger-eye-right"],
+  );
+  assert.deepEqual(
+    names.filter((name) => name.startsWith("tiger-inner-ear-")).sort(),
+    ["tiger-inner-ear-left", "tiger-inner-ear-right"],
+  );
+  assert.deepEqual(
+    names.filter((name) => name.startsWith("tiger-forehead-stripe-")).sort(),
+    ["tiger-forehead-stripe-left", "tiger-forehead-stripe-right"],
+  );
+  assert.deepEqual(
+    names.filter((name) => name.startsWith("tiger-whisker-")).sort(),
+    [
+      "tiger-whisker-left-1",
+      "tiger-whisker-left-2",
+      "tiger-whisker-right-1",
+      "tiger-whisker-right-2",
+    ],
+  );
+});
+
+test("jackpot prize anchor stays centered and viewport-bound", async () => {
+  // Project the same camera-local anchor through every required viewport.
+  const casinoModule = await import(
+    pathToFileURL(resolve(projectRoot, "casino-3d.mjs")).href
+  );
+  const THREE = await import(
+    pathToFileURL(
+      resolve(projectRoot, "assets/vendor/three.module.min.mjs"),
+    ).href
+  );
+  const viewports = [
+    [320, 568],
+    [568, 320],
+    [390, 844],
+    [768, 1024],
+    [1366, 768],
+    [1920, 1080],
+  ];
+
+  for (const [width, height] of viewports) {
+    const aspect = width / height;
+    const fov = aspect < 0.75 ? 48 : aspect < 1.15 ? 40 : 33;
+    const distanceScale = aspect < 0.75 ? 1.34 : aspect < 1.15 ? 1.16 : 1;
+    const camera = new THREE.PerspectiveCamera(fov, aspect, 0.1, 100);
+    camera.position.set(
+      7.6 * distanceScale,
+      5.15 * distanceScale,
+      16.5 * distanceScale,
+    );
+    camera.lookAt(-0.15, -0.1, 0.25);
+    const anchor = new THREE.Group();
+    camera.add(anchor);
+    const layout = casinoModule.calculatePrizePresentationLayout({
+      viewportWidth: width,
+      viewportHeight: height,
+      verticalFovDegrees: fov,
+      modelWidth: 2.2,
+      modelHeight: 1.6,
+    });
+    anchor.position.set(...layout.position);
+    camera.updateMatrixWorld(true);
+    camera.updateProjectionMatrix();
+    const projected = anchor
+      .getWorldPosition(new THREE.Vector3())
+      .project(camera);
+
+    assert.ok(Math.abs(projected.x) < 1e-9, width + "x" + height);
+    assert.ok(Math.abs(projected.y) < 1e-9, width + "x" + height);
+    assert.ok(layout.scale * 2.2 <= layout.visibleWidth * 0.46 + 1e-9);
+    assert.ok(layout.scale * 1.6 <= layout.visibleHeight * 0.34 + 1e-9);
+  }
 });
 
 test("all eight reel faces stop exactly on the selected symbol", async () => {
@@ -502,7 +592,15 @@ test("achievement outcomes award all five locked prizes before repeats", async (
       vm.runInContext("casinoJackpotOpen", harness.context),
       true,
     );
+    assert.equal(
+      harness.elements.get("#slot-machine").classList.contains("is-jackpot"),
+      true,
+    );
     vm.runInContext("closeCasinoJackpot()", harness.context);
+    assert.equal(
+      harness.elements.get("#slot-machine").classList.contains("is-jackpot"),
+      false,
+    );
   }
 
   harness.setRandomValues([0.8, 0]);
@@ -671,9 +769,13 @@ test("CSS keeps colors centralized and every screen viewport-bound", async () =>
   assert.match(css, /\.site-dialog\s*\{[\s\S]*?height:\s*100dvh/);
   assert.match(css, /\.slot-lever\s*\{[\s\S]*?width:\s*1px/);
   assert.match(css, /\.slot-lever\s*\{[\s\S]*?pointer-events:\s*none/);
+  assert.match(
+    css,
+    /\.slot-machine\.is-ready \.jackpot-flash,[\s\S]*?display:\s*none/,
+  );
 });
 
-test("3D source uses model factories, a dancing tiger, and precise lever raycasting", async () => {
+test("3D source uses centered jackpots, a dancing tiger, and precise lever raycasting", async () => {
   // Prevent regression to flat prizes or a rectangular pointer control.
   const source = await readFile(resolve(projectRoot, "casino-3d.mjs"), "utf8");
   for (const factory of [
@@ -682,10 +784,13 @@ test("3D source uses model factories, a dancing tiger, and precise lever raycast
     "createCakePrize",
     "createCashCasePrize",
     "createSandwichPrize",
-    "buildTiger",
+    "createTigerModel",
   ]) {
     assert.match(source, new RegExp("function " + factory + "\\("));
   }
+  assert.match(source, /camera\.add\(stage\)/);
+  assert.match(source, /name = "jackpot-presentation-stage"/);
+  assert.doesNotMatch(source, /prizeRoot\.position\.set/);
   assert.match(source, /new THREE\.Raycaster\(\)/);
   assert.match(source, /leverHitMeshes = \[model\.leverArm, model\.leverKnob\]/);
   assert.match(source, /intersectObjects\(leverHitMeshes, false\)/);

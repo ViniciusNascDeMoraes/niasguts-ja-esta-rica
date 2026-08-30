@@ -676,6 +676,7 @@ function closeCasinoJackpot() {
 
   casinoJackpotOpen = false;
   casinoJackpot.hidden = true;
+  slotMachine.classList.remove("is-jackpot");
   casino3D?.hidePrize();
   renderCasinoTokens();
 
@@ -862,6 +863,7 @@ function chooseCasinoOutcome() {
 function showCasinoJackpot(prize, isNewPrize) {
   // Block the machine behind a persistent, emphatic prize presentation.
   casinoJackpotOpen = true;
+  slotMachine.classList.add("is-jackpot");
   casinoJackpotBadge.textContent = isNewPrize
     ? "NOVA CONQUISTA"
     : "VOCÊ GANHOU DE NOVO";

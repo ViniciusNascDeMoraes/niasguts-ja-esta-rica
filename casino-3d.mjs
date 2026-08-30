@@ -11,6 +11,9 @@ const LEVER_TOTAL_DURATION_MS =
 const REEL_START_DELAY_MS = 260;
 const DANCE_FRAME_INTERVAL_MS = 1000 / 30;
 const GALLERY_FRAME_INTERVAL_MS = 1000 / 20;
+const JACKPOT_STAGE_DISTANCE = 7;
+const JACKPOT_MAX_WIDTH_RATIO = 0.46;
+const JACKPOT_MAX_HEIGHT_RATIO = 0.34;
 
 function easeInOutCubic(progress) {
   // Smooth both ends of a physical control movement.
@@ -41,6 +44,33 @@ export function calculateReelTargetRotation(
     fullTurns * FULL_TURN_RADIANS -
     backwardSteps * symbolAngle
   );
+}
+
+export function calculatePrizePresentationLayout(options) {
+  // Fit a centered prize into the clear middle band of any casino viewport.
+  const {
+    viewportWidth,
+    viewportHeight,
+    verticalFovDegrees,
+    distance = JACKPOT_STAGE_DISTANCE,
+    modelWidth,
+    modelHeight,
+  } = options;
+  const aspect = viewportWidth / viewportHeight;
+  const visibleHeight =
+    2 * distance * Math.tan(THREE.MathUtils.degToRad(verticalFovDegrees) / 2);
+  const visibleWidth = visibleHeight * aspect;
+  const scale = Math.min(
+    (visibleWidth * JACKPOT_MAX_WIDTH_RATIO) / modelWidth,
+    (visibleHeight * JACKPOT_MAX_HEIGHT_RATIO) / modelHeight,
+  );
+
+  return {
+    position: [0, 0, -distance],
+    scale,
+    visibleHeight,
+    visibleWidth,
+  };
 }
 
 function createStandardMaterial(color, options = {}) {
@@ -85,13 +115,21 @@ function addBox(parent, size, position, material, name = "") {
   return mesh;
 }
 
-function addSphere(parent, radius, position, material, scale = [1, 1, 1]) {
+function addSphere(
+  parent,
+  radius,
+  position,
+  material,
+  scale = [1, 1, 1],
+  name = "",
+) {
   // Add a smooth sphere or ellipsoid.
   const mesh = applyShadows(
     new THREE.Mesh(new THREE.SphereGeometry(radius, 28, 20), material),
   );
   mesh.position.set(position[0], position[1], position[2]);
   mesh.scale.set(scale[0], scale[1], scale[2]);
+  mesh.name = name;
   parent.add(mesh);
   return mesh;
 }
@@ -104,6 +142,7 @@ function addCylinder(
   position,
   material,
   radialSegments = 32,
+  name = "",
 ) {
   // Add a vertical cylinder or cone.
   const mesh = applyShadows(
@@ -118,6 +157,7 @@ function addCylinder(
     ),
   );
   mesh.position.set(position[0], position[1], position[2]);
+  mesh.name = name;
   parent.add(mesh);
   return mesh;
 }
@@ -515,9 +555,195 @@ function createPrizeModel(modelId, palette) {
   throw new Error("Unknown 3D prize model: " + modelId);
 }
 
-function buildTiger(palette) {
+function createCenteredPrizePresentation(modelId, palette) {
+  // Center unlike procedural models around one stable animation pivot.
+  const presentation = new THREE.Group();
+  presentation.name = "jackpot-prize-" + modelId;
+  const model = createPrizeModel(modelId, palette);
+  model.updateWorldMatrix(true, true);
+  const bounds = new THREE.Box3().setFromObject(model);
+  const center = bounds.getCenter(new THREE.Vector3());
+  const size = bounds.getSize(new THREE.Vector3());
+  model.position.sub(center);
+  presentation.userData.modelSize = size;
+  presentation.userData.presentationScale = 1;
+  presentation.add(model);
+  return presentation;
+}
+
+function createJackpotPresentation(camera, palette, prizes) {
+  // Keep every celebration layer camera-centered with the real prize foremost.
+  const stage = new THREE.Group();
+  stage.name = "jackpot-presentation-stage";
+  stage.position.set(0, 0, -JACKPOT_STAGE_DISTANCE);
+  stage.visible = false;
+  camera.add(stage);
+
+  const backdropMaterial = new THREE.MeshBasicMaterial({
+    color: new THREE.Color(palette.navyDeep),
+    transparent: true,
+    opacity: 0.72,
+    depthTest: true,
+    depthWrite: false,
+  });
+  const backdrop = new THREE.Mesh(
+    new THREE.PlaneGeometry(2, 2),
+    backdropMaterial,
+  );
+  backdrop.name = "jackpot-backdrop-3d";
+  backdrop.position.z = -2.6;
+  backdrop.renderOrder = 9;
+  stage.add(backdrop);
+
+  const flashMaterial = new THREE.MeshBasicMaterial({
+    color: new THREE.Color(palette.shirt),
+    transparent: true,
+    opacity: 0,
+    depthTest: true,
+    depthWrite: false,
+  });
+  const flash = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), flashMaterial);
+  flash.name = "jackpot-flash-3d";
+  flash.position.z = -2.4;
+  flash.renderOrder = 10;
+  stage.add(flash);
+
+  const rayMaterials = [palette.hairBlonde, palette.hairPink].map(
+    (color) => new THREE.MeshBasicMaterial({
+      color: new THREE.Color(color),
+      transparent: true,
+      opacity: 0.34,
+      side: THREE.DoubleSide,
+      depthTest: true,
+      depthWrite: false,
+    }),
+  );
+  const rayGeometry = new THREE.BufferGeometry();
+  rayGeometry.setAttribute(
+    "position",
+    new THREE.Float32BufferAttribute([
+      0, 0, 0,
+      -0.075, 1, 0,
+      0.075, 1, 0,
+    ], 3),
+  );
+  rayGeometry.computeVertexNormals();
+  const rays = new THREE.Group();
+  rays.name = "jackpot-rays-3d";
+  rays.position.z = -2.1;
+  for (let rayIndex = 0; rayIndex < 20; rayIndex += 1) {
+    const ray = new THREE.Mesh(
+      rayGeometry,
+      rayMaterials[rayIndex % rayMaterials.length],
+    );
+    ray.name = "jackpot-ray-" + rayIndex;
+    ray.rotation.z = (rayIndex / 20) * FULL_TURN_RADIANS;
+    ray.renderOrder = 11;
+    rays.add(ray);
+  }
+  stage.add(rays);
+
+  const haloMaterial = new THREE.MeshBasicMaterial({
+    color: new THREE.Color(palette.hairBlonde),
+    transparent: true,
+    opacity: 0.76,
+    side: THREE.DoubleSide,
+    depthTest: true,
+    depthWrite: false,
+  });
+  const halo = new THREE.Mesh(
+    new THREE.TorusGeometry(1, 0.055, 12, 64),
+    haloMaterial,
+  );
+  halo.name = "jackpot-halo-3d";
+  halo.position.z = -1.8;
+  halo.renderOrder = 12;
+  stage.add(halo);
+
+  const effectMaterials = [
+    palette.hairBlonde,
+    palette.hairPink,
+    palette.skirtBlue,
+    palette.shirt,
+  ].map((color) => new THREE.MeshBasicMaterial({
+    color: new THREE.Color(color),
+    transparent: true,
+    opacity: 0.92,
+    depthTest: true,
+    depthWrite: false,
+    side: THREE.DoubleSide,
+  }));
+
+  const particleRoot = new THREE.Group();
+  particleRoot.name = "jackpot-particles-3d";
+  particleRoot.position.z = -1.5;
+  const particles = [];
+  for (let particleIndex = 0; particleIndex < 42; particleIndex += 1) {
+    const geometry = particleIndex % 2 === 0
+      ? new THREE.TetrahedronGeometry(0.1, 0)
+      : new THREE.BoxGeometry(0.11, 0.2, 0.07);
+    const particle = new THREE.Mesh(
+      geometry,
+      effectMaterials[particleIndex % effectMaterials.length],
+    );
+    particle.name = "jackpot-particle-" + particleIndex;
+    particle.renderOrder = 13;
+    particle.userData.seed = particleIndex / 42;
+    particleRoot.add(particle);
+    particles.push(particle);
+  }
+  stage.add(particleRoot);
+
+  const confettiRoot = new THREE.Group();
+  confettiRoot.name = "jackpot-confetti-3d";
+  confettiRoot.position.z = -1.3;
+  const confetti = [];
+  for (let confettiIndex = 0; confettiIndex < 24; confettiIndex += 1) {
+    const piece = new THREE.Mesh(
+      new THREE.PlaneGeometry(0.11, 0.25),
+      effectMaterials[confettiIndex % effectMaterials.length],
+    );
+    piece.name = "jackpot-confetti-" + confettiIndex;
+    piece.renderOrder = 14;
+    piece.userData.seed = confettiIndex / 24;
+    confettiRoot.add(piece);
+    confetti.push(piece);
+  }
+  stage.add(confettiRoot);
+
+  const prizeModels = new Map();
+  for (const prize of prizes) {
+    const presentation = createCenteredPrizePresentation(
+      prize.modelId,
+      palette,
+    );
+    presentation.visible = false;
+    stage.add(presentation);
+    prizeModels.set(prize.modelId, presentation);
+  }
+
+  return {
+    backdrop,
+    confetti,
+    confettiRoot,
+    flash,
+    flashMaterial,
+    halo,
+    particleRoot,
+    particles,
+    prizeModels,
+    rayMaterials,
+    rays,
+    stage,
+    visibleHeight: 1,
+    visibleWidth: 1,
+  };
+}
+
+export function createTigerModel(palette) {
   // Build a chibi low-poly tiger and expose its dance joints.
   const root = new THREE.Group();
+  root.name = "tiger-root";
   const orange = createStandardMaterial(palette.hairBlonde, {
     roughness: 0.48,
   });
@@ -535,31 +761,112 @@ function buildTiger(palette) {
   const belly = addSphere(root, 0.55, [0, 0.06, 0.53], pale, [0.8, 1, 0.25]);
   belly.castShadow = false;
   const head = new THREE.Group();
+  head.name = "tiger-head";
   head.position.y = 1.25;
   root.add(head);
-  addSphere(head, 0.72, [0, 0, 0], orange, [1, 0.92, 0.86]);
-  addSphere(head, 0.43, [0, -0.13, 0.55], pale, [1, 0.75, 0.32]);
-  for (const x of [-0.36, 0.36]) {
+  addSphere(
+    head,
+    0.72,
+    [0, 0, 0],
+    orange,
+    [1, 0.92, 0.86],
+    "tiger-head-shape",
+  );
+  addSphere(
+    head,
+    0.3,
+    [-0.15, -0.15, 0.57],
+    pale,
+    [0.78, 0.62, 0.34],
+    "tiger-muzzle-left",
+  );
+  addSphere(
+    head,
+    0.3,
+    [0.15, -0.15, 0.57],
+    pale,
+    [0.78, 0.62, 0.34],
+    "tiger-muzzle-right",
+  );
+
+  for (const [side, x] of [["left", -0.36], ["right", 0.36]]) {
     const ear = applyShadows(
       new THREE.Mesh(new THREE.ConeGeometry(0.28, 0.55, 4), orange),
     );
+    ear.name = "tiger-ear-" + side;
     ear.position.set(x, 0.65, -0.02);
     ear.rotation.z = x < 0 ? -0.2 : 0.2;
     head.add(ear);
-    addSphere(head, 0.075, [x * 0.58, 0.02, 0.69], stripe);
-  }
-  addSphere(head, 0.08, [0, -0.12, 0.84], pink);
-  for (const x of [-0.24, 0.24]) {
-    addSphere(head, 0.075, [x, 0.09, 0.68], stripe);
-  }
-  for (const x of [-0.34, 0, 0.34]) {
-    const foreheadStripe = addBox(
-      head,
-      [0.09, 0.34, 0.08],
-      [x, 0.35, 0.66],
-      stripe,
+
+    const innerEar = applyShadows(
+      new THREE.Mesh(new THREE.ConeGeometry(0.16, 0.33, 4), pink),
     );
-    foreheadStripe.rotation.z = -x * 0.75;
+    innerEar.name = "tiger-inner-ear-" + side;
+    innerEar.position.set(x, 0.64, 0.13);
+    innerEar.rotation.z = x < 0 ? -0.2 : 0.2;
+    head.add(innerEar);
+  }
+
+  for (const [side, x] of [["left", -0.23], ["right", 0.23]]) {
+    addSphere(
+      head,
+      0.078,
+      [x, 0.09, 0.67],
+      stripe,
+      [0.92, 1.08, 0.5],
+      "tiger-eye-" + side,
+    );
+  }
+
+  addSphere(
+    head,
+    0.075,
+    [0, -0.13, 0.79],
+    pink,
+    [1.08, 0.82, 0.62],
+    "tiger-nose",
+  );
+
+  for (const [side, x] of [["left", -0.055], ["right", 0.055]]) {
+    const mouth = addCylinder(
+      head,
+      0.014,
+      0.014,
+      0.19,
+      [x, -0.235, 0.755],
+      stripe,
+      8,
+      "tiger-smile-" + side,
+    );
+    mouth.rotation.z = x < 0 ? -0.58 : 0.58;
+  }
+
+  for (const [side, x] of [["left", -0.21], ["right", 0.21]]) {
+    const foreheadStripe = applyShadows(
+      new THREE.Mesh(new THREE.CircleGeometry(0.105, 3), stripe),
+    );
+    foreheadStripe.name = "tiger-forehead-stripe-" + side;
+    foreheadStripe.position.set(x, 0.39, 0.645);
+    foreheadStripe.scale.set(0.72, 1.18, 1);
+    foreheadStripe.rotation.z = x < 0 ? 0.22 : -0.22;
+    head.add(foreheadStripe);
+  }
+
+  for (const [side, direction] of [["left", -1], ["right", 1]]) {
+    for (let whiskerIndex = 0; whiskerIndex < 2; whiskerIndex += 1) {
+      const whisker = addCylinder(
+        head,
+        0.012,
+        0.012,
+        0.31,
+        [direction * 0.39, -0.14 - whiskerIndex * 0.11, 0.7],
+        stripe,
+        8,
+        "tiger-whisker-" + side + "-" + (whiskerIndex + 1),
+      );
+      whisker.rotation.z =
+        Math.PI / 2 + direction * (whiskerIndex === 0 ? 0.12 : -0.12);
+    }
   }
 
   const leftArm = new THREE.Group();
@@ -628,7 +935,15 @@ function buildTiger(palette) {
   return root;
 }
 
-function buildCasinoModel(scene, renderer, palette, symbols, initialIndices, prizes) {
+function buildCasinoModel(
+  scene,
+  camera,
+  renderer,
+  palette,
+  symbols,
+  initialIndices,
+  prizes,
+) {
   // Assemble a deep cabinet, physical reels, external lever, tiger, and prizes.
   const machine = new THREE.Group();
   machine.name = "Tigrinho da Barista";
@@ -784,73 +1099,12 @@ function buildCasinoModel(scene, renderer, palette, symbols, initialIndices, pri
   leverKnob.position.y = 2.4;
   leverHandle.add(leverKnob);
 
-  const tiger = buildTiger(palette);
+  const tiger = createTigerModel(palette);
   tiger.position.set(-5, -2.7, 2.25);
   tiger.scale.setScalar(0.78);
   tiger.rotation.y = 0.18;
   scene.add(tiger);
-
-  const prizeRoot = new THREE.Group();
-  prizeRoot.position.set(0, -0.15, 5.15);
-  scene.add(prizeRoot);
-  const prizeModels = new Map();
-  for (const prize of prizes) {
-    const model = createPrizeModel(prize.modelId, palette);
-    model.visible = false;
-    model.scale.setScalar(1.75);
-    prizeRoot.add(model);
-    prizeModels.set(prize.modelId, model);
-  }
-
-  const prizeHaloMaterial = new THREE.MeshBasicMaterial({
-    color: new THREE.Color(palette.hairBlonde),
-    transparent: true,
-    opacity: 0.76,
-    side: THREE.DoubleSide,
-  });
-  const prizeHalo = new THREE.Mesh(
-    new THREE.TorusGeometry(1.6, 0.08, 12, 64),
-    prizeHaloMaterial,
-  );
-  prizeHalo.position.z = -0.25;
-  prizeHalo.visible = false;
-  prizeRoot.add(prizeHalo);
-
-  const particleRoot = new THREE.Group();
-  particleRoot.position.set(0, 0.2, 4.8);
-  particleRoot.visible = false;
-  scene.add(particleRoot);
-  const particleMaterials = [
-    createStandardMaterial(palette.hairBlonde, {
-      emissive: palette.hairBlonde,
-      emissiveIntensity: 0.55,
-      roughness: 0.2,
-    }),
-    createStandardMaterial(palette.hairPink, {
-      emissive: palette.hairPink,
-      emissiveIntensity: 0.48,
-      roughness: 0.2,
-    }),
-    createStandardMaterial(palette.skirtBlue, {
-      emissive: palette.skirtBlue,
-      emissiveIntensity: 0.45,
-      roughness: 0.2,
-    }),
-  ];
-  const particles = [];
-  for (let particleIndex = 0; particleIndex < 42; particleIndex += 1) {
-    const geometry = particleIndex % 2 === 0
-      ? new THREE.TetrahedronGeometry(0.11, 0)
-      : new THREE.BoxGeometry(0.13, 0.24, 0.08);
-    const particle = new THREE.Mesh(
-      geometry,
-      particleMaterials[particleIndex % particleMaterials.length],
-    );
-    particle.castShadow = false;
-    particle.userData.seed = particleIndex / 42;
-    particleRoot.add(particle);
-    particles.push(particle);
-  }
+  const jackpot = createJackpotPresentation(camera, palette, prizes);
 
   machine.traverse((object) => {
     if (object.isMesh) {
@@ -870,11 +1124,7 @@ function buildCasinoModel(scene, renderer, palette, symbols, initialIndices, pri
     leverKnob,
     leverPivotMaterial,
     machine,
-    particleRoot,
-    particles,
-    prizeHalo,
-    prizeModels,
-    prizeRoot,
+    jackpot,
     reelGroups,
     tiger,
     trayMaterial,
@@ -958,6 +1208,7 @@ export function createCasino3D(options) {
   const camera = new THREE.PerspectiveCamera(33, 1, 0.1, 100);
   camera.position.set(7.6, 5.15, 16.5);
   camera.lookAt(-0.15, -0.1, 0.25);
+  scene.add(camera);
 
   const hemisphereLight = new THREE.HemisphereLight(
     new THREE.Color(palette.shirt),
@@ -1007,6 +1258,7 @@ export function createCasino3D(options) {
 
   const model = buildCasinoModel(
     scene,
+    camera,
     renderer,
     palette,
     symbols,
@@ -1040,6 +1292,62 @@ export function createCasino3D(options) {
     }
   }
 
+  function updateJackpotLayout(width, height) {
+    // Refit every normalized model while the stage remains at screen center.
+    let sharedLayout = null;
+    for (const prize of model.jackpot.prizeModels.values()) {
+      const size = prize.userData.modelSize;
+      const previousScale = prize.userData.presentationScale || 1;
+      const animationMultiplier = prize.scale.x / previousScale;
+      const layout = calculatePrizePresentationLayout({
+        viewportWidth: width,
+        viewportHeight: height,
+        verticalFovDegrees: camera.fov,
+        modelWidth: size.x,
+        modelHeight: size.y,
+      });
+      prize.userData.presentationScale = layout.scale;
+      if (prize.visible) {
+        prize.scale.setScalar(layout.scale * animationMultiplier);
+      }
+      sharedLayout = layout;
+    }
+
+    if (sharedLayout === null) {
+      return;
+    }
+
+    model.jackpot.stage.position.set(...sharedLayout.position);
+    model.jackpot.visibleHeight = sharedLayout.visibleHeight;
+    model.jackpot.visibleWidth = sharedLayout.visibleWidth;
+    const flashDepthRatio =
+      (JACKPOT_STAGE_DISTANCE + Math.abs(model.jackpot.flash.position.z)) /
+      JACKPOT_STAGE_DISTANCE;
+    const backdropDepthRatio =
+      (JACKPOT_STAGE_DISTANCE + Math.abs(model.jackpot.backdrop.position.z)) /
+      JACKPOT_STAGE_DISTANCE;
+    model.jackpot.backdrop.scale.set(
+      sharedLayout.visibleWidth * backdropDepthRatio * 0.54,
+      sharedLayout.visibleHeight * backdropDepthRatio * 0.54,
+      1,
+    );
+    model.jackpot.flash.scale.set(
+      sharedLayout.visibleWidth * flashDepthRatio * 0.54,
+      sharedLayout.visibleHeight * flashDepthRatio * 0.54,
+      1,
+    );
+    const rayRadius = Math.hypot(
+      sharedLayout.visibleWidth,
+      sharedLayout.visibleHeight,
+    ) * 0.62;
+    model.jackpot.rays.scale.setScalar(rayRadius);
+    const haloScale = Math.min(
+      sharedLayout.visibleWidth * 0.24,
+      sharedLayout.visibleHeight * 0.26,
+    );
+    model.jackpot.halo.scale.setScalar(haloScale);
+  }
+
   function resize() {
     // Preserve the whole cabinet in portrait, landscape, and desktop canvases.
     if (isDisposed) {
@@ -1061,6 +1369,8 @@ export function createCasino3D(options) {
     );
     camera.lookAt(-0.15, -0.1, 0.25);
     camera.updateProjectionMatrix();
+    camera.updateMatrixWorld(true);
+    updateJackpotLayout(width, height);
     renderOnce();
   }
 
@@ -1196,25 +1506,45 @@ export function createCasino3D(options) {
   }
 
   function updateParticles(timestamp) {
-    // Reuse the same 3D particle pool for every jackpot.
+    // Reuse pooled sparks and confetti behind the camera-aligned prize.
     if (jackpotState === null || reducedMotion) {
       return;
     }
     const elapsedSeconds = (timestamp - jackpotState.startedAt) / 1000;
-    for (let index = 0; index < model.particles.length; index += 1) {
-      const particle = model.particles[index];
+    const presentationWidth = model.jackpot.visibleWidth;
+    const presentationHeight = model.jackpot.visibleHeight;
+    for (let index = 0; index < model.jackpot.particles.length; index += 1) {
+      const particle = model.jackpot.particles[index];
       const seed = particle.userData.seed;
       const cycle = (elapsedSeconds * (0.42 + (index % 5) * 0.035) + seed) % 1;
       const angle = seed * FULL_TURN_RADIANS * 5 + elapsedSeconds * 1.4;
       particle.position.set(
-        Math.sin(angle) * (2.2 + (index % 4) * 0.35),
-        4.8 - cycle * 9.2,
-        Math.cos(angle * 0.73) * 1.2,
+        Math.sin(angle) * presentationWidth * (0.22 + (index % 4) * 0.025),
+        presentationHeight * (0.52 - cycle * 1.04),
+        -0.08 - Math.abs(Math.cos(angle * 0.73)) * 0.18,
       );
       particle.rotation.set(
         angle * 1.3,
         angle * 0.9,
         angle * 1.7,
+      );
+    }
+
+    for (let index = 0; index < model.jackpot.confetti.length; index += 1) {
+      const piece = model.jackpot.confetti[index];
+      const seed = piece.userData.seed;
+      const cycle =
+        (elapsedSeconds * (0.3 + (index % 4) * 0.025) + seed) % 1;
+      piece.position.set(
+        (seed - 0.5) * presentationWidth * 0.94 +
+          Math.sin(elapsedSeconds * 2 + index) * presentationWidth * 0.025,
+        presentationHeight * (0.58 - cycle * 1.16),
+        -0.06 - (index % 5) * 0.025,
+      );
+      piece.rotation.set(
+        elapsedSeconds * (1.4 + (index % 3) * 0.35),
+        elapsedSeconds * (1.8 + (index % 4) * 0.28),
+        elapsedSeconds * (2.1 + (index % 5) * 0.22),
       );
     }
   }
@@ -1228,11 +1558,13 @@ export function createCasino3D(options) {
     const introDuration = jackpotState.isRepeat ? 450 : 1100;
     const introProgress = Math.min(1, elapsed / introDuration);
     const prize = jackpotState.prize;
+    const presentationScale = prize.userData.presentationScale;
 
     if (reducedMotion) {
       prize.position.y = 0;
-      prize.scale.setScalar(2.05);
-      model.prizeHalo.rotation.z = 0;
+      prize.scale.setScalar(presentationScale);
+      model.jackpot.halo.rotation.z = 0;
+      model.jackpot.flashMaterial.opacity = 0;
       for (const bulbMaterial of model.bulbMaterials) {
         bulbMaterial.emissiveIntensity = 1.05;
       }
@@ -1241,23 +1573,36 @@ export function createCasino3D(options) {
     } else if (jackpotState.isRepeat) {
       const bounce = Math.sin(introProgress * Math.PI) * 0.36;
       prize.position.y = bounce;
-      prize.scale.setScalar(1.75 + bounce * 0.55);
+      prize.scale.setScalar(presentationScale * (1 + bounce * 0.3));
     } else {
       prize.position.y = THREE.MathUtils.lerp(
-        -3.1,
+        -model.jackpot.visibleHeight * 0.38,
         0,
         easeOutCubic(introProgress),
       );
-      const scale = THREE.MathUtils.lerp(0.45, 1.9, easeOutCubic(introProgress));
-      prize.scale.setScalar(scale);
+      const scaleMultiplier = THREE.MathUtils.lerp(
+        0.24,
+        1,
+        easeOutCubic(introProgress),
+      );
+      prize.scale.setScalar(presentationScale * scaleMultiplier);
     }
 
     if (!reducedMotion && introProgress >= 1) {
       prize.position.y = Math.sin(elapsed / 280) * 0.12;
       prize.rotation.y += 0.035;
-      prize.scale.setScalar(jackpotState.isRepeat ? 1.85 : 1.9);
+      prize.scale.setScalar(
+        presentationScale * (jackpotState.isRepeat ? 1.02 : 1),
+      );
     }
-    model.prizeHalo.rotation.z = elapsed / 1000;
+    model.jackpot.halo.rotation.z = elapsed / 1000;
+    model.jackpot.rays.rotation.z = -elapsed / 8000;
+    model.jackpot.flashMaterial.opacity =
+      elapsed < 850 ? 0.9 * (1 - easeOutCubic(elapsed / 850)) : 0;
+    const rayOpacity = 0.25 + Math.abs(Math.sin(elapsed / 260)) * 0.16;
+    for (const rayMaterial of model.jackpot.rayMaterials) {
+      rayMaterial.opacity = rayOpacity;
+    }
     const lightPulse = 1.05 + Math.sin(elapsed / 80) * 0.8;
     for (const bulbMaterial of model.bulbMaterials) {
       bulbMaterial.emissiveIntensity = Math.max(0.3, lightPulse);
@@ -1408,19 +1753,28 @@ export function createCasino3D(options) {
 
   function showPrize(modelId, isRepeat, skipMotion) {
     // Present the matching real model and start the reusable victory system.
-    for (const prize of model.prizeModels.values()) {
+    for (const prize of model.jackpot.prizeModels.values()) {
       prize.visible = false;
       prize.position.set(0, 0, 0);
       prize.rotation.set(0, 0, 0);
     }
-    const prize = model.prizeModels.get(modelId);
+    const prize = model.jackpot.prizeModels.get(modelId);
     if (prize === undefined) {
       return;
     }
     prize.visible = true;
-    prize.scale.setScalar(skipMotion ? 2.05 : 0.45);
-    model.prizeHalo.visible = true;
-    model.particleRoot.visible = !skipMotion;
+    prize.position.y =
+      skipMotion || isRepeat ? 0 : -model.jackpot.visibleHeight * 0.38;
+    prize.scale.setScalar(
+      prize.userData.presentationScale * (skipMotion ? 1 : 0.24),
+    );
+    model.jackpot.stage.visible = true;
+    model.jackpot.flash.visible = !skipMotion;
+    model.jackpot.flashMaterial.opacity = skipMotion ? 0 : 0.9;
+    model.jackpot.rays.visible = true;
+    model.jackpot.halo.visible = true;
+    model.jackpot.particleRoot.visible = !skipMotion;
+    model.jackpot.confettiRoot.visible = !skipMotion;
     jackpotState = {
       startedAt: performance.now(),
       prize,
@@ -1433,9 +1787,14 @@ export function createCasino3D(options) {
   function hidePrize() {
     // Reset the pooled prize presentation after explicit confirmation.
     jackpotState = null;
-    model.prizeHalo.visible = false;
-    model.particleRoot.visible = false;
-    for (const prize of model.prizeModels.values()) {
+    model.jackpot.stage.visible = false;
+    model.jackpot.flash.visible = false;
+    model.jackpot.flashMaterial.opacity = 0;
+    model.jackpot.rays.visible = false;
+    model.jackpot.halo.visible = false;
+    model.jackpot.particleRoot.visible = false;
+    model.jackpot.confettiRoot.visible = false;
+    for (const prize of model.jackpot.prizeModels.values()) {
       prize.visible = false;
     }
     for (const bulbMaterial of model.bulbMaterials) {

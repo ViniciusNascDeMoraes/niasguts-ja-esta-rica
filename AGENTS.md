@@ -41,8 +41,9 @@
 - Resolve each spin from one exclusive roll: 50% returns one chip, 25% pays two chips, 12.5% lands a mystery-gift achievement, and 12.5% is an ordinary loss. Keep ordinary losses free of matching triples.
 - When the balance reaches zero, disable the lever and show `SEM FICHAS — MINIGAME EM BREVE`. Do not add a reset or emergency chip path.
 - Award `esposa do nenepira`, `prima do vaper`, `bólos`, `350 reais`, and `lanche do subway` only through mystery-gift triples. Award locked prizes before repeats; allow repeats only after all five are unlocked.
-- Build a procedural chibi tiger opposite the lever. Dance at 30 fps only while the casino is visible, use a stronger victory dance during jackpots, and keep it static under reduced motion.
+- Build a procedural chibi tiger opposite the lever with exactly two eyes, visible inner ears, two short forehead stripes, and cheek-only whiskers. Dance at 30 fps only while the casino is visible, use a stronger victory dance during jackpots, and keep it static under reduced motion.
 - Keep jackpot UI blocking until `CONTINUAR` or `Escape`. Show a large crisp title, the prize name, new/repeat badge, flash, rays, confetti, pooled 3D particles, cabinet lights, tiger celebration, and the enlarged matching 3D prize.
+- Anchor the jackpot presentation to the camera, normalize every prize around its bounds, and keep the prize centered in front of all decorative effects. Keep only the crisp HTML copy and confirmation control above it.
 - Keep the main financial verdict as `NÃO` after every prize.
 - Keep coffee references in the symbols or failure messages.
 - Use `assets/musica.mp3` as looped casino-only music at 25% initial volume.
@@ -89,6 +90,7 @@
   - `1.6`: complete 3D cabinet, mystery prizes, persistent achievements, and secret `P` patch notes.
   - `1.7`: WebGL casino, physical side lever, sharp HTML controls, fixed music pause, and 3D trophy cabinet.
   - `1.8`: fullscreen responsive screens, persistent chips, five procedural prizes, blocking jackpots, dancing 3D tiger, paginated secret notes, and mesh-only lever raycasting.
+  - `1.9`: corrected chibi tiger face and camera-centered jackpot prizes layered in front of every decorative effect.
 - Update the footer version, patch notes, and this mapping together for each future user-visible release.
 
 ## Architecture and Delivery
