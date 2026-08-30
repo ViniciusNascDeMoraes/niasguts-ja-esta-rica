@@ -28,10 +28,13 @@
 ## Casino Joke
 
 - The `FIQUE RICA!` button opens the coffee-themed fictional slot machine.
-- Render the machine with native HTML, CSS 3D transforms, and JavaScript. Do not add WebGL, canvas, or a 3D dependency.
-- Keep the title, description, reels, lever, result, music controls, and close control inside one fixed-perspective 3D cabinet. Do not add cursor or touch tilt.
-- Use the accessible lever as the only spin control. Keep click, touch, Enter, and Space activation.
-- Build three six-face cylindrical reels and stop them sequentially with deceleration.
+- Render the machine as procedural WebGL geometry with the pinned local Three.js 0.185.1 modules under `assets/vendor/`.
+- Keep the camera in a fixed three-quarter view showing the front, top, and right side. Do not add cursor or touch tilt.
+- Keep readable text and native controls in an untransformed HTML layer aligned over the WebGL cabinet. Do not put text under rotated, scaled, filtered, or translucent ancestors.
+- Use the external right-side 3D lever as the only spin control. Its accessible HTML hit area must keep click, touch, Enter, and Space activation.
+- Pull the lever forward and down around its horizontal pivot. Do not animate it sideways.
+- Build three physical six-symbol cylindrical reels and stop them sequentially with deceleration.
+- Load the 3D module only when the casino first opens. Keep a functional HTML reel fallback for WebGL or module failure.
 - Give each spin a 12% chance to stop on three mystery gifts. Keep every ordinary spin losing and free of matching triples.
 - Award `esposa do nenepira`, `prima do vaper`, and `bólos` only through mystery-gift triples. Award locked prizes before repeats; allow repeats only after all three are unlocked.
 - Keep the main financial verdict as `NÃO` after every prize.
@@ -39,12 +42,16 @@
 - Use `assets/musica.mp3` as looped casino-only music at 25% initial volume.
 - Start enabled music when the casino opens, pause it when the casino closes, and provide play/pause and volume controls inside the modal.
 - Preserve a manual pause while the page remains open. Do not add other music or sound effects without explicit approval.
+- Track the visitor's desired music state separately from `HTMLMediaElement.paused`. Invalidate stale `play()` promises so they cannot undo a newer pause request.
+- Reflect actual playback through the media `play`, `pause`, and `error` events.
 - Do not add balances, payments, gambling links, or a real-money disclaimer.
 
 ## Achievements
 
 - Keep a main-page `CONQUISTAS` button with a live unlocked count.
-- Show three locked slots without prize names. Reveal a prize name and icon only after its mystery-gift trinca lands.
+- Show three permanent 3D pedestals with `?` while locked. Reveal `💍`, `👩`, or `🎂` and its prize name only after the matching mystery-gift trinca lands.
+- Raise a new prize from the payout tray for 1.1 seconds. Bounce and glow a repeated prize for 450 milliseconds.
+- After all three prizes are unlocked, keep the cabinet gold and pink and show `COLEÇÃO COMPLETA`.
 - Store known unlocked prize IDs as a JSON array under `niasguts-achievements-v1` in `localStorage`.
 - If browser storage is unavailable, preserve progress for the current visit and show the persistence warning. Do not add a reset control.
 
@@ -72,11 +79,15 @@
   - `1.4`: Pixie wording and patch-note copy refinements.
   - `1.5`: 3D casino reels, lever control, staggered animation, and casino music.
   - `1.6`: complete 3D cabinet, mystery prizes, persistent achievements, and secret `P` patch notes.
+  - `1.7`: WebGL casino, physical side lever, sharp HTML controls, fixed music pause, and 3D trophy cabinet.
 - Update the footer version, patch notes, and this mapping together for each future user-visible release.
 
 ## Architecture and Delivery
 
-- Keep the application in the root `index.html`; keep `CNAME` set to `niasguts.viniciuspirasoft.com`.
+- Keep page markup in root `index.html`, styles in root `styles.css`, page behavior in root `app.js`, and Three.js presentation in root `casino-3d.mjs`.
+- Keep `CNAME` set to `niasguts.viniciuspirasoft.com`.
 - Keep the site compatible with direct GitHub Pages hosting from `main` without a build step.
-- Do not add frameworks, package managers, build tools, analytics, backends, or third-party dependencies without explicit approval.
-- Before a requested release, validate local asset paths, GIF signatures and dimensions, inline JavaScript syntax, `git diff --check`, staged scope, and the published custom domain.
+- Three.js 0.185.1 is the only approved third-party runtime dependency. Keep both official module files and `THREE-LICENSE.txt` local and pinned; do not replace them with a CDN import.
+- Do not add other frameworks, package managers, build tools, analytics, backends, or third-party dependencies without explicit approval.
+- Keep dependency-free tests under `tests/` using native `node:test` and the validation workflow under `.github/workflows/`.
+- Before a requested release, run `node --check app.js`, `node --check casino-3d.mjs`, `node --test tests/site.test.mjs`, and `git diff --check`; validate local assets, staged scope, CI, and the published custom domain.
