@@ -59,8 +59,10 @@
 ## Visual Novel Lesson
 
 - Open the fullscreen classroom only from the zero-chip casino state. Close the casino first so its WebGL loop and music pause and reset through the normal lifecycle.
-- Keep the two classroom backgrounds and six transparent Gojo poses under `assets/images/gojo/`; `BRIEFING_ARTE_GOJO.txt` remains the source-art specification.
+- Keep the two classroom backgrounds, six transparent Gojo poses, and two opaque finale CGs under `assets/images/gojo/`. The delivered artist briefing is no longer part of the repository.
 - Do not request any classroom image before the lesson first opens. Select the portrait or landscape background by viewport orientation, preload every pose once inside the lesson, retain the previous decoded pose until its replacement is ready, and keep the CSS classroom as a failure fallback.
+- Request the matching portrait or landscape finale CG only after the fifth correct answer. Keep `gojo-reward.png` visible until the CG decodes, then replace the background and sprite with the full scene. A load failure or stale completion must leave the reward pose functional.
+- During the finale, keep the crisp HTML dialogue and reward button over the CG. Anchor the panel at the lower right in landscape and across the bottom in portrait without obscuring the five offered chips.
 - Use `caring`, `neutral`, and `reassuring` for the three introduction lines; `teaching` for questions and retries; `praise` for correct feedback; `reassuring` for wrong feedback; and `reward` for the completed lesson.
 - Address the learner as Nana. Keep Gojo affectionate, reassuring, and lightly romantic without making a wrong answer punitive.
 - Generate a fresh five-question lesson on every entry, covering addition, subtraction, multiplication, and exact division. Present exactly three large numeric alternatives.
@@ -114,6 +116,7 @@
   - `1.12`: zero-chip Gojo visual-novel lesson, five generated math questions, five-chip reward, and artist briefing for the future local artwork.
   - `1.13`: local orientation-aware classroom artwork, six contextual Gojo poses, and removal of the two hair-like strokes below the tiger's nose.
   - `1.14`: removed classroom kicker, simplified the refunded-chip message, and enlarged visual-novel reading and action text.
+  - `1.15`: orientation-aware Gojo finale CG shown only after the fifth correct classroom answer.
 - Update the footer version, patch notes, and this mapping together for each future user-visible release.
 
 ## Architecture and Delivery

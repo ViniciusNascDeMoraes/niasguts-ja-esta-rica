@@ -219,7 +219,7 @@ function createPageHarness(options = {}) {
     }
   }
   const releaseEntries = Array.from(
-    { length: 24 },
+    { length: 25 },
     (_, index) => new FakeElement("release-" + index),
   );
   const audio = new FakeElement("casino-music");
@@ -244,12 +244,21 @@ function createPageHarness(options = {}) {
   }
 
   elements.set("#casino-music", audio);
+  const classroomFinaleImage = new FakeImage(
+    options.finaleAutoLoad !== false,
+  );
+  elements.set("#classroom-finale-image", classroomFinaleImage);
   getElement("#casino-volume").value = "25";
   getElement("#casino-result-flash").hidden = true;
+  getElement("#classroom-finale").hidden = true;
   getElement("#classroom-background-portrait").dataset.srcset =
     "assets/images/gojo/classroom-portrait.png";
   getElement("#classroom-background-image").dataset.src =
     "assets/images/gojo/classroom-landscape.png";
+  getElement("#classroom-finale-portrait").dataset.srcset =
+    "assets/images/gojo/gojo-finale-portrait.png";
+  classroomFinaleImage.dataset.src =
+    "assets/images/gojo/gojo-finale-landscape.png";
 
   const storage = new Map();
   if (options.savedAchievements !== undefined) {
@@ -358,6 +367,7 @@ function createPageHarness(options = {}) {
     achievementSlots,
     audio,
     classroomAnswerButtons,
+    classroomFinaleImage,
     context,
     createdImages,
     documentListeners,
@@ -400,7 +410,7 @@ async function settleMicrotasks() {
   }
 }
 
-test("static page exposes the version 1.14 full-screen experience", async () => {
+test("static page exposes the version 1.15 full-screen experience", async () => {
   // Verify deployment markup and all required native controls.
   const html = await readFile(resolve(projectRoot, "index.html"), "utf8");
   assert.match(html, /href="styles\.css"/);
@@ -410,7 +420,7 @@ test("static page exposes the version 1.14 full-screen experience", async () => 
   assert.match(html, /id="casino-jackpot-continue"/);
   assert.match(html, /id="achievements-canvas"/);
   assert.match(html, /id="toggle-casino-music"/);
-  assert.match(html, /versão 1\.14/);
+  assert.match(html, /versão 1\.15/);
   assert.match(html, /id="casino-title">nanaBet<\/h2>/);
   assert.match(html, /class="casino-chip-mark"/);
   assert.match(html, /id="casino-result-flash"/);
@@ -418,13 +428,24 @@ test("static page exposes the version 1.14 full-screen experience", async () => 
   assert.match(html, /id="classroom-dialog"/);
   assert.match(html, /id="classroom-background-portrait"/);
   assert.match(html, /id="classroom-background-image"/);
+  assert.match(html, /id="classroom-finale"/);
+  assert.match(html, /id="classroom-finale-portrait"/);
+  assert.match(html, /id="classroom-finale-image"/);
   assert.match(html, /id="gojo-character"/);
   assert.match(html, /data-srcset="assets\/images\/gojo\/classroom-portrait\.png"/);
   assert.match(html, /data-src="assets\/images\/gojo\/classroom-landscape\.png"/);
+  assert.match(
+    html,
+    /data-srcset="assets\/images\/gojo\/gojo-finale-portrait\.png"/,
+  );
+  assert.match(
+    html,
+    /data-src="assets\/images\/gojo\/gojo-finale-landscape\.png"/,
+  );
   assert.match(html, /GANHAR FICHAS NA AULA/);
   assert.equal((html.match(/class="classroom-answer"/g) ?? []).length, 3);
   assert.equal((html.match(/data-prize-id=/g) ?? []).length, 5);
-  assert.equal((html.match(/class="release-entry"/g) ?? []).length, 24);
+  assert.equal((html.match(/class="release-entry"/g) ?? []).length, 25);
   assert.ok(
     html.indexOf('<div class="casino-audio-controls"') <
       html.indexOf('<div class="casino-control-deck">'),
@@ -466,6 +487,8 @@ test("custom domain and every local media asset are release-ready", async () => 
     "assets/images/gojo/gojo-praise.png",
     "assets/images/gojo/gojo-reassuring.png",
     "assets/images/gojo/gojo-reward.png",
+    "assets/images/gojo/gojo-finale-landscape.png",
+    "assets/images/gojo/gojo-finale-portrait.png",
   ];
   for (const mediaPath of mediaPaths) {
     const bytes = await readFile(resolve(projectRoot, mediaPath));
@@ -484,6 +507,8 @@ test("classroom PNGs keep their expected dimensions and transparency", async () 
     ["gojo-praise.png", 1024, 1536, 6],
     ["gojo-reassuring.png", 1024, 1536, 6],
     ["gojo-reward.png", 1024, 1536, 6],
+    ["gojo-finale-landscape.png", 1672, 941, 2],
+    ["gojo-finale-portrait.png", 941, 1672, 2],
   ];
 
   for (const [filename, width, height, colorType] of expectedAssets) {
@@ -506,30 +531,6 @@ test("classroom PNGs keep their expected dimensions and transparency", async () 
     rootAssetNames.some((name) => name.startsWith("ChatGPT Image")),
     false,
   );
-});
-
-test("the Gojo art briefing defines every delivered local asset", async () => {
-  // Keep the original handoff alongside the integrated production artwork.
-  const briefing = await readFile(
-    resolve(projectRoot, "BRIEFING_ARTE_GOJO.txt"),
-    "utf8",
-  );
-  for (const filename of [
-    "classroom-landscape.png",
-    "classroom-portrait.png",
-    "gojo-neutral.png",
-    "gojo-caring.png",
-    "gojo-teaching.png",
-    "gojo-praise.png",
-    "gojo-reassuring.png",
-    "gojo-reward.png",
-  ]) {
-    assert.match(briefing, new RegExp(filename.replace(".", "\\.")));
-  }
-  assert.match(briefing, /1920 × 1080/);
-  assert.match(briefing, /1080 × 1920/);
-  assert.match(briefing, /1600 × 2400/);
-  assert.match(briefing, /exatamente CINCO fichas/i);
 });
 
 test("vendored Three.js module and MIT notice remain pinned", async () => {
@@ -1136,11 +1137,16 @@ test("classroom typewriter completes a line before advancing", async () => {
 });
 
 test("classroom art loads lazily and follows every dialogue context", async () => {
-  // Map the six delivered poses without touching the initial page request.
+  // Map the six poses while withholding the finale until the fifth answer.
   const harness = await loadHarness({ savedTokens: 0 });
   assert.equal(harness.createdImages.length, 0);
   assert.equal(
     harness.elements.get("#classroom-background-image").src,
+    undefined,
+  );
+  assert.equal(harness.classroomFinaleImage.src, "");
+  assert.equal(
+    harness.elements.get("#classroom-finale-portrait").srcset,
     undefined,
   );
 
@@ -1154,6 +1160,7 @@ test("classroom art loads lazily and follows every dialogue context", async () =
     harness.elements.get("#classroom-background-image").src,
     "assets/images/gojo/classroom-landscape.png",
   );
+  assert.equal(harness.classroomFinaleImage.src, "");
   await settleMicrotasks();
   assert.equal(harness.elements.get("#gojo-character").dataset.pose, "caring");
 
@@ -1206,6 +1213,94 @@ test("classroom art loads lazily and follows every dialogue context", async () =
   await settleMicrotasks();
   assert.equal(harness.elements.get("#gojo-character").dataset.pose, "reward");
   assert.equal(harness.elements.get("#classroom-art-status").hidden, true);
+  assert.equal(
+    harness.elements.get("#classroom-finale-portrait").srcset,
+    "assets/images/gojo/gojo-finale-portrait.png",
+  );
+  assert.equal(
+    harness.classroomFinaleImage.src,
+    "assets/images/gojo/gojo-finale-landscape.png",
+  );
+  assert.equal(harness.elements.get("#classroom-finale").hidden, false);
+  assert.equal(
+    harness.elements.get("#classroom-finale").classList.contains("is-visible"),
+    true,
+  );
+  assert.equal(
+    harness.elements.get("#classroom-screen").classList.contains("is-finale"),
+    true,
+  );
+
+  vm.runInContext("resetClassroomLesson()", harness.context);
+  assert.equal(harness.elements.get("#classroom-finale").hidden, true);
+  assert.equal(
+    harness.elements.get("#classroom-screen").classList.contains("is-finale"),
+    false,
+  );
+});
+
+test("a failed finale CG keeps the existing reward pose", async () => {
+  // The delivered sprite remains a complete fallback for either CG request.
+  const harness = await loadHarness({
+    savedTokens: 0,
+    finaleAutoLoad: false,
+  });
+  vm.runInContext(
+    "openCasino(); openClassroom(); classroomQuestionIndex = 4; showClassroomQuestion()",
+    harness.context,
+  );
+  const finalAnswer = vm.runInContext(
+    "classroomQuestions[4].answer",
+    harness.context,
+  );
+  harness.classroomAnswerButtons
+    .find((button) => Number(button.dataset.answerValue) === finalAnswer)
+    .dispatch("click");
+  await settleMicrotasks();
+  assert.equal(harness.elements.get("#gojo-character").dataset.pose, "reward");
+  assert.equal(harness.elements.get("#classroom-finale").hidden, false);
+  assert.equal(
+    harness.elements.get("#classroom-finale").classList.contains("is-visible"),
+    false,
+  );
+
+  harness.classroomFinaleImage.dispatch("error");
+  await settleMicrotasks();
+  assert.equal(harness.elements.get("#gojo-character").dataset.pose, "reward");
+  assert.equal(harness.elements.get("#classroom-finale").hidden, true);
+  assert.equal(
+    harness.elements.get("#classroom-screen").classList.contains("is-finale"),
+    false,
+  );
+});
+
+test("a finale CG that loads after closing the lesson stays hidden", async () => {
+  // Invalidate the pending scene before an old image request can finish.
+  const harness = await loadHarness({
+    savedTokens: 0,
+    finaleAutoLoad: false,
+  });
+  vm.runInContext(
+    "openCasino(); openClassroom(); classroomQuestionIndex = 4; showClassroomQuestion()",
+    harness.context,
+  );
+  const finalAnswer = vm.runInContext(
+    "classroomQuestions[4].answer",
+    harness.context,
+  );
+  harness.classroomAnswerButtons
+    .find((button) => Number(button.dataset.answerValue) === finalAnswer)
+    .dispatch("click");
+  harness.elements.get("#classroom-dialog").close();
+  harness.classroomFinaleImage.resolveLoad();
+  await settleMicrotasks();
+
+  assert.equal(vm.runInContext("classroomPhase", harness.context), "closed");
+  assert.equal(harness.elements.get("#classroom-finale").hidden, true);
+  assert.equal(
+    harness.elements.get("#classroom-screen").classList.contains("is-finale"),
+    false,
+  );
 });
 
 test("a stale classroom pose load cannot replace the latest request", async () => {
@@ -1406,13 +1501,13 @@ test("secret patch notes paginate three releases and support P toggling", async 
   const harness = await loadHarness();
   assert.deepEqual(
     harness.releaseEntries.map((entry) => entry.hidden),
-    [false, false, false, ...Array(21).fill(true)],
+    [false, false, false, ...Array(22).fill(true)],
   );
-  assert.equal(harness.elements.get("#release-page-status").textContent, "1/8");
+  assert.equal(harness.elements.get("#release-page-status").textContent, "1/9");
   vm.runInContext("changeReleasePage(1)", harness.context);
   assert.deepEqual(
     harness.releaseEntries.map((entry) => entry.hidden),
-    [true, true, true, false, false, false, ...Array(18).fill(true)],
+    [true, true, true, false, false, false, ...Array(19).fill(true)],
   );
 
   const shortcut = {
@@ -1445,6 +1540,12 @@ test("CSS keeps colors centralized and every screen viewport-bound", async () =>
   assert.match(css, /\.classroom-screen\s*\{[\s\S]*?height:\s*100%/);
   assert.match(css, /\.classroom-background,[\s\S]*?position:\s*absolute/);
   assert.match(css, /\.classroom-background img\s*\{[\s\S]*?object-fit:\s*cover/);
+  assert.match(css, /\.classroom-finale\s*\{[\s\S]*?z-index:\s*3/);
+  assert.match(css, /\.classroom-finale img\s*\{[\s\S]*?object-fit:\s*cover/);
+  assert.match(
+    css,
+    /\.classroom-screen\.is-finale \.classroom-dialogue-box\s*\{[\s\S]*?position:\s*absolute;[\s\S]*?right:[\s\S]*?bottom:/,
+  );
   assert.match(css, /\.classroom-stage\s*\{[\s\S]*?min-height:\s*0/);
   assert.match(css, /\.gojo-character\s*\{[\s\S]*?object-fit:\s*contain/);
   assert.match(css, /\.classroom-dialogue-box\s*\{[\s\S]*?overflow:\s*hidden/);

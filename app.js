@@ -191,6 +191,8 @@ let classroomRewardClaimed = false;
 let classroomShouldReturnToCasino = false;
 let classroomArtInitialized = false;
 let classroomPoseRequestId = 0;
+let classroomFinaleLoadPromise = null;
+let classroomFinaleRequestId = 0;
 
 function loadSavedProgress() {
   // Restore known prizes, a valid chip balance, and the one-time bait state.
@@ -307,6 +309,7 @@ const casinoTokenStorageNote = document.querySelector(
 const casinoEmpty = document.querySelector("#casino-empty");
 const classroomOpenButton = document.querySelector("#open-classroom");
 const classroomDialog = document.querySelector("#classroom-dialog");
+const classroomScreen = document.querySelector("#classroom-screen");
 const classroomProgress = document.querySelector("#classroom-progress");
 const classroomDialogueText = document.querySelector(
   "#classroom-dialogue-text",
@@ -322,6 +325,13 @@ const classroomBackgroundPortrait = document.querySelector(
 );
 const classroomBackgroundImage = document.querySelector(
   "#classroom-background-image",
+);
+const classroomFinale = document.querySelector("#classroom-finale");
+const classroomFinalePortrait = document.querySelector(
+  "#classroom-finale-portrait",
+);
+const classroomFinaleImage = document.querySelector(
+  "#classroom-finale-image",
 );
 const classroomArtStatus = document.querySelector("#classroom-art-status");
 const classroomCharacter = document.querySelector("#gojo-character");
@@ -663,6 +673,73 @@ async function showClassroomPose(poseId) {
   }
 }
 
+function loadClassroomFinaleArt() {
+  // Request the orientation-aware CG only after the fifth correct answer.
+  if (classroomFinaleLoadPromise !== null) {
+    return classroomFinaleLoadPromise;
+  }
+
+  classroomFinaleLoadPromise = new Promise((resolveImage, rejectImage) => {
+    classroomFinaleImage.addEventListener(
+      "load",
+      () => resolveImage(classroomFinaleImage),
+      { once: true },
+    );
+    classroomFinaleImage.addEventListener(
+      "error",
+      () => rejectImage(new Error("Falha ao carregar a CG final")),
+      { once: true },
+    );
+    classroomFinale.hidden = false;
+    classroomFinalePortrait.srcset =
+      classroomFinalePortrait.dataset.srcset;
+    classroomFinaleImage.src = classroomFinaleImage.dataset.src;
+  }).then(async (loadedImage) => {
+    if (typeof loadedImage.decode === "function") {
+      try {
+        await loadedImage.decode();
+      } catch {
+        // A successful load remains usable if decode() is unavailable or fails.
+      }
+    }
+    return loadedImage;
+  });
+
+  return classroomFinaleLoadPromise;
+}
+
+async function showClassroomFinale() {
+  // Keep the reward sprite visible until the full-scene CG is decoded.
+  const requestId = ++classroomFinaleRequestId;
+
+  try {
+    await loadClassroomFinaleArt();
+
+    if (
+      requestId !== classroomFinaleRequestId ||
+      !classroomDialog.open ||
+      classroomPhase !== "reward"
+    ) {
+      return false;
+    }
+
+    classroomFinale.hidden = false;
+    classroomFinale.classList.remove("is-visible");
+    void classroomFinale.offsetWidth;
+    classroomScreen.classList.add("is-finale");
+    classroomFinale.classList.add("is-visible");
+    classroomArtStatus.hidden = true;
+    return true;
+  } catch {
+    // The existing reward pose remains the complete visual fallback.
+    if (requestId === classroomFinaleRequestId) {
+      classroomFinale.classList.remove("is-visible");
+      classroomFinale.hidden = true;
+    }
+    return false;
+  }
+}
+
 function clearClassroomTypewriter() {
   // Stop a sentence that no longer belongs to the visible lesson state.
   if (classroomTypewriterTimerId !== null) {
@@ -821,6 +898,7 @@ function handleClassroomAnswer(answerButton) {
     classroomPhase = "reward";
     classroomProgress.textContent = "aula concluída · 5/5";
     void showClassroomPose("reward");
+    void showClassroomFinale();
   } else {
     classroomPhase = "correct";
     classroomProgress.textContent =
@@ -879,6 +957,7 @@ function resetClassroomLesson() {
   // Closing never grants chips and the next visit starts with new arithmetic.
   clearClassroomTypewriter();
   classroomPoseRequestId += 1;
+  classroomFinaleRequestId += 1;
   classroomQuestions = [];
   classroomIntroIndex = 0;
   classroomQuestionIndex = 0;
@@ -895,6 +974,9 @@ function resetClassroomLesson() {
   classroomCharacter.classList.remove("is-visible", "is-entering");
   classroomCharacter.removeAttribute("src");
   delete classroomCharacter.dataset.pose;
+  classroomScreen.classList.remove("is-finale");
+  classroomFinale.classList.remove("is-visible");
+  classroomFinale.hidden = true;
   classroomArtStatus.textContent = "preparando a arte da aula...";
   classroomArtStatus.hidden = false;
 

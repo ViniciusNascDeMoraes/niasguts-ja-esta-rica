@@ -1159,6 +1159,32 @@ h1 {
   object-position: center;
 }
 
+.classroom-finale,
+.classroom-finale img {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.classroom-finale {
+  z-index: 3;
+  overflow: hidden;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 220ms ease-out;
+}
+
+.classroom-finale img {
+  object-fit: cover;
+  object-position: center;
+}
+
+.classroom-finale.is-visible {
+  opacity: 1;
+}
+
 .classroom-header {
   z-index: 4;
   display: grid;
@@ -1266,6 +1292,27 @@ h1 {
   border: 0.15rem solid var(--navy-deep);
   border-radius: clamp(0.65rem, 2vmin, 1rem);
   box-shadow: 0.24rem 0.28rem 0 var(--navy-deep), 0 0 1rem var(--casino-pink-glow);
+}
+
+.classroom-screen.is-finale .classroom-dialogue-box {
+  position: absolute;
+  right: max(0.55rem, env(safe-area-inset-right));
+  bottom: max(0.55rem, env(safe-area-inset-bottom));
+  width: min(48vw, 34rem);
+  max-height: calc(100% - 5rem);
+}
+
+.classroom-screen.is-finale .classroom-dialogue-text {
+  min-height: 0;
+}
+
+@media (orientation: portrait) {
+  .classroom-screen.is-finale .classroom-dialogue-box {
+    right: max(0.35rem, env(safe-area-inset-right));
+    bottom: max(0.35rem, env(safe-area-inset-bottom));
+    left: max(0.35rem, env(safe-area-inset-left));
+    width: auto;
+  }
 }
 
 .classroom-speaker {
