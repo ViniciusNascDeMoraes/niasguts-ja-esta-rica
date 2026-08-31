@@ -30,6 +30,8 @@
   --casino-lever-hover: rgba(255, 232, 183, 0.16);
   --achievement-cell: rgba(23, 27, 46, 0.32);
   --achievement-cell-unlocked: rgba(255, 250, 246, 0.12);
+  --achievement-stage-clear: rgba(23, 27, 46, 0.08);
+  --achievement-stage-shade: rgba(23, 27, 46, 0.24);
   --jackpot-shade: rgba(23, 27, 46, 0.86);
   --jackpot-clear: rgba(23, 27, 46, 0.08);
   --confetti-gold: #ffd66f;
@@ -564,11 +566,36 @@ h1 {
   box-shadow: 0 0.3rem 0 var(--hair-pink-dark), inset 0 0 0.75rem var(--shadow-strong);
 }
 
+.casino-marquee.is-logo-ready {
+  padding: 0;
+  background: transparent;
+  border-color: transparent;
+  box-shadow: none;
+}
+
 .casino-title {
+  display: grid;
   margin: 0;
+  place-items: center;
   font-size: clamp(1.2rem, 4.3vmin, 2.6rem);
   line-height: 1;
   text-shadow: 0.08rem 0.08rem 0 var(--hair-pink-dark);
+}
+
+.casino-title-fallback,
+.casino-logo {
+  grid-area: 1 / 1;
+}
+
+.casino-logo {
+  display: block;
+  width: 100%;
+  height: clamp(2.8rem, 9dvh, 4.5rem);
+  object-fit: contain;
+}
+
+.casino-marquee.is-logo-ready .casino-title-fallback {
+  display: none;
 }
 
 .casino-token-hud {
@@ -592,6 +619,20 @@ h1 {
   font-weight: 1000;
   letter-spacing: 0.09em;
   text-transform: uppercase;
+}
+
+.casino-token-value {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(0.18rem, 0.7vmin, 0.35rem);
+}
+
+.casino-chip-icon {
+  display: block;
+  width: clamp(1.15rem, 3.2vmin, 2rem);
+  aspect-ratio: 1;
+  object-fit: contain;
 }
 
 .casino-token-balance {
@@ -656,6 +697,13 @@ h1 {
   background: linear-gradient(var(--shirt), var(--skirt-blue-soft));
   border: 0.12rem solid var(--navy-deep);
   border-radius: 0.65rem;
+}
+
+.fallback-reel-image {
+  display: block;
+  width: min(84%, 6.5rem);
+  max-height: clamp(3.5rem, 16dvh, 7rem);
+  object-fit: contain;
 }
 
 /* Keyboard-only lever control. Pointer input is handled by WebGL raycasting. */
@@ -800,6 +848,24 @@ h1 {
   border-radius: clamp(0.75rem, 2vmin, 1.2rem);
   box-shadow: 0 0.4rem 0 var(--navy-deep), 0 0 1.2rem var(--shadow-strong);
   pointer-events: none;
+}
+
+.casino-rule-line {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(0.15rem, 0.5vmin, 0.3rem);
+}
+
+.casino-rule-icon,
+.casino-rule-icon-fallback {
+  display: block;
+  width: clamp(0.8rem, 2vmin, 1.15rem);
+  aspect-ratio: 1;
+  flex: 0 0 auto;
+  object-fit: contain;
+  line-height: 1;
 }
 
 .casino-result-flash.is-token {
@@ -1354,6 +1420,32 @@ h1 {
     linear-gradient(145deg, var(--hair-pink-dark), var(--navy-deep) 68%);
 }
 
+.achievements-background {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  display: block;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 220ms ease-out;
+}
+
+.achievements-background img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+}
+
+.achievements-screen.is-background-ready .achievements-background {
+  opacity: 0.94;
+}
+
+.achievements-screen.is-complete.is-background-ready .achievements-background {
+  opacity: 0.82;
+}
+
 .achievements-header {
   z-index: 4;
   display: grid;
@@ -1381,10 +1473,11 @@ h1 {
 
 .achievement-stage {
   position: relative;
+  z-index: 1;
   isolation: isolate;
   min-height: 0;
   overflow: hidden;
-  background: linear-gradient(180deg, var(--casino-panel-soft), var(--casino-panel));
+  background: linear-gradient(180deg, var(--achievement-stage-clear), var(--achievement-stage-shade));
   border: 0.14rem solid var(--hair-blonde);
   border-radius: clamp(0.75rem, 2vmin, 1.25rem);
   box-shadow: inset 0 0 1.5rem var(--shadow-strong), 0 0.45rem 0 var(--navy-deep);

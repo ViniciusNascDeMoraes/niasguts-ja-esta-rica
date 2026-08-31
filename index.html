@@ -85,7 +85,7 @@
               ajude ela a ficar rica doando em
               <a href="https://pixie.gg/niagott" target="_blank" rel="noopener noreferrer">pixie.gg/niagott</a>
             </p>
-            <span class="version-label">versão 1.16</span>
+            <span class="version-label">versão 1.17</span>
           </footer>
         </div>
       </section>
@@ -113,8 +113,21 @@
             <button class="dialog-close casino-close" type="submit" aria-label="Fechar cassino">×</button>
           </form>
 
-          <header class="casino-marquee">
-            <h2 class="casino-title" id="casino-title">nanaBet</h2>
+          <header class="casino-marquee" id="casino-marquee">
+            <h2 class="casino-title" id="casino-title" aria-label="nanaBet">
+              <span class="casino-title-fallback" aria-hidden="true">nanaBet</span>
+              <img
+                class="casino-logo"
+                id="casino-logo"
+                data-src="assets/images/casino/nanabet-logo.png"
+                alt=""
+                width="2172"
+                height="724"
+                decoding="async"
+                aria-hidden="true"
+                hidden
+              >
+            </h2>
           </header>
 
           <div class="casino-audio-controls" aria-label="Controles da música">
@@ -140,7 +153,20 @@
 
           <section class="casino-token-hud" aria-label="Saldo de fichas">
             <span class="casino-token-label">fichas</span>
-            <strong class="casino-token-balance" id="casino-token-balance">5</strong>
+            <span class="casino-token-value">
+              <img
+                class="casino-chip-icon"
+                id="casino-chip-balance"
+                data-src="assets/images/casino/casino-chip.png"
+                alt=""
+                width="1254"
+                height="1254"
+                decoding="async"
+                aria-hidden="true"
+                hidden
+              >
+              <strong class="casino-token-balance" id="casino-token-balance">5</strong>
+            </span>
             <p class="casino-token-storage-note" id="casino-token-storage-note" hidden>
               estado válido só nesta visita
             </p>
@@ -187,8 +213,35 @@
             class="casino-rules"
             aria-label="Uma ficha por giro. O presente libera uma conquista."
           >
-            <span>1 ficha por giro</span>
-            <span>🎁 libera conquista</span>
+            <span class="casino-rule-line">
+              <img
+                class="casino-rule-icon"
+                id="casino-chip-rule"
+                data-src="assets/images/casino/casino-chip.png"
+                alt=""
+                width="1254"
+                height="1254"
+                decoding="async"
+                aria-hidden="true"
+                hidden
+              >
+              <span>1 ficha por giro</span>
+            </span>
+            <span class="casino-rule-line">
+              <span class="casino-rule-icon-fallback" id="casino-gift-rule-fallback" aria-hidden="true">🎁</span>
+              <img
+                class="casino-rule-icon"
+                id="casino-gift-rule"
+                data-src="assets/images/casino/symbol-gift.png"
+                alt=""
+                width="1254"
+                height="1254"
+                decoding="async"
+                aria-hidden="true"
+                hidden
+              >
+              <span>libera conquista</span>
+            </span>
           </aside>
 
           <section class="casino-empty" id="casino-empty" hidden>
@@ -336,6 +389,22 @@
       aria-describedby="achievements-progress"
     >
       <section class="achievements-screen" id="achievements-screen">
+        <picture class="achievements-background" id="achievements-background" aria-hidden="true">
+          <source
+            id="achievements-background-portrait"
+            media="(orientation: portrait)"
+            data-srcset="assets/images/casino/achievements-room-portrait.png"
+          >
+          <img
+            id="achievements-background-image"
+            data-src="assets/images/casino/achievements-room-landscape.png"
+            alt=""
+            width="1672"
+            height="941"
+            decoding="async"
+          >
+        </picture>
+
         <form class="dialog-close-form achievements-close-form" method="dialog">
           <button class="dialog-close" type="submit" aria-label="Fechar conquistas">×</button>
         </form>
@@ -402,6 +471,7 @@
         </header>
 
         <ol class="release-list" id="release-list" aria-label="Histórico de versões">
+          <li class="release-entry"><h3>versão 1.17</h3><p>A nanaBet ganhou logotipo, ficha e símbolos ilustrados locais, e a sala de conquistas recebeu cenários responsivos.</p></li>
           <li class="release-entry"><h3>versão 1.16</h3><p>A nanaBet perdeu o reembolso de ficha, ficou com seis símbolos e 12,5% de chance de conquista; as poses do Gojo agora terminam naturalmente atrás da caixa de diálogo.</p></li>
           <li class="release-entry"><h3>versão 1.15</h3><p>A conclusão da aula ganhou uma CG exclusiva do Gojo, adaptada à orientação da tela e carregada somente após a quinta resposta correta.</p></li>
           <li class="release-entry"><h3>versão 1.14</h3><p>O subtítulo da aula foi removido, a mensagem de ficha devolvida ficou mais direta e os textos da visual novel ficaram maiores.</p></li>

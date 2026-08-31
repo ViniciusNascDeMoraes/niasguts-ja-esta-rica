@@ -219,7 +219,7 @@ function createPageHarness(options = {}) {
     }
   }
   const releaseEntries = Array.from(
-    { length: 26 },
+    { length: 27 },
     (_, index) => new FakeElement("release-" + index),
   );
   const audio = new FakeElement("casino-music");
@@ -250,6 +250,22 @@ function createPageHarness(options = {}) {
   elements.set("#classroom-finale-image", classroomFinaleImage);
   getElement("#casino-volume").value = "25";
   getElement("#casino-result-flash").hidden = true;
+  getElement("#casino-logo").dataset.src =
+    "assets/images/casino/nanabet-logo.png";
+  getElement("#casino-logo").hidden = true;
+  getElement("#casino-chip-balance").dataset.src =
+    "assets/images/casino/casino-chip.png";
+  getElement("#casino-chip-balance").hidden = true;
+  getElement("#casino-chip-rule").dataset.src =
+    "assets/images/casino/casino-chip.png";
+  getElement("#casino-chip-rule").hidden = true;
+  getElement("#casino-gift-rule").dataset.src =
+    "assets/images/casino/symbol-gift.png";
+  getElement("#casino-gift-rule").hidden = true;
+  getElement("#achievements-background-portrait").dataset.srcset =
+    "assets/images/casino/achievements-room-portrait.png";
+  getElement("#achievements-background-image").dataset.src =
+    "assets/images/casino/achievements-room-landscape.png";
   getElement("#classroom-finale").hidden = true;
   getElement("#classroom-background-portrait").dataset.srcset =
     "assets/images/gojo/classroom-portrait.png";
@@ -410,7 +426,7 @@ async function settleMicrotasks() {
   }
 }
 
-test("static page exposes the version 1.16 full-screen experience", async () => {
+test("static page exposes the version 1.17 full-screen experience", async () => {
   // Verify deployment markup and all required native controls.
   const html = await readFile(resolve(projectRoot, "index.html"), "utf8");
   assert.match(html, /href="styles\.css"/);
@@ -420,8 +436,28 @@ test("static page exposes the version 1.16 full-screen experience", async () => 
   assert.match(html, /id="casino-jackpot-continue"/);
   assert.match(html, /id="achievements-canvas"/);
   assert.match(html, /id="toggle-casino-music"/);
-  assert.match(html, /versão 1\.16/);
-  assert.match(html, /id="casino-title">nanaBet<\/h2>/);
+  assert.match(html, /versão 1\.17/);
+  assert.match(html, /id="casino-title" aria-label="nanaBet"/);
+  assert.match(html, /id="casino-logo"/);
+  assert.match(html, /id="casino-chip-balance"/);
+  assert.match(html, /id="casino-chip-rule"/);
+  assert.match(html, /id="casino-gift-rule"/);
+  assert.match(html, /id="achievements-background-portrait"/);
+  assert.match(html, /id="achievements-background-image"/);
+  assert.match(html, /data-src="assets\/images\/casino\/nanabet-logo\.png"/);
+  assert.match(html, /data-src="assets\/images\/casino\/casino-chip\.png"/);
+  assert.match(
+    html,
+    /data-srcset="assets\/images\/casino\/achievements-room-portrait\.png"/,
+  );
+  assert.match(
+    html,
+    /data-src="assets\/images\/casino\/achievements-room-landscape\.png"/,
+  );
+  assert.doesNotMatch(
+    html,
+    /<img[^>]+\ssrc="assets\/images\/casino\//,
+  );
   assert.match(
     html,
     /aria-label="Uma ficha por giro\. O presente libera uma conquista\."/,
@@ -448,7 +484,7 @@ test("static page exposes the version 1.16 full-screen experience", async () => 
   assert.match(html, /GANHAR FICHAS NA AULA/);
   assert.equal((html.match(/class="classroom-answer"/g) ?? []).length, 3);
   assert.equal((html.match(/data-prize-id=/g) ?? []).length, 5);
-  assert.equal((html.match(/class="release-entry"/g) ?? []).length, 26);
+  assert.equal((html.match(/class="release-entry"/g) ?? []).length, 27);
   assert.ok(
     html.indexOf('<div class="casino-audio-controls"') <
       html.indexOf('<div class="casino-control-deck">'),
@@ -473,7 +509,7 @@ test("static page exposes the version 1.16 full-screen experience", async () => 
 test("custom domain and every local media asset are release-ready", async () => {
   // Guard GitHub Pages routing and prevent silent GIF or music omissions.
   const cname = await readFile(resolve(projectRoot, "CNAME"), "utf8");
-  assert.equal(cname.trim(), "niasgutshhh.viniciuspirasoft.com");
+  assert.equal(cname.trim(), "niasguts.viniciuspirasoft.com");
   const mediaPaths = [
     "assets/musica.mp3",
     "assets/gifs/marin-chibi.gif",
@@ -494,6 +530,17 @@ test("custom domain and every local media asset are release-ready", async () => 
     "assets/images/gojo/gojo-reward.png",
     "assets/images/gojo/gojo-finale-landscape.png",
     "assets/images/gojo/gojo-finale-portrait.png",
+    "assets/images/casino/achievements-room-landscape.png",
+    "assets/images/casino/achievements-room-portrait.png",
+    "assets/images/casino/casino-chip.png",
+    "assets/images/casino/nanabet-logo.png",
+    "assets/images/casino/nanabet-palette-reference.png",
+    "assets/images/casino/symbol-coffee.png",
+    "assets/images/casino/symbol-tiger.png",
+    "assets/images/casino/symbol-diamond.png",
+    "assets/images/casino/symbol-cherries.png",
+    "assets/images/casino/symbol-seven.png",
+    "assets/images/casino/symbol-gift.png",
   ];
   for (const mediaPath of mediaPaths) {
     const bytes = await readFile(resolve(projectRoot, mediaPath));
@@ -531,11 +578,45 @@ test("classroom PNGs keep their expected dimensions and transparency", async () 
     assert.equal(bytes[25], colorType, filename);
   }
 
-  const rootAssetNames = await readdir(resolve(projectRoot, "assets"));
+  const rootAssetNames = await readdir(resolve(projectRoot, "assets"), {
+    recursive: true,
+  });
   assert.equal(
-    rootAssetNames.some((name) => name.startsWith("ChatGPT Image")),
+    rootAssetNames.some((name) => name.includes("ChatGPT Image")),
     false,
   );
+});
+
+test("casino PNGs keep their delivered dimensions and transparency", async () => {
+  // Protect the artist originals while distinguishing opaque room references.
+  const expectedAssets = [
+    ["achievements-room-landscape.png", 1672, 941, 2],
+    ["achievements-room-portrait.png", 941, 1672, 2],
+    ["casino-chip.png", 1254, 1254, 6],
+    ["nanabet-logo.png", 2172, 724, 6],
+    ["nanabet-palette-reference.png", 1448, 1086, 2],
+    ["symbol-coffee.png", 1254, 1254, 6],
+    ["symbol-tiger.png", 1254, 1254, 6],
+    ["symbol-diamond.png", 1254, 1254, 6],
+    ["symbol-cherries.png", 1254, 1254, 6],
+    ["symbol-seven.png", 1254, 1254, 6],
+    ["symbol-gift.png", 1254, 1254, 6],
+  ];
+
+  for (const [filename, width, height, colorType] of expectedAssets) {
+    const bytes = await readFile(
+      resolve(projectRoot, "assets", "images", "casino", filename),
+    );
+    assert.deepEqual(
+      [...bytes.subarray(0, 8)],
+      [137, 80, 78, 71, 13, 10, 26, 10],
+      filename,
+    );
+    assert.equal(bytes.readUInt32BE(16), width, filename);
+    assert.equal(bytes.readUInt32BE(20), height, filename);
+    assert.equal(bytes[24], 8, filename);
+    assert.equal(bytes[25], colorType, filename);
+  }
 });
 
 test("vendored Three.js module and MIT notice remain pinned", async () => {
@@ -975,6 +1056,126 @@ test("zero chips disable the lever and expose the classroom entry", async () => 
   );
 });
 
+test("casino artwork loads only on first open and upgrades native fallbacks", async () => {
+  // Keep the main page light, then reveal the logo, chip, legend, and six faces.
+  const harness = await loadHarness();
+  assert.equal(harness.createdImages.length, 0);
+  assert.equal(harness.elements.get("#casino-logo").src, undefined);
+  assert.equal(harness.elements.get("#casino-chip-balance").src, undefined);
+
+  vm.runInContext("openCasino()", harness.context);
+  assert.equal(harness.createdImages.length, 6);
+  assert.deepEqual(
+    harness.createdImages.map((image) => image.src),
+    [
+      "assets/images/casino/symbol-coffee.png",
+      "assets/images/casino/symbol-tiger.png",
+      "assets/images/casino/symbol-diamond.png",
+      "assets/images/casino/symbol-cherries.png",
+      "assets/images/casino/symbol-seven.png",
+      "assets/images/casino/symbol-gift.png",
+    ],
+  );
+  assert.equal(
+    harness.elements.get("#casino-logo").src,
+    "assets/images/casino/nanabet-logo.png",
+  );
+  assert.equal(
+    harness.elements.get("#casino-chip-balance").src,
+    "assets/images/casino/casino-chip.png",
+  );
+  assert.equal(
+    harness.elements.get("#casino-gift-rule").src,
+    "assets/images/casino/symbol-gift.png",
+  );
+
+  harness.elements.get("#casino-logo").dispatch("load");
+  harness.elements.get("#casino-chip-balance").dispatch("load");
+  harness.elements.get("#casino-chip-rule").dispatch("load");
+  harness.elements.get("#casino-gift-rule").dispatch("load");
+  await settleMicrotasks();
+
+  assert.equal(harness.elements.get("#casino-logo").hidden, false);
+  assert.equal(
+    harness.elements.get("#casino-marquee").classList.contains(
+      "is-logo-ready",
+    ),
+    true,
+  );
+  assert.equal(harness.elements.get("#casino-gift-rule-fallback").hidden, true);
+  assert.equal(
+    harness.fallbackReels[0].replacementChildren[0].src,
+    "assets/images/casino/symbol-coffee.png",
+  );
+  assert.equal(
+    harness.fallbackReels[1].replacementChildren[0].src,
+    "assets/images/casino/symbol-tiger.png",
+  );
+
+  vm.runInContext("openCasino()", harness.context);
+  assert.equal(harness.createdImages.length, 6);
+});
+
+test("one missing reel illustration keeps only its character fallback", async () => {
+  // A partial asset failure must not disable the other illustrated faces.
+  const harness = await loadHarness({ imagesAutoLoad: false });
+  vm.runInContext("openCasino()", harness.context);
+  const tigerImage = harness.createdImages.find((image) =>
+    image.src.endsWith("symbol-tiger.png"),
+  );
+  for (const image of harness.createdImages) {
+    if (image === tigerImage) {
+      image.dispatch("error");
+    } else {
+      image.resolveLoad();
+    }
+  }
+  await settleMicrotasks();
+
+  assert.equal(
+    harness.fallbackReels[0].replacementChildren[0].src,
+    "assets/images/casino/symbol-coffee.png",
+  );
+  assert.equal(harness.fallbackReels[1].textContent, "🐯");
+});
+
+test("achievement room art is orientation-aware and lazily requested", async () => {
+  // Preserve the CSS gradient until the selected local background succeeds.
+  const harness = await loadHarness();
+  assert.equal(
+    harness.elements.get("#achievements-background-image").src,
+    undefined,
+  );
+  assert.equal(
+    harness.elements.get("#achievements-background-portrait").srcset,
+    undefined,
+  );
+
+  vm.runInContext("openAchievements()", harness.context);
+  assert.equal(
+    harness.elements.get("#achievements-background-image").src,
+    "assets/images/casino/achievements-room-landscape.png",
+  );
+  assert.equal(
+    harness.elements.get("#achievements-background-portrait").srcset,
+    "assets/images/casino/achievements-room-portrait.png",
+  );
+  harness.elements.get("#achievements-background-image").dispatch("load");
+  assert.equal(
+    harness.elements.get("#achievements-screen").classList.contains(
+      "is-background-ready",
+    ),
+    true,
+  );
+  harness.elements.get("#achievements-background-image").dispatch("error");
+  assert.equal(
+    harness.elements.get("#achievements-screen").classList.contains(
+      "is-background-ready",
+    ),
+    false,
+  );
+});
+
 test("each classroom lesson covers all operations with three valid choices", async () => {
   // Validate the generated math contract independently of dialogue progression.
   const harness = await loadHarness();
@@ -1138,7 +1339,11 @@ test("classroom art loads lazily and follows every dialogue context", async () =
   );
 
   vm.runInContext("openCasino(); openClassroom()", harness.context);
-  assert.equal(harness.createdImages.length, 6);
+  assert.equal(
+    harness.createdImages.filter((image) => image.src.includes("/gojo/"))
+      .length,
+    6,
+  );
   assert.equal(
     harness.elements.get("#classroom-background-portrait").srcset,
     "assets/images/gojo/classroom-portrait.png",
@@ -1488,13 +1693,13 @@ test("secret patch notes paginate three releases and support P toggling", async 
   const harness = await loadHarness();
   assert.deepEqual(
     harness.releaseEntries.map((entry) => entry.hidden),
-    [false, false, false, ...Array(23).fill(true)],
+    [false, false, false, ...Array(24).fill(true)],
   );
   assert.equal(harness.elements.get("#release-page-status").textContent, "1/9");
   vm.runInContext("changeReleasePage(1)", harness.context);
   assert.deepEqual(
     harness.releaseEntries.map((entry) => entry.hidden),
-    [true, true, true, false, false, false, ...Array(20).fill(true)],
+    [true, true, true, false, false, false, ...Array(21).fill(true)],
   );
 
   const shortcut = {
@@ -1527,6 +1732,16 @@ test("CSS keeps colors centralized and every screen viewport-bound", async () =>
   assert.match(css, /\.classroom-screen\s*\{[\s\S]*?height:\s*100%/);
   assert.match(css, /\.classroom-background,[\s\S]*?position:\s*absolute/);
   assert.match(css, /\.classroom-background img\s*\{[\s\S]*?object-fit:\s*cover/);
+  assert.match(css, /\.casino-logo\s*\{[\s\S]*?object-fit:\s*contain/);
+  assert.match(css, /\.casino-chip-icon\s*\{[\s\S]*?object-fit:\s*contain/);
+  assert.match(
+    css,
+    /\.achievements-background\s*\{[\s\S]*?position:\s*absolute;[\s\S]*?pointer-events:\s*none/,
+  );
+  assert.match(
+    css,
+    /\.achievements-background img\s*\{[\s\S]*?object-fit:\s*cover/,
+  );
   assert.match(css, /\.classroom-finale\s*\{[\s\S]*?z-index:\s*3/);
   assert.match(css, /\.classroom-finale img\s*\{[\s\S]*?object-fit:\s*cover/);
   assert.match(
@@ -1607,6 +1822,8 @@ test("3D source uses centered jackpots, a dancing tiger, and precise lever rayca
   assert.match(source, /new THREE\.Raycaster\(\)/);
   assert.doesNotMatch(source, /character === "FICHA"/);
   assert.match(source, /context\.fillText\(character, 192, 205\)/);
+  assert.match(source, /context\.drawImage\(symbolImage, 24, 24, 336, 336\)/);
+  assert.match(source, /symbolImages = Array\(symbols\.length\)\.fill\(null\)/);
   assert.match(source, /leverHitMeshes = \[model\.leverArm, model\.leverKnob\]/);
   assert.match(source, /intersectObjects\(leverHitMeshes, false\)/);
   assert.doesNotMatch(source, /leverPivot.*leverHitMeshes/);
@@ -1621,6 +1838,10 @@ test("casino source has six faces and no refunded-chip outcome", async () => {
   assert.match(applicationSource, /niasguts-casino-bait-v1/);
   assert.match(applicationSource, /const CASINO_PRIZE_CHANCE = 0\.125/);
   assert.match(applicationSource, /CLASSROOM_REWARD_TOKENS = 5/);
+  assert.match(applicationSource, /symbol-coffee\.png/);
+  assert.match(applicationSource, /symbol-gift\.png/);
+  assert.match(applicationSource, /initializeCasinoArt\(\)/);
+  assert.match(applicationSource, /initializeAchievementsBackground\(\)/);
   assert.doesNotMatch(applicationSource, /CASINO_REFUND/);
   assert.doesNotMatch(applicationSource, /character: "FICHA"/);
   assert.doesNotMatch(applicationSource, /"voce ganhou outra ficha"/);

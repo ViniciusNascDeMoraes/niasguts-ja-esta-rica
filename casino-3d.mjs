@@ -193,6 +193,7 @@ function createTextTexture(text, background, foreground) {
 
 function createSymbolTexture(
   character,
+  symbolImage,
   background,
   palette,
   renderer,
@@ -209,18 +210,22 @@ function createSymbolTexture(
 
   context.fillStyle = background;
   context.fillRect(0, 0, textureCanvas.width, textureCanvas.height);
-  context.fillStyle = palette.white;
-  context.beginPath();
-  context.ellipse(132, 92, 106, 66, -0.3, 0, FULL_TURN_RADIANS);
-  context.fill();
+  if (symbolImage !== null && symbolImage !== undefined) {
+    context.drawImage(symbolImage, 24, 24, 336, 336);
+  } else {
+    context.fillStyle = palette.white;
+    context.beginPath();
+    context.ellipse(132, 92, 106, 66, -0.3, 0, FULL_TURN_RADIANS);
+    context.fill();
 
-  context.fillStyle = palette.navyDeep;
-  context.font = character === "7"
-    ? '900 245px "Arial Rounded MT Bold", "Trebuchet MS", sans-serif'
-    : '220px "Segoe UI Emoji", "Apple Color Emoji", sans-serif';
-  context.textAlign = "center";
-  context.textBaseline = "middle";
-  context.fillText(character, 192, 205);
+    context.fillStyle = palette.navyDeep;
+    context.font = character === "7"
+      ? '900 245px "Arial Rounded MT Bold", "Trebuchet MS", sans-serif'
+      : '220px "Segoe UI Emoji", "Apple Color Emoji", sans-serif';
+    context.textAlign = "center";
+    context.textBaseline = "middle";
+    context.fillText(character, 192, 205);
+  }
 
   const texture = new THREE.CanvasTexture(textureCanvas);
   texture.colorSpace = THREE.SRGBColorSpace;
@@ -230,7 +235,13 @@ function createSymbolTexture(
   return texture;
 }
 
-function createReel(symbols, symbolBackgrounds, palette, renderer) {
+function createReel(
+  symbols,
+  symbolImages,
+  symbolBackgrounds,
+  palette,
+  renderer,
+) {
   // Build one physical cylinder with one tangent plate per symbol.
   const reel = new THREE.Group();
   const symbolAngle = FULL_TURN_RADIANS / symbols.length;
@@ -254,6 +265,7 @@ function createReel(symbols, symbolBackgrounds, palette, renderer) {
     const angle = symbolIndex * symbolAngle;
     const texture = createSymbolTexture(
       symbols[symbolIndex],
+      symbolImages[symbolIndex],
       symbolBackgrounds[symbolIndex % symbolBackgrounds.length],
       palette,
       renderer,
@@ -938,6 +950,7 @@ function buildCasinoModel(
   renderer,
   palette,
   symbols,
+  symbolImages,
   initialIndices,
   prizes,
 ) {
@@ -1032,7 +1045,13 @@ function buildCasinoModel(
     addBox(reelFrame, [1.5, 0.16, 0.34], [0, -0.88, 0.15], goldMaterial);
     addBox(reelFrame, [0.15, 1.6, 0.34], [-0.69, 0, 0.15], goldMaterial);
     addBox(reelFrame, [0.15, 1.6, 0.34], [0.69, 0, 0.15], goldMaterial);
-    const reel = createReel(symbols, symbolBackgrounds, palette, renderer);
+    const reel = createReel(
+      symbols,
+      symbolImages,
+      symbolBackgrounds,
+      palette,
+      renderer,
+    );
     reel.rotation.x = initialIndices[reelIndex] * symbolAngle;
     reelFrame.add(reel);
     reelGroups.push(reel);
@@ -1192,6 +1211,7 @@ export function createCasino3D(options) {
     canvas,
     palette,
     symbols,
+    symbolImages = Array(symbols.length).fill(null),
     prizes,
     initialIndices,
     reducedMotion = false,
@@ -1257,6 +1277,7 @@ export function createCasino3D(options) {
     renderer,
     palette,
     symbols,
+    symbolImages,
     initialIndices,
     prizes,
   );

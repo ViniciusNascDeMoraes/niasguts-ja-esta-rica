@@ -24,6 +24,8 @@
 - Select two distinct local GIFs once per page visit on viewports wider than `34rem`.
 - On viewports at or below `34rem`, hide the GIF area and do not create image elements or request GIF files.
 - Keep accessible alternative text and link each displayed GIF to its original Tenor page for attribution.
+- Keep the delivered nanaBet artwork under `assets/images/casino/` with descriptive filenames. Do not resize, regenerate, or eagerly request it from the main page.
+- Keep `nanabet-palette-reference.png` as a local design reference only. The existing semantic CSS palette remains authoritative and must not be replaced by the reference sheet colors without a new explicit decision.
 - Keep the main page and every dialog within the viewport without document or dialog scrollbars at normal zoom, from `320x568` portrait and `568x320` landscape through desktop sizes.
 
 ## Casino Joke
@@ -36,6 +38,8 @@
 - Keep a clipped `1x1` native button for screen readers, Tab, Enter, and Space. Transfer its focus indication to the 3D lever and do not show a rectangular outline.
 - Pull the lever forward and down around its horizontal pivot. Do not animate it sideways.
 - Build three physical six-symbol cylindrical reels and stop them sequentially with deceleration. Use five ordinary faces plus the mystery-gift face.
+- Texture those six reel faces with the delivered coffee, tiger, diamond, cherries, seven, and gift PNGs. Load them only when the casino first opens, and retain each existing character as its individual 3D and HTML fallback.
+- Show the delivered nanaBet PNG in the sharp HTML marquee while retaining the native `nanaBet` heading as its accessible and visual load-failure fallback. Use the delivered star-centered chip PNG in the balance and one-chip rule, and the delivered gift PNG in the achievement rule.
 - Load the shared 3D module only when the casino or achievement gallery first opens; do not load it eagerly on the main page. Keep a functional HTML reel fallback for WebGL or module failure.
 - Start each visitor with five virtual chips stored under `niasguts-casino-fichas-v1`. Charge one chip before each spin and keep the balance visible only inside the casino.
 - Make the first eligible spin per browser land the mystery-gift triple for `pé da prima do vaper`. Persist the consumed bait under `niasguts-casino-bait-v1`; if storage is unavailable, consume it for the current visit only.
@@ -79,6 +83,7 @@
 - Keep a main-page `CONQUISTAS` button with a live unlocked count.
 - Show five permanent 3D pedestals with procedural mystery crates while locked. Reveal the matching procedural ring, cartoon foot with five toes, layered cake, `R$350` suitcase, or logo-free sandwich and its prize name only after the matching mystery-gift trinca lands.
 - Render the achievement models in one WebGL canvas aligned with native HTML labels. Float and rotate unlocked prizes at 20 fps only while visible; keep locked mysteries static and honor reduced motion.
+- Show the delivered landscape or portrait achievement-room background behind the full gallery according to viewport orientation. Request it only when achievements first open and retain the existing gradient when it cannot load.
 - Raise a new prize from the payout tray for 1.1 seconds. Bounce and glow a repeated prize for 450 milliseconds.
 - After all five prizes are unlocked, keep the cabinet gold and pink and show `COLEÇÃO COMPLETA`.
 - Store known unlocked prize IDs as a JSON array under `niasguts-achievements-v1` in `localStorage`.
@@ -119,12 +124,13 @@
   - `1.14`: removed classroom kicker, simplified the refunded-chip message, and enlarged visual-novel reading and action text.
   - `1.15`: orientation-aware Gojo finale CG shown only after the fifth correct classroom answer.
   - `1.16`: removed the one-chip refund result, leaving six reel faces, 12.5% achievements, 87.5% ordinary losses, and dialogue-overlapped Gojo pose framing.
+  - `1.17`: local nanaBet logo, illustrated chip and reel symbols, plus orientation-aware achievement-room backgrounds with lazy loading and fallbacks.
 - Update the footer version, patch notes, and this mapping together for each future user-visible release.
 
 ## Architecture and Delivery
 
 - Keep page markup in root `index.html`, styles in root `styles.css`, page behavior in root `app.js`, and Three.js presentation in root `casino-3d.mjs`.
-- Keep `CNAME` set to `niasgutshhh.viniciuspirasoft.com`.
+- Keep `CNAME` set to `niasguts.viniciuspirasoft.com`.
 - Keep the site compatible with direct GitHub Pages hosting from `main` without a build step.
 - Three.js 0.185.1 is the only approved third-party runtime dependency. Keep both official module files and `THREE-LICENSE.txt` local and pinned; do not replace them with a CDN import.
 - Do not add other frameworks, package managers, build tools, analytics, backends, or third-party dependencies without explicit approval.

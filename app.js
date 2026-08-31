@@ -23,15 +23,43 @@ const NAME_VARIATIONS = [
   "don corleone de saia",
   "pobre lazarenta",
 ];
+const CASINO_ART_ROOT = "assets/images/casino/";
 const CASINO_NORMAL_SYMBOLS = [
-  { character: "☕", label: "café" },
-  { character: "🐯", label: "tigre" },
-  { character: "💎", label: "diamante" },
-  { character: "🍒", label: "cerejas" },
-  { character: "7", label: "sete" },
+  {
+    character: "☕",
+    label: "café",
+    imageSource: CASINO_ART_ROOT + "symbol-coffee.png",
+  },
+  {
+    character: "🐯",
+    label: "tigre",
+    imageSource: CASINO_ART_ROOT + "symbol-tiger.png",
+  },
+  {
+    character: "💎",
+    label: "diamante",
+    imageSource: CASINO_ART_ROOT + "symbol-diamond.png",
+  },
+  {
+    character: "🍒",
+    label: "cerejas",
+    imageSource: CASINO_ART_ROOT + "symbol-cherries.png",
+  },
+  {
+    character: "7",
+    label: "sete",
+    imageSource: CASINO_ART_ROOT + "symbol-seven.png",
+  },
 ];
-const CASINO_PRIZE_SYMBOL = { character: "🎁", label: "presente" };
-const SLOT_SYMBOLS = [...CASINO_NORMAL_SYMBOLS, CASINO_PRIZE_SYMBOL];
+const CASINO_PRIZE_SYMBOL = {
+  character: "🎁",
+  label: "presente",
+  imageSource: CASINO_ART_ROOT + "symbol-gift.png",
+};
+const SLOT_SYMBOLS = [
+  ...CASINO_NORMAL_SYMBOLS,
+  CASINO_PRIZE_SYMBOL,
+];
 const CASINO_PRIZES = [
   { id: "esposa-nenepira", name: "esposa do nenepira", modelId: "ring" },
   { id: "prima-vaper", name: "pé da prima do vaper", modelId: "foot" },
@@ -150,6 +178,8 @@ const reducedMotionMediaQuery = window.matchMedia(
 const selectedMarinGifs = [];
 const unlockedAchievementIds = new Set();
 const classroomPoseCache = new Map();
+const casinoSymbolImageCache = new Map();
+const loadedCasinoSymbolImages = new Map();
 let pendingCasinoOutcome = [];
 let pendingCasinoPrize = null;
 let pendingCasinoOutcomeType = "loss";
@@ -169,8 +199,11 @@ let achievements3D = null;
 let shared3DModulePromise = null;
 let casino3DLoadPromise = null;
 let achievements3DLoadPromise = null;
+let casinoSymbolImagesPromise = null;
 let casino3DFailed = false;
 let achievements3DFailed = false;
+let casinoArtInitialized = false;
+let achievementsBackgroundInitialized = false;
 let releasePage = 0;
 let casinoResultFlashTimerId = null;
 let classroomQuestions = [];
@@ -288,6 +321,8 @@ const casinoDialog = document.querySelector("#casino-dialog");
 const casinoOpenButton = document.querySelector("#open-casino");
 const casinoLever = document.querySelector("#spin-casino");
 const slotMachine = document.querySelector("#slot-machine");
+const casinoMarquee = document.querySelector("#casino-marquee");
+const casinoLogo = document.querySelector("#casino-logo");
 const casinoCanvas = document.querySelector("#casino-canvas");
 const casinoLoading = document.querySelector("#casino-loading");
 const casinoReelFallback = document.querySelector("#casino-reel-fallback");
@@ -296,6 +331,12 @@ const casinoResult = document.querySelector("#casino-result");
 const casinoResultFlash = document.querySelector("#casino-result-flash");
 const casinoTokenBalanceElement = document.querySelector(
   "#casino-token-balance",
+);
+const casinoChipBalance = document.querySelector("#casino-chip-balance");
+const casinoChipRule = document.querySelector("#casino-chip-rule");
+const casinoGiftRule = document.querySelector("#casino-gift-rule");
+const casinoGiftRuleFallback = document.querySelector(
+  "#casino-gift-rule-fallback",
 );
 const casinoTokenStorageNote = document.querySelector(
   "#casino-token-storage-note",
@@ -344,6 +385,12 @@ const achievementsCount = document.querySelector("#achievements-count");
 const achievementsProgress = document.querySelector("#achievements-progress");
 const achievementSlots = document.querySelectorAll(".achievement-slot");
 const achievementsScreen = document.querySelector("#achievements-screen");
+const achievementsBackgroundPortrait = document.querySelector(
+  "#achievements-background-portrait",
+);
+const achievementsBackgroundImage = document.querySelector(
+  "#achievements-background-image",
+);
 const achievementsCanvas = document.querySelector("#achievements-canvas");
 const achievementsLoading = document.querySelector("#achievements-loading");
 const achievementCompletePlaque = document.querySelector(
@@ -1167,6 +1214,141 @@ function readCasinoPalette() {
   };
 }
 
+function loadCasinoSymbolImage(symbol) {
+  // Decode each local reel illustration once and keep its character fallback.
+  if (casinoSymbolImageCache.has(symbol.imageSource)) {
+    return casinoSymbolImageCache.get(symbol.imageSource);
+  }
+
+  const image = new Image();
+  image.decoding = "async";
+  const ready = new Promise((resolveImage) => {
+    image.addEventListener("load", () => resolveImage(image), { once: true });
+    image.addEventListener("error", () => resolveImage(null), { once: true });
+  }).then(async (loadedImage) => {
+    if (loadedImage === null) {
+      return null;
+    }
+
+    if (typeof loadedImage.decode === "function") {
+      try {
+        await loadedImage.decode();
+      } catch {
+        // A completed load remains usable if decode() is unavailable or fails.
+      }
+    }
+
+    loadedCasinoSymbolImages.set(symbol.imageSource, loadedImage);
+    return loadedImage;
+  });
+
+  casinoSymbolImageCache.set(symbol.imageSource, ready);
+  image.src = symbol.imageSource;
+  return ready;
+}
+
+function renderFallbackSymbol(reel, symbol) {
+  // Reuse the delivered art in HTML mode without sacrificing text fallback.
+  const loadedImage = loadedCasinoSymbolImages.get(symbol.imageSource);
+  if (loadedImage === undefined) {
+    reel.replaceChildren();
+    reel.textContent = symbol.character;
+    return;
+  }
+
+  const image = document.createElement("img");
+  image.className = "fallback-reel-image";
+  image.src = symbol.imageSource;
+  image.alt = "";
+  image.width = 1254;
+  image.height = 1254;
+  image.setAttribute("aria-hidden", "true");
+  reel.textContent = "";
+  reel.replaceChildren(image);
+}
+
+function renderFallbackOutcome(symbols) {
+  for (let reelIndex = 0; reelIndex < fallbackReels.length; reelIndex += 1) {
+    renderFallbackSymbol(fallbackReels[reelIndex], symbols[reelIndex]);
+  }
+}
+
+function currentFallbackOutcome() {
+  if (pendingCasinoOutcome.length === fallbackReels.length) {
+    return pendingCasinoOutcome;
+  }
+
+  return INITIAL_REEL_SYMBOL_INDICES.map(
+    (symbolIndex) => SLOT_SYMBOLS[symbolIndex],
+  );
+}
+
+function requestDeferredCasinoImage(image, onReady) {
+  // Reveal decorative HTML art only after its local PNG has loaded.
+  const source = image.dataset.src;
+  if (typeof source !== "string" || source.length === 0) {
+    return;
+  }
+
+  image.addEventListener(
+    "load",
+    () => {
+      image.hidden = false;
+      onReady();
+    },
+    { once: true },
+  );
+  image.addEventListener(
+    "error",
+    () => {
+      image.hidden = true;
+    },
+    { once: true },
+  );
+  image.src = source;
+}
+
+function initializeCasinoArt() {
+  // Keep every new casino PNG out of the initial page request.
+  if (!casinoArtInitialized) {
+    casinoArtInitialized = true;
+    requestDeferredCasinoImage(casinoLogo, () => {
+      casinoMarquee.classList.add("is-logo-ready");
+    });
+    requestDeferredCasinoImage(casinoChipBalance, () => {});
+    requestDeferredCasinoImage(casinoChipRule, () => {});
+    requestDeferredCasinoImage(casinoGiftRule, () => {
+      casinoGiftRuleFallback.hidden = true;
+    });
+    casinoSymbolImagesPromise = Promise.all(
+      SLOT_SYMBOLS.map((symbol) => loadCasinoSymbolImage(symbol)),
+    );
+    void casinoSymbolImagesPromise.then(() => {
+      renderFallbackOutcome(currentFallbackOutcome());
+    });
+  }
+
+  return casinoSymbolImagesPromise;
+}
+
+function initializeAchievementsBackground() {
+  // Let the browser request only the orientation selected on first gallery use.
+  if (achievementsBackgroundInitialized) {
+    return;
+  }
+
+  achievementsBackgroundInitialized = true;
+  achievementsBackgroundImage.addEventListener("load", () => {
+    achievementsScreen.classList.add("is-background-ready");
+  });
+  achievementsBackgroundImage.addEventListener("error", () => {
+    achievementsScreen.classList.remove("is-background-ready");
+  });
+  achievementsBackgroundPortrait.srcset =
+    achievementsBackgroundPortrait.dataset.srcset;
+  achievementsBackgroundImage.src = achievementsBackgroundImage.dataset.src;
+}
+
 function load3DModule() {
   // Share the one pinned local Three.js presentation module between both views.
   if (shared3DModulePromise === null) {
@@ -1184,6 +1366,7 @@ function showCasinoFallback() {
   slotMachine.classList.remove("is-loading", "is-ready");
   slotMachine.classList.add("is-fallback");
   casinoReelFallback.hidden = false;
+  renderFallbackOutcome(currentFallbackOutcome());
   casinoLoading.textContent = "modo 3D indisponível; usando rolos simples.";
   renderCasinoTokens();
 }
@@ -1205,17 +1388,22 @@ function syncCasino3DVisibility(view = casino3D) {
 
 async function ensureCasino3D() {
   // Initialize the casino scene only on its first opening.
+  const symbolImagesReady = initializeCasinoArt();
   if (casino3D !== null || casino3DFailed) {
     return casino3D;
   }
 
   if (casino3DLoadPromise === null) {
-    casino3DLoadPromise = load3DModule()
-      .then(({ createCasino3D }) => {
+    casino3DLoadPromise = Promise.all([
+      load3DModule(),
+      symbolImagesReady,
+    ])
+      .then(([{ createCasino3D }, symbolImages]) => {
         casino3D = createCasino3D({
           canvas: casinoCanvas,
           palette: readCasinoPalette(),
           symbols: SLOT_SYMBOLS.map((symbol) => symbol.character),
+          symbolImages,
           prizes: CASINO_PRIZES,
           initialIndices: INITIAL_REEL_SYMBOL_INDICES,
           reducedMotion: reducedMotionMediaQuery.matches,
@@ -1363,6 +1551,7 @@ function openCasino() {
   }
 
   casinoIsOpen = true;
+  void initializeCasinoArt();
   renderCasinoTokens();
 
   if (
@@ -1451,6 +1640,7 @@ function openAchievements() {
     achievementsDialog.showModal();
   }
 
+  initializeAchievementsBackground();
   void ensureAchievements3D().then(() => {
     achievements3D?.setVisible(!document.hidden);
     achievements3D?.resize();
@@ -1691,10 +1881,7 @@ async function startCasinoSpin() {
     }
   } else {
     // Render the authoritative result in the functional HTML fallback.
-    for (let reelIndex = 0; reelIndex < fallbackReels.length; reelIndex += 1) {
-      fallbackReels[reelIndex].textContent =
-        pendingCasinoOutcome[reelIndex].character;
-    }
+    renderFallbackOutcome(pendingCasinoOutcome);
     await waitForCasinoAnimation(
       reducedMotion ? 0 : Math.max(...CASINO_REEL_DURATIONS_MS),
     );
