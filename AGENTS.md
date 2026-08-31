@@ -125,6 +125,7 @@
   - `1.15`: orientation-aware Gojo finale CG shown only after the fifth correct classroom answer.
   - `1.16`: removed the one-chip refund result, leaving six reel faces, 12.5% achievements, 87.5% ordinary losses, and dialogue-overlapped Gojo pose framing.
   - `1.17`: local nanaBet logo, illustrated chip and reel symbols, plus orientation-aware achievement-room backgrounds with lazy loading and fallbacks.
+  - `1.18`: constrained illustrated chip and legend icons in both dimensions so their compact panels no longer stretch across the viewport.
 - Update the footer version, patch notes, and this mapping together for each future user-visible release.
 
 ## Architecture and Delivery

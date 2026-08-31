@@ -219,7 +219,7 @@ function createPageHarness(options = {}) {
     }
   }
   const releaseEntries = Array.from(
-    { length: 27 },
+    { length: 28 },
     (_, index) => new FakeElement("release-" + index),
   );
   const audio = new FakeElement("casino-music");
@@ -426,7 +426,7 @@ async function settleMicrotasks() {
   }
 }
 
-test("static page exposes the version 1.17 full-screen experience", async () => {
+test("static page exposes the version 1.18 full-screen experience", async () => {
   // Verify deployment markup and all required native controls.
   const html = await readFile(resolve(projectRoot, "index.html"), "utf8");
   assert.match(html, /href="styles\.css"/);
@@ -436,7 +436,7 @@ test("static page exposes the version 1.17 full-screen experience", async () => 
   assert.match(html, /id="casino-jackpot-continue"/);
   assert.match(html, /id="achievements-canvas"/);
   assert.match(html, /id="toggle-casino-music"/);
-  assert.match(html, /versão 1\.17/);
+  assert.match(html, /versão 1\.18/);
   assert.match(html, /id="casino-title" aria-label="nanaBet"/);
   assert.match(html, /id="casino-logo"/);
   assert.match(html, /id="casino-chip-balance"/);
@@ -484,7 +484,7 @@ test("static page exposes the version 1.17 full-screen experience", async () => 
   assert.match(html, /GANHAR FICHAS NA AULA/);
   assert.equal((html.match(/class="classroom-answer"/g) ?? []).length, 3);
   assert.equal((html.match(/data-prize-id=/g) ?? []).length, 5);
-  assert.equal((html.match(/class="release-entry"/g) ?? []).length, 27);
+  assert.equal((html.match(/class="release-entry"/g) ?? []).length, 28);
   assert.ok(
     html.indexOf('<div class="casino-audio-controls"') <
       html.indexOf('<div class="casino-control-deck">'),
@@ -1693,13 +1693,13 @@ test("secret patch notes paginate three releases and support P toggling", async 
   const harness = await loadHarness();
   assert.deepEqual(
     harness.releaseEntries.map((entry) => entry.hidden),
-    [false, false, false, ...Array(24).fill(true)],
+    [false, false, false, ...Array(25).fill(true)],
   );
-  assert.equal(harness.elements.get("#release-page-status").textContent, "1/9");
+  assert.equal(harness.elements.get("#release-page-status").textContent, "1/10");
   vm.runInContext("changeReleasePage(1)", harness.context);
   assert.deepEqual(
     harness.releaseEntries.map((entry) => entry.hidden),
-    [true, true, true, false, false, false, ...Array(21).fill(true)],
+    [true, true, true, false, false, false, ...Array(22).fill(true)],
   );
 
   const shortcut = {
@@ -1733,7 +1733,14 @@ test("CSS keeps colors centralized and every screen viewport-bound", async () =>
   assert.match(css, /\.classroom-background,[\s\S]*?position:\s*absolute/);
   assert.match(css, /\.classroom-background img\s*\{[\s\S]*?object-fit:\s*cover/);
   assert.match(css, /\.casino-logo\s*\{[\s\S]*?object-fit:\s*contain/);
-  assert.match(css, /\.casino-chip-icon\s*\{[\s\S]*?object-fit:\s*contain/);
+  assert.match(
+    css,
+    /\.casino-chip-icon\s*\{[\s\S]*?width:\s*clamp\(1\.15rem, 3\.2vmin, 2rem\);[\s\S]*?height:\s*clamp\(1\.15rem, 3\.2vmin, 2rem\);[\s\S]*?object-fit:\s*contain/,
+  );
+  assert.match(
+    css,
+    /\.casino-rule-icon,[\s\S]*?width:\s*clamp\(0\.8rem, 2vmin, 1\.15rem\);[\s\S]*?height:\s*clamp\(0\.8rem, 2vmin, 1\.15rem\);[\s\S]*?object-fit:\s*contain/,
+  );
   assert.match(
     css,
     /\.achievements-background\s*\{[\s\S]*?position:\s*absolute;[\s\S]*?pointer-events:\s*none/,

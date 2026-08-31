@@ -631,6 +631,7 @@ h1 {
 .casino-chip-icon {
   display: block;
   width: clamp(1.15rem, 3.2vmin, 2rem);
+  height: clamp(1.15rem, 3.2vmin, 2rem);
   aspect-ratio: 1;
   object-fit: contain;
 }
@@ -862,6 +863,7 @@ h1 {
 .casino-rule-icon-fallback {
   display: block;
   width: clamp(0.8rem, 2vmin, 1.15rem);
+  height: clamp(0.8rem, 2vmin, 1.15rem);
   aspect-ratio: 1;
   flex: 0 0 auto;
   object-fit: contain;
