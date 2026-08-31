@@ -671,11 +671,15 @@ function initializeClassroomArt() {
   }
 }
 
-async function showClassroomPose(poseId) {
+async function showClassroomPose(poseId, { animate = true } = {}) {
   // Keep the previous decoded pose visible until the requested one is ready.
   initializeClassroomArt();
   const requestId = ++classroomPoseRequestId;
   const hasVisiblePose = classroomCharacter.classList.contains("is-visible");
+
+  if (!animate) {
+    classroomCharacter.classList.remove("is-entering");
+  }
 
   if (!hasVisiblePose) {
     classroomArtStatus.textContent = "preparando a arte da aula...";
@@ -693,10 +697,10 @@ async function showClassroomPose(poseId) {
     classroomCharacter.src = loadedImage.src;
     classroomCharacter.dataset.pose = poseId;
     classroomCharacter.classList.remove("is-entering");
-    void classroomCharacter.offsetWidth;
     classroomCharacter.classList.add("is-visible");
 
-    if (!reducedMotionMediaQuery.matches) {
+    if (animate && !reducedMotionMediaQuery.matches) {
+      void classroomCharacter.offsetWidth;
       classroomCharacter.classList.add("is-entering");
     }
 
@@ -731,7 +735,6 @@ function loadClassroomFinaleArt() {
       () => rejectImage(new Error("Falha ao carregar a CG final")),
       { once: true },
     );
-    classroomFinale.hidden = false;
     classroomFinalePortrait.srcset =
       classroomFinalePortrait.dataset.srcset;
     classroomFinaleImage.src = classroomFinaleImage.dataset.src;
@@ -749,12 +752,21 @@ function loadClassroomFinaleArt() {
   return classroomFinaleLoadPromise;
 }
 
-async function showClassroomFinale() {
+function waitForClassroomPaint() {
+  // Give the hidden decoded CG two painted frames before starting its fade.
+  return new Promise((resolvePaint) => {
+    window.requestAnimationFrame(() => {
+      window.requestAnimationFrame(resolvePaint);
+    });
+  });
+}
+
+async function showClassroomFinale(rewardPoseReady = Promise.resolve()) {
   // Keep the reward sprite visible until the full-scene CG is decoded.
   const requestId = ++classroomFinaleRequestId;
 
   try {
-    await loadClassroomFinaleArt();
+    await Promise.all([rewardPoseReady, loadClassroomFinaleArt()]);
 
     if (
       requestId !== classroomFinaleRequestId ||
@@ -764,10 +776,21 @@ async function showClassroomFinale() {
       return false;
     }
 
-    classroomFinale.hidden = false;
     classroomFinale.classList.remove("is-visible");
-    void classroomFinale.offsetWidth;
-    classroomScreen.classList.add("is-finale");
+    classroomFinale.hidden = false;
+
+    if (!reducedMotionMediaQuery.matches) {
+      await waitForClassroomPaint();
+
+      if (
+        requestId !== classroomFinaleRequestId ||
+        !classroomDialog.open ||
+        classroomPhase !== "reward"
+      ) {
+        return false;
+      }
+    }
+
     classroomFinale.classList.add("is-visible");
     classroomArtStatus.hidden = true;
     return true;
@@ -938,8 +961,9 @@ function handleClassroomAnswer(answerButton) {
   if (classroomQuestionIndex === CLASSROOM_QUESTION_COUNT - 1) {
     classroomPhase = "reward";
     classroomProgress.textContent = "aula concluída · 5/5";
-    void showClassroomPose("reward");
-    void showClassroomFinale();
+    classroomScreen.classList.add("is-finale");
+    const rewardPoseReady = showClassroomPose("reward", { animate: false });
+    void showClassroomFinale(rewardPoseReady);
   } else {
     classroomPhase = "correct";
     classroomProgress.textContent =

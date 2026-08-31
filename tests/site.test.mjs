@@ -219,7 +219,7 @@ function createPageHarness(options = {}) {
     }
   }
   const releaseEntries = Array.from(
-    { length: 28 },
+    { length: 29 },
     (_, index) => new FakeElement("release-" + index),
   );
   const audio = new FakeElement("casino-music");
@@ -295,6 +295,8 @@ function createPageHarness(options = {}) {
   fakeMath.random = () => randomValues.shift() ?? 0;
   const timers = new Map();
   let nextTimerId = 1;
+  const animationFrames = new Map();
+  let nextAnimationFrameId = 1;
   const documentListeners = new Map();
   const windowObject = {
     devicePixelRatio: 1,
@@ -312,6 +314,21 @@ function createPageHarness(options = {}) {
     },
     clearTimeout(timerId) {
       timers.delete(timerId);
+    },
+    requestAnimationFrame(callback) {
+      const frameId = nextAnimationFrameId;
+      nextAnimationFrameId += 1;
+
+      if (options.animationFramesAutoRun === false) {
+        animationFrames.set(frameId, callback);
+      } else {
+        callback(0);
+      }
+
+      return frameId;
+    },
+    cancelAnimationFrame(frameId) {
+      animationFrames.delete(frameId);
     },
   };
   const documentObject = {
@@ -381,6 +398,7 @@ function createPageHarness(options = {}) {
 
   return {
     achievementSlots,
+    animationFrames,
     audio,
     classroomAnswerButtons,
     classroomFinaleImage,
@@ -390,6 +408,13 @@ function createPageHarness(options = {}) {
     elements,
     fallbackReels,
     releaseEntries,
+    runAnimationFrame() {
+      const frameEntry = animationFrames.entries().next().value;
+      assert.notEqual(frameEntry, undefined, "animation frame not found");
+      const [frameId, callback] = frameEntry;
+      animationFrames.delete(frameId);
+      callback(0);
+    },
     runTimer(milliseconds) {
       const timerEntry = [...timers.entries()].find(
         ([, timer]) => timer.milliseconds === milliseconds,
@@ -426,7 +451,7 @@ async function settleMicrotasks() {
   }
 }
 
-test("static page exposes the version 1.18 full-screen experience", async () => {
+test("static page exposes the version 1.19 full-screen experience", async () => {
   // Verify deployment markup and all required native controls.
   const html = await readFile(resolve(projectRoot, "index.html"), "utf8");
   assert.match(html, /href="styles\.css"/);
@@ -436,7 +461,7 @@ test("static page exposes the version 1.18 full-screen experience", async () => 
   assert.match(html, /id="casino-jackpot-continue"/);
   assert.match(html, /id="achievements-canvas"/);
   assert.match(html, /id="toggle-casino-music"/);
-  assert.match(html, /versão 1\.18/);
+  assert.match(html, /versão 1\.19/);
   assert.match(html, /id="casino-title" aria-label="nanaBet"/);
   assert.match(html, /id="casino-logo"/);
   assert.match(html, /id="casino-chip-balance"/);
@@ -484,7 +509,7 @@ test("static page exposes the version 1.18 full-screen experience", async () => 
   assert.match(html, /GANHAR FICHAS NA AULA/);
   assert.equal((html.match(/class="classroom-answer"/g) ?? []).length, 3);
   assert.equal((html.match(/data-prize-id=/g) ?? []).length, 5);
-  assert.equal((html.match(/class="release-entry"/g) ?? []).length, 28);
+  assert.equal((html.match(/class="release-entry"/g) ?? []).length, 29);
   assert.ok(
     html.indexOf('<div class="casino-audio-controls"') <
       html.indexOf('<div class="casino-control-deck">'),
@@ -1404,6 +1429,10 @@ test("classroom art loads lazily and follows every dialogue context", async () =
     .dispatch("click");
   await settleMicrotasks();
   assert.equal(harness.elements.get("#gojo-character").dataset.pose, "reward");
+  assert.equal(
+    harness.elements.get("#gojo-character").classList.contains("is-entering"),
+    false,
+  );
   assert.equal(harness.elements.get("#classroom-art-status").hidden, true);
   assert.equal(
     harness.elements.get("#classroom-finale-portrait").srcset,
@@ -1422,6 +1451,7 @@ test("classroom art loads lazily and follows every dialogue context", async () =
     harness.elements.get("#classroom-screen").classList.contains("is-finale"),
     true,
   );
+  assert.equal(harness.animationFrames.size, 0);
 
   vm.runInContext("resetClassroomLesson()", harness.context);
   assert.equal(harness.elements.get("#classroom-finale").hidden, true);
@@ -1450,10 +1480,14 @@ test("a failed finale CG keeps the existing reward pose", async () => {
     .dispatch("click");
   await settleMicrotasks();
   assert.equal(harness.elements.get("#gojo-character").dataset.pose, "reward");
-  assert.equal(harness.elements.get("#classroom-finale").hidden, false);
+  assert.equal(harness.elements.get("#classroom-finale").hidden, true);
   assert.equal(
     harness.elements.get("#classroom-finale").classList.contains("is-visible"),
     false,
+  );
+  assert.equal(
+    harness.elements.get("#classroom-screen").classList.contains("is-finale"),
+    true,
   );
 
   harness.classroomFinaleImage.dispatch("error");
@@ -1462,7 +1496,96 @@ test("a failed finale CG keeps the existing reward pose", async () => {
   assert.equal(harness.elements.get("#classroom-finale").hidden, true);
   assert.equal(
     harness.elements.get("#classroom-screen").classList.contains("is-finale"),
+    true,
+  );
+});
+
+test("classroom finale crossfades after decode and two painted frames", async () => {
+  // Keep the stable reward pose visible for slow and cached finale requests.
+  const harness = await loadHarness({
+    savedTokens: 0,
+    finaleAutoLoad: false,
+    reducedMotion: false,
+    animationFramesAutoRun: false,
+  });
+  vm.runInContext(
+    "openCasino(); openClassroom(); classroomQuestionIndex = 4; showClassroomQuestion(); finishClassroomTypewriter()",
+    harness.context,
+  );
+  const finalAnswer = vm.runInContext(
+    "classroomQuestions[4].answer",
+    harness.context,
+  );
+  const answerButton = harness.classroomAnswerButtons.find(
+    (button) => Number(button.dataset.answerValue) === finalAnswer,
+  );
+  answerButton.dispatch("click");
+  await settleMicrotasks();
+
+  assert.equal(harness.elements.get("#gojo-character").dataset.pose, "reward");
+  assert.equal(
+    harness.elements.get("#gojo-character").classList.contains("is-entering"),
     false,
+  );
+  assert.equal(
+    harness.elements.get("#classroom-screen").classList.contains("is-finale"),
+    true,
+  );
+  assert.equal(harness.elements.get("#classroom-finale").hidden, true);
+  assert.equal(harness.animationFrames.size, 0);
+
+  harness.classroomFinaleImage.resolveLoad();
+  await settleMicrotasks();
+  assert.equal(harness.elements.get("#classroom-finale").hidden, false);
+  assert.equal(
+    harness.elements.get("#classroom-finale").classList.contains("is-visible"),
+    false,
+  );
+  assert.equal(harness.animationFrames.size, 1);
+
+  harness.runAnimationFrame();
+  await settleMicrotasks();
+  assert.equal(
+    harness.elements.get("#classroom-finale").classList.contains("is-visible"),
+    false,
+  );
+  assert.equal(harness.animationFrames.size, 1);
+
+  harness.runAnimationFrame();
+  await settleMicrotasks();
+  assert.equal(
+    harness.elements.get("#classroom-finale").classList.contains("is-visible"),
+    true,
+  );
+  assert.equal(harness.animationFrames.size, 0);
+
+  vm.runInContext(
+    "resetClassroomLesson(); classroomQuestions = createClassroomQuestions(); classroomQuestionIndex = 4; showClassroomQuestion(); finishClassroomTypewriter()",
+    harness.context,
+  );
+  const cachedFinalAnswer = vm.runInContext(
+    "classroomQuestions[4].answer",
+    harness.context,
+  );
+  harness.classroomAnswerButtons
+    .find((button) => Number(button.dataset.answerValue) === cachedFinalAnswer)
+    .dispatch("click");
+  await settleMicrotasks();
+
+  assert.equal(harness.elements.get("#classroom-finale").hidden, false);
+  assert.equal(
+    harness.elements.get("#classroom-finale").classList.contains("is-visible"),
+    false,
+  );
+  assert.equal(harness.animationFrames.size, 1);
+
+  harness.runAnimationFrame();
+  await settleMicrotasks();
+  harness.runAnimationFrame();
+  await settleMicrotasks();
+  assert.equal(
+    harness.elements.get("#classroom-finale").classList.contains("is-visible"),
+    true,
   );
 });
 
@@ -1693,13 +1816,13 @@ test("secret patch notes paginate three releases and support P toggling", async 
   const harness = await loadHarness();
   assert.deepEqual(
     harness.releaseEntries.map((entry) => entry.hidden),
-    [false, false, false, ...Array(25).fill(true)],
+    [false, false, false, ...Array(26).fill(true)],
   );
   assert.equal(harness.elements.get("#release-page-status").textContent, "1/10");
   vm.runInContext("changeReleasePage(1)", harness.context);
   assert.deepEqual(
     harness.releaseEntries.map((entry) => entry.hidden),
-    [true, true, true, false, false, false, ...Array(22).fill(true)],
+    [true, true, true, false, false, false, ...Array(23).fill(true)],
   );
 
   const shortcut = {
@@ -1750,10 +1873,18 @@ test("CSS keeps colors centralized and every screen viewport-bound", async () =>
     /\.achievements-background img\s*\{[\s\S]*?object-fit:\s*cover/,
   );
   assert.match(css, /\.classroom-finale\s*\{[\s\S]*?z-index:\s*3/);
+  assert.match(
+    css,
+    /\.classroom-finale\s*\{[\s\S]*?transition:\s*opacity 300ms ease-out;[\s\S]*?will-change:\s*opacity/,
+  );
   assert.match(css, /\.classroom-finale img\s*\{[\s\S]*?object-fit:\s*cover/);
   assert.match(
     css,
     /\.classroom-screen\.is-finale \.classroom-dialogue-box\s*\{[\s\S]*?position:\s*absolute;[\s\S]*?right:[\s\S]*?bottom:/,
+  );
+  assert.match(
+    css,
+    /@media \(orientation:\s*portrait\)\s*\{[\s\S]*?\.classroom-screen\.is-finale \.classroom-dialogue-box\s*\{[\s\S]*?left:[\s\S]*?width:\s*auto;[\s\S]*?justify-self:\s*stretch/,
   );
   assert.match(css, /\.classroom-stage\s*\{[\s\S]*?min-height:\s*0/);
   assert.match(css, /\.gojo-character\s*\{[\s\S]*?object-fit:\s*contain/);

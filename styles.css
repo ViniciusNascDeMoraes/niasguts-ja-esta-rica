@@ -1211,7 +1211,8 @@ h1 {
   overflow: hidden;
   opacity: 0;
   pointer-events: none;
-  transition: opacity 220ms ease-out;
+  transition: opacity 300ms ease-out;
+  will-change: opacity;
 }
 
 .classroom-finale img {
@@ -1354,6 +1355,7 @@ h1 {
     bottom: max(0.35rem, env(safe-area-inset-bottom));
     left: max(0.35rem, env(safe-area-inset-left));
     width: auto;
+    justify-self: stretch;
   }
 }
 
