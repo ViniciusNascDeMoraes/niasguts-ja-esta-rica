@@ -1549,7 +1549,7 @@ function finishCasinoSpin() {
     casinoTokenBalance += 1;
     saveCasinoTokens();
     showCasinoMessage(
-      "a ficha voltou. patrimônio líquido: igual.",
+      "voce ganhou outra ficha",
       "token",
     );
     casino3D?.celebrate("token", reducedMotionMediaQuery.matches);

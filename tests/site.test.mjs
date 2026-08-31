@@ -219,7 +219,7 @@ function createPageHarness(options = {}) {
     }
   }
   const releaseEntries = Array.from(
-    { length: 23 },
+    { length: 24 },
     (_, index) => new FakeElement("release-" + index),
   );
   const audio = new FakeElement("casino-music");
@@ -400,7 +400,7 @@ async function settleMicrotasks() {
   }
 }
 
-test("static page exposes the version 1.13 full-screen experience", async () => {
+test("static page exposes the version 1.14 full-screen experience", async () => {
   // Verify deployment markup and all required native controls.
   const html = await readFile(resolve(projectRoot, "index.html"), "utf8");
   assert.match(html, /href="styles\.css"/);
@@ -410,7 +410,7 @@ test("static page exposes the version 1.13 full-screen experience", async () => 
   assert.match(html, /id="casino-jackpot-continue"/);
   assert.match(html, /id="achievements-canvas"/);
   assert.match(html, /id="toggle-casino-music"/);
-  assert.match(html, /versão 1\.13/);
+  assert.match(html, /versão 1\.14/);
   assert.match(html, /id="casino-title">nanaBet<\/h2>/);
   assert.match(html, /class="casino-chip-mark"/);
   assert.match(html, /id="casino-result-flash"/);
@@ -424,7 +424,7 @@ test("static page exposes the version 1.13 full-screen experience", async () => 
   assert.match(html, /GANHAR FICHAS NA AULA/);
   assert.equal((html.match(/class="classroom-answer"/g) ?? []).length, 3);
   assert.equal((html.match(/data-prize-id=/g) ?? []).length, 5);
-  assert.equal((html.match(/class="release-entry"/g) ?? []).length, 23);
+  assert.equal((html.match(/class="release-entry"/g) ?? []).length, 24);
   assert.ok(
     html.indexOf('<div class="casino-audio-controls"') <
       html.indexOf('<div class="casino-control-deck">'),
@@ -438,6 +438,8 @@ test("static page exposes the version 1.13 full-screen experience", async () => 
   assert.doesNotMatch(html, /A BANCA SEMPRE TOMA O CAFÉ/i);
   assert.doesNotMatch(html, /MINIGAME EM BREVE/i);
   assert.doesNotMatch(html, /ARTE DO GOJO EM PRODUÇÃO/);
+  assert.doesNotMatch(html, /reforço da nanaBet/i);
+  assert.doesNotMatch(html, /classroom-kicker/);
   assert.doesNotMatch(html, /coraç/i);
   assert.doesNotMatch(html, /<style>/);
 });
@@ -824,6 +826,12 @@ test("chip debit and exclusive payouts produce the intended net balance", async 
       harness.storage.get("niasguts-casino-fichas-v1"),
       String(scenario.expectedBalance),
     );
+    if (scenario.expectedType === "refund") {
+      assert.equal(
+        harness.elements.get("#casino-result").textContent,
+        "voce ganhou outra ficha",
+      );
+    }
   }
 });
 
@@ -916,7 +924,7 @@ test("ordinary casino messages replace one centered two-second card", async () =
   const messages = [
     ["pronta para tentar?", "default"],
     ["os rolos estão girando...", "spinning"],
-    ["a ficha voltou. patrimônio líquido: igual.", "token"],
+    ["voce ganhou outra ficha", "token"],
     ["a banca venceu. continua não rica.", "loss"],
   ];
 
@@ -1398,13 +1406,13 @@ test("secret patch notes paginate three releases and support P toggling", async 
   const harness = await loadHarness();
   assert.deepEqual(
     harness.releaseEntries.map((entry) => entry.hidden),
-    [false, false, false, ...Array(20).fill(true)],
+    [false, false, false, ...Array(21).fill(true)],
   );
   assert.equal(harness.elements.get("#release-page-status").textContent, "1/8");
   vm.runInContext("changeReleasePage(1)", harness.context);
   assert.deepEqual(
     harness.releaseEntries.map((entry) => entry.hidden),
-    [true, true, true, false, false, false, ...Array(17).fill(true)],
+    [true, true, true, false, false, false, ...Array(18).fill(true)],
   );
 
   const shortcut = {
@@ -1441,6 +1449,34 @@ test("CSS keeps colors centralized and every screen viewport-bound", async () =>
   assert.match(css, /\.gojo-character\s*\{[\s\S]*?object-fit:\s*contain/);
   assert.match(css, /\.classroom-dialogue-box\s*\{[\s\S]*?overflow:\s*hidden/);
   assert.doesNotMatch(css, /\.gojo-placeholder/);
+  assert.doesNotMatch(css, /\.classroom-kicker/);
+  assert.match(
+    css,
+    /\.classroom-speaker\s*\{[\s\S]*?font-size:\s*clamp\(0\.72rem, 2vmin, 1rem\)/,
+  );
+  assert.match(
+    css,
+    /\.classroom-dialogue-text\s*\{[\s\S]*?font-size:\s*clamp\(0\.88rem, 2\.5vmin, 1\.25rem\)/,
+  );
+  assert.match(
+    css,
+    /\.classroom-answer,[\s\S]*?\.classroom-continue\s*\{[\s\S]*?font-size:\s*clamp\(0\.85rem, 2\.25vmin, 1\.125rem\)/,
+  );
+  const shortLandscapeCss = css.slice(
+    css.indexOf("@media (max-height: 34rem) and (min-width: 34.01rem)"),
+  );
+  assert.match(
+    shortLandscapeCss,
+    /\.classroom-speaker\s*\{[\s\S]*?font-size:\s*clamp\(0\.58rem, 2\.25dvh, 0\.73rem\)/,
+  );
+  assert.match(
+    shortLandscapeCss,
+    /\.classroom-dialogue-text\s*\{[\s\S]*?font-size:\s*clamp\(0\.68rem, 2\.75dvh, 0\.85rem\)/,
+  );
+  assert.match(
+    shortLandscapeCss,
+    /\.classroom-answer,[\s\S]*?\.classroom-continue\s*\{[\s\S]*?font-size:\s*clamp\(0\.6rem, 2\.4dvh, 0\.75rem\)/,
+  );
   assert.match(css, /\.slot-lever\s*\{[\s\S]*?width:\s*1px/);
   assert.match(css, /\.slot-lever\s*\{[\s\S]*?pointer-events:\s*none/);
   assert.match(
@@ -1492,6 +1528,8 @@ test("casino source has one font-independent chip and no double payout", async (
   assert.match(applicationSource, /character: "FICHA", label: "ficha"/);
   assert.match(applicationSource, /name: "pé da prima do vaper", modelId: "foot"/);
   assert.match(applicationSource, /niasguts-casino-bait-v1/);
+  assert.match(applicationSource, /"voce ganhou outra ficha"/);
+  assert.doesNotMatch(applicationSource, /patrimônio líquido/);
   assert.doesNotMatch(applicationSource, /🪙/u);
   assert.doesNotMatch(applicationSource, /CASINO_DOUBLE_SYMBOL/);
   assert.doesNotMatch(applicationSource, /pendingCasinoOutcomeType === "double"/);

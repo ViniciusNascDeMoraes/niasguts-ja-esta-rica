@@ -42,7 +42,7 @@
 - After the guaranteed first result, resolve each spin from one exclusive roll: 50% returns one chip, 12.5% lands a mystery-gift achievement, and 37.5% is an ordinary loss. Keep ordinary losses free of matching triples.
 - When the balance reaches zero, disable the lever and show `SEM FICHAS` with the `GANHAR FICHAS NA AULA` button. Do not add a reset or emergency chip path.
 - Award `esposa do nenepira`, `pé da prima do vaper`, `bólos`, `350 reais`, and `lanche do subway` only through mystery-gift triples. Keep the stable `prima-vaper` saved ID. Award locked prizes before repeats; allow repeats only after all five are unlocked.
-- Show ready, spinning, refunded-chip, and ordinary-loss messages in a centered non-blocking HTML card for two seconds, then retain the same text in the compact bottom result panel. Do not use jackpot effects for these messages.
+- Show ready, spinning, refunded-chip, and ordinary-loss messages in a centered non-blocking HTML card for two seconds, then retain the same text in the compact bottom result panel. Use exactly `voce ganhou outra ficha` for a refunded chip. Do not use jackpot effects for these messages.
 - Keep the three-line symbol legend in a compact square at the lower right, separate from the result panel and lever.
 - Build a procedural chibi tiger opposite the lever with exactly two eyes, visible inner ears, two short forehead stripes, and four cheek-only whiskers. Do not add smile strokes or hair-like geometry below its nose. Dance at 30 fps only while the casino is visible, use a stronger victory dance during jackpots, and keep it static under reduced motion.
 - Keep jackpot UI blocking until `CONTINUAR` or `Escape`. Show a large crisp title, the prize name, new/repeat badge, flash, rays, confetti, pooled 3D particles, cabinet lights, tiger celebration, and the enlarged matching 3D prize.
@@ -68,6 +68,7 @@
 - Completing all five questions unlocks one guarded `RECEBER 5 FICHAS` action. Add exactly five chips to the existing persistent casino balance, then reopen the casino with the reward message emphasized.
 - Closing with the dialog button or `Escape` awards nothing, returns to the zero-chip casino, and resets the lesson. Allow another fresh lesson whenever the balance later reaches zero.
 - Render dialogue with a 28-millisecond visual typewriter. Enter, Space, or a click finishes the current line before advancing. Announce only the complete line to assistive technology and show text immediately under reduced motion.
+- Keep the speaker name, dialogue, answer choices, and continue button about 25% larger than their original presentation. Leave the classroom title and progress text compact.
 - Do not add lesson persistence, music, or sound effects. Keep the classroom within the same viewport containment requirements as every other dialog.
 
 ## Achievements
@@ -112,6 +113,7 @@
   - `1.11`: prominent ordinary-result cards, lower-right legend, one-time guaranteed first prize, and the procedural `pé da prima do vaper` model.
   - `1.12`: zero-chip Gojo visual-novel lesson, five generated math questions, five-chip reward, and artist briefing for the future local artwork.
   - `1.13`: local orientation-aware classroom artwork, six contextual Gojo poses, and removal of the two hair-like strokes below the tiger's nose.
+  - `1.14`: removed classroom kicker, simplified the refunded-chip message, and enlarged visual-novel reading and action text.
 - Update the footer version, patch notes, and this mapping together for each future user-visible release.
 
 ## Architecture and Delivery
