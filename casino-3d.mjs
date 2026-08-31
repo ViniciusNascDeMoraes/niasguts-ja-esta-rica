@@ -214,61 +214,13 @@ function createSymbolTexture(
   context.ellipse(132, 92, 106, 66, -0.3, 0, FULL_TURN_RADIANS);
   context.fill();
 
-  if (character === "FICHA") {
-    const chipCenter = 192;
-    const chipOuterRadius = 122;
-    const chipRingRadius = 88;
-    const chipCenterRadius = 60;
-    context.fillStyle = palette.hairBlonde;
-    context.strokeStyle = palette.navyDeep;
-    context.lineWidth = 12;
-    context.beginPath();
-    context.arc(
-      chipCenter,
-      chipCenter,
-      chipOuterRadius,
-      0,
-      FULL_TURN_RADIANS,
-    );
-    context.fill();
-    context.stroke();
-    context.strokeStyle = palette.hairPinkDark;
-    context.lineWidth = 15;
-    context.setLineDash([18, 12]);
-    context.beginPath();
-    context.arc(
-      chipCenter,
-      chipCenter,
-      chipRingRadius,
-      0,
-      FULL_TURN_RADIANS,
-    );
-    context.stroke();
-    context.setLineDash([]);
-    context.fillStyle = palette.hairBlondeSoft;
-    context.beginPath();
-    context.arc(
-      chipCenter,
-      chipCenter,
-      chipCenterRadius,
-      0,
-      FULL_TURN_RADIANS,
-    );
-    context.fill();
-    context.fillStyle = palette.navyDeep;
-    context.font = '900 112px "Arial Rounded MT Bold", "Trebuchet MS", sans-serif';
-    context.textAlign = "center";
-    context.textBaseline = "middle";
-    context.fillText("1", chipCenter, chipCenter + 7);
-  } else {
-    context.fillStyle = palette.navyDeep;
-    context.font = character === "7"
-      ? '900 245px "Arial Rounded MT Bold", "Trebuchet MS", sans-serif'
-      : '220px "Segoe UI Emoji", "Apple Color Emoji", sans-serif';
-    context.textAlign = "center";
-    context.textBaseline = "middle";
-    context.fillText(character, 192, 205);
-  }
+  context.fillStyle = palette.navyDeep;
+  context.font = character === "7"
+    ? '900 245px "Arial Rounded MT Bold", "Trebuchet MS", sans-serif'
+    : '220px "Segoe UI Emoji", "Apple Color Emoji", sans-serif';
+  context.textAlign = "center";
+  context.textBaseline = "middle";
+  context.fillText(character, 192, 205);
 
   const texture = new THREE.CanvasTexture(textureCanvas);
   texture.colorSpace = THREE.SRGBColorSpace;
@@ -1069,7 +1021,6 @@ function buildCasinoModel(
     palette.hairPinkSoft,
     palette.shirt,
     palette.hairBlondeSoft,
-    palette.skirtBlueSoft,
   ];
   const symbolAngle = FULL_TURN_RADIANS / symbols.length;
 
@@ -1737,7 +1688,7 @@ export function createCasino3D(options) {
   }
 
   function spinTo(targetIndices, animationOptions) {
-    // Rotate the physical seven-face reels to the page's authoritative result.
+    // Rotate the physical reels to the page's authoritative result.
     const { durations, fullTurns, reducedMotion: skipMotion } = animationOptions;
     if (spinState !== null) {
       return Promise.reject(new Error("A casino spin is already running."));
@@ -1790,7 +1741,7 @@ export function createCasino3D(options) {
     celebrationState = {
       startedAt: performance.now(),
       duration: kind === "prize" ? 1100 : 520,
-      strength: kind === "token" ? 0.8 : 0.25,
+      strength: 0.25,
     };
     requestFrame();
   }

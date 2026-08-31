@@ -31,12 +31,7 @@ const CASINO_NORMAL_SYMBOLS = [
   { character: "7", label: "sete" },
 ];
 const CASINO_PRIZE_SYMBOL = { character: "🎁", label: "presente" };
-const CASINO_REFUND_SYMBOL = { character: "FICHA", label: "ficha" };
-const SLOT_SYMBOLS = [
-  ...CASINO_NORMAL_SYMBOLS,
-  CASINO_PRIZE_SYMBOL,
-  CASINO_REFUND_SYMBOL,
-];
+const SLOT_SYMBOLS = [...CASINO_NORMAL_SYMBOLS, CASINO_PRIZE_SYMBOL];
 const CASINO_PRIZES = [
   { id: "esposa-nenepira", name: "esposa do nenepira", modelId: "ring" },
   { id: "prima-vaper", name: "pé da prima do vaper", modelId: "foot" },
@@ -53,7 +48,6 @@ const CASINO_REEL_FULL_TURNS = [5, 6, 7];
 const CASINO_REEL_DURATIONS_MS = [1400, 1750, 2100];
 const CASINO_SETTLE_DELAY_MS = 180;
 const CASINO_RESULT_FLASH_DURATION_MS = 2000;
-const CASINO_REFUND_CHANCE = 0.5;
 const CASINO_PRIZE_CHANCE = 0.125;
 const CLASSROOM_QUESTION_COUNT = 5;
 const CLASSROOM_REWARD_TOKENS = 5;
@@ -1579,13 +1573,7 @@ function chooseCasinoOutcome() {
 
   const outcomeRoll = Math.random();
 
-  if (outcomeRoll < CASINO_REFUND_CHANCE) {
-    pendingCasinoOutcomeType = "refund";
-    pendingCasinoOutcome = Array(3).fill(CASINO_REFUND_SYMBOL);
-    return;
-  }
-
-  if (outcomeRoll < CASINO_REFUND_CHANCE + CASINO_PRIZE_CHANCE) {
+  if (outcomeRoll < CASINO_PRIZE_CHANCE) {
     pendingCasinoOutcomeType = "prize";
     pendingCasinoOutcome = Array(3).fill(CASINO_PRIZE_SYMBOL);
     const lockedPrizes = CASINO_PRIZES.filter(
@@ -1626,18 +1614,6 @@ function finishCasinoSpin() {
   slotMachine.classList.remove("is-spinning");
   slotMachine.setAttribute("aria-busy", "false");
   casinoResult.classList.remove("is-prize", "is-token");
-
-  if (pendingCasinoOutcomeType === "refund") {
-    casinoTokenBalance += 1;
-    saveCasinoTokens();
-    showCasinoMessage(
-      "voce ganhou outra ficha",
-      "token",
-    );
-    casino3D?.celebrate("token", reducedMotionMediaQuery.matches);
-    renderCasinoTokens();
-    return;
-  }
 
   if (pendingCasinoOutcomeType === "prize" && pendingCasinoPrize !== null) {
     const isNewPrize = !unlockedAchievementIds.has(pendingCasinoPrize.id);
@@ -1714,19 +1690,10 @@ async function startCasinoSpin() {
       );
     }
   } else {
-    // Render the local chip without relying on a system emoji font.
+    // Render the authoritative result in the functional HTML fallback.
     for (let reelIndex = 0; reelIndex < fallbackReels.length; reelIndex += 1) {
-      const reel = fallbackReels[reelIndex];
-      const symbol = pendingCasinoOutcome[reelIndex];
-      const isChip = symbol === CASINO_REFUND_SYMBOL;
-      reel.classList.toggle("is-chip", isChip);
-      reel.textContent = isChip ? "" : symbol.character;
-
-      if (isChip) {
-        reel.dataset.chipCount = "1";
-      } else {
-        delete reel.dataset.chipCount;
-      }
+      fallbackReels[reelIndex].textContent =
+        pendingCasinoOutcome[reelIndex].character;
     }
     await waitForCasinoAnimation(
       reducedMotion ? 0 : Math.max(...CASINO_REEL_DURATIONS_MS),

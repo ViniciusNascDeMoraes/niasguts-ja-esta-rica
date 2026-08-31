@@ -219,7 +219,7 @@ function createPageHarness(options = {}) {
     }
   }
   const releaseEntries = Array.from(
-    { length: 25 },
+    { length: 26 },
     (_, index) => new FakeElement("release-" + index),
   );
   const audio = new FakeElement("casino-music");
@@ -410,7 +410,7 @@ async function settleMicrotasks() {
   }
 }
 
-test("static page exposes the version 1.15 full-screen experience", async () => {
+test("static page exposes the version 1.16 full-screen experience", async () => {
   // Verify deployment markup and all required native controls.
   const html = await readFile(resolve(projectRoot, "index.html"), "utf8");
   assert.match(html, /href="styles\.css"/);
@@ -420,9 +420,12 @@ test("static page exposes the version 1.15 full-screen experience", async () => 
   assert.match(html, /id="casino-jackpot-continue"/);
   assert.match(html, /id="achievements-canvas"/);
   assert.match(html, /id="toggle-casino-music"/);
-  assert.match(html, /versão 1\.15/);
+  assert.match(html, /versão 1\.16/);
   assert.match(html, /id="casino-title">nanaBet<\/h2>/);
-  assert.match(html, /class="casino-chip-mark"/);
+  assert.match(
+    html,
+    /aria-label="Uma ficha por giro\. O presente libera uma conquista\."/,
+  );
   assert.match(html, /id="casino-result-flash"/);
   assert.match(html, /id="open-classroom"/);
   assert.match(html, /id="classroom-dialog"/);
@@ -445,7 +448,7 @@ test("static page exposes the version 1.15 full-screen experience", async () => 
   assert.match(html, /GANHAR FICHAS NA AULA/);
   assert.equal((html.match(/class="classroom-answer"/g) ?? []).length, 3);
   assert.equal((html.match(/data-prize-id=/g) ?? []).length, 5);
-  assert.equal((html.match(/class="release-entry"/g) ?? []).length, 25);
+  assert.equal((html.match(/class="release-entry"/g) ?? []).length, 26);
   assert.ok(
     html.indexOf('<div class="casino-audio-controls"') <
       html.indexOf('<div class="casino-control-deck">'),
@@ -460,6 +463,8 @@ test("static page exposes the version 1.15 full-screen experience", async () => 
   assert.doesNotMatch(html, /MINIGAME EM BREVE/i);
   assert.doesNotMatch(html, /ARTE DO GOJO EM PRODUÇÃO/);
   assert.doesNotMatch(html, /reforço da nanaBet/i);
+  assert.doesNotMatch(html, /class="casino-chip-mark"/);
+  assert.doesNotMatch(html, /devolve 1/);
   assert.doesNotMatch(html, /classroom-kicker/);
   assert.doesNotMatch(html, /coraç/i);
   assert.doesNotMatch(html, /<style>/);
@@ -674,12 +679,12 @@ test("jackpot prize anchor stays centered and viewport-bound", async () => {
   }
 });
 
-test("all seven reel faces stop exactly on the selected symbol", async () => {
+test("all six reel faces stop exactly on the selected symbol", async () => {
   // Cover every current and target face while preserving backward rotation.
   const casinoModule = await import(
     pathToFileURL(resolve(projectRoot, "casino-3d.mjs")).href
   );
-  const symbolCount = 7;
+  const symbolCount = 6;
   const fullTurn = Math.PI * 2;
   const symbolAngle = fullTurn / symbolCount;
 
@@ -702,15 +707,13 @@ test("all seven reel faces stop exactly on the selected symbol", async () => {
   }
 });
 
-test("one random roll selects the three exact outcome bands", async () => {
+test("one random roll selects the two exact outcome bands", async () => {
   // Assert inclusive lower bounds and exclusive upper bounds.
   const harness = await loadHarness();
   const scenarios = [
-    [0, "refund"],
-    [0.499999, "refund"],
-    [0.5, "prize"],
-    [0.624999, "prize"],
-    [0.625, "loss"],
+    [0, "prize"],
+    [0.124999, "prize"],
+    [0.125, "loss"],
     [0.999999, "loss"],
   ];
 
@@ -803,12 +806,11 @@ test("blocked storage consumes the bait once for the current visit", async () =>
   );
 });
 
-test("chip debit and exclusive payouts produce the intended net balance", async () => {
-  // A refund nets zero while both a prize and a loss net minus one.
+test("every casino outcome spends exactly one chip", async () => {
+  // Both an achievement and an ordinary loss consume the paid spin.
   const scenarios = [
-    { roll: [0.2], expectedBalance: 10, expectedType: "refund" },
-    { roll: [0.55, 0], expectedBalance: 9, expectedType: "prize" },
-    { roll: [0.9, 0, 0.25, 0.5, 0], expectedBalance: 9, expectedType: "loss" },
+    { roll: [0.05, 0], expectedType: "prize" },
+    { roll: [0.125, 0, 0.25, 0.5, 0], expectedType: "loss" },
   ];
 
   for (const scenario of scenarios) {
@@ -821,40 +823,26 @@ test("chip debit and exclusive payouts produce the intended net balance", async 
     );
     assert.equal(
       vm.runInContext("casinoTokenBalance", harness.context),
-      scenario.expectedBalance,
+      9,
     );
     assert.equal(
       harness.storage.get("niasguts-casino-fichas-v1"),
-      String(scenario.expectedBalance),
+      "9",
     );
-    if (scenario.expectedType === "refund") {
-      assert.equal(
-        harness.elements.get("#casino-result").textContent,
-        "voce ganhou outra ficha",
-      );
-    }
   }
 });
 
-test("fallback reels draw one local chip and clear it on the next loss", async () => {
-  // Exercise the font-independent chip path through complete fallback spins.
+test("fallback reels render only the six remaining symbols", async () => {
+  // A complete fallback spin never creates the removed chip marker.
   const harness = await loadHarness({ savedTokens: 5 });
-  harness.setRandomValues([0.2]);
-  await vm.runInContext("startCasinoSpin()", harness.context);
-
-  for (const reel of harness.fallbackReels) {
-    assert.equal(reel.classList.contains("is-chip"), true);
-    assert.equal(reel.dataset.chipCount, "1");
-    assert.equal(reel.textContent, "");
-  }
-
-  harness.setRandomValues([0.9, 0, 0.25, 0.5, 0]);
+  harness.setRandomValues([0.125, 0, 0.25, 0.5, 0]);
   await vm.runInContext("startCasinoSpin()", harness.context);
 
   for (const reel of harness.fallbackReels) {
     assert.equal(reel.classList.contains("is-chip"), false);
     assert.equal("chipCount" in reel.dataset, false);
     assert.notEqual(reel.textContent, "");
+    assert.notEqual(reel.textContent, "FICHA");
   }
 });
 
@@ -884,7 +872,7 @@ test("achievement outcomes award all five locked prizes before repeats", async (
   const harness = await loadHarness({ savedTokens: 20 });
 
   for (let prizeIndex = 0; prizeIndex < prizeIds.length; prizeIndex += 1) {
-    harness.setRandomValues([0.55, 0]);
+    harness.setRandomValues([0.05, 0]);
     await vm.runInContext("startCasinoSpin()", harness.context);
     assert.equal(
       vm.runInContext("unlockedAchievementIds.size", harness.context),
@@ -905,7 +893,7 @@ test("achievement outcomes award all five locked prizes before repeats", async (
     );
   }
 
-  harness.setRandomValues([0.55, 0]);
+  harness.setRandomValues([0.05, 0]);
   await vm.runInContext("startCasinoSpin()", harness.context);
   assert.equal(vm.runInContext("unlockedAchievementIds.size", harness.context), 5);
   assert.equal(
@@ -919,13 +907,12 @@ test("achievement outcomes award all five locked prizes before repeats", async (
 });
 
 test("ordinary casino messages replace one centered two-second card", async () => {
-  // Ready, spinning, refund, and loss feedback share one non-jackpot surface.
+  // Ready, spinning, and loss feedback share one non-jackpot surface.
   const harness = await loadHarness();
   vm.runInContext("casinoIsOpen = true", harness.context);
   const messages = [
     ["pronta para tentar?", "default"],
     ["os rolos estão girando...", "spinning"],
-    ["voce ganhou outra ficha", "token"],
     ["a banca venceu. continua não rica.", "loss"],
   ];
 
@@ -1501,13 +1488,13 @@ test("secret patch notes paginate three releases and support P toggling", async 
   const harness = await loadHarness();
   assert.deepEqual(
     harness.releaseEntries.map((entry) => entry.hidden),
-    [false, false, false, ...Array(22).fill(true)],
+    [false, false, false, ...Array(23).fill(true)],
   );
   assert.equal(harness.elements.get("#release-page-status").textContent, "1/9");
   vm.runInContext("changeReleasePage(1)", harness.context);
   assert.deepEqual(
     harness.releaseEntries.map((entry) => entry.hidden),
-    [true, true, true, false, false, false, ...Array(19).fill(true)],
+    [true, true, true, false, false, false, ...Array(20).fill(true)],
   );
 
   const shortcut = {
@@ -1549,6 +1536,10 @@ test("CSS keeps colors centralized and every screen viewport-bound", async () =>
   assert.match(css, /\.classroom-stage\s*\{[\s\S]*?min-height:\s*0/);
   assert.match(css, /\.gojo-character\s*\{[\s\S]*?object-fit:\s*contain/);
   assert.match(css, /\.classroom-dialogue-box\s*\{[\s\S]*?overflow:\s*hidden/);
+  assert.match(
+    css,
+    /\.classroom-screen:not\(\.is-finale\) \.classroom-dialogue-box\s*\{[\s\S]*?margin-block-start:\s*clamp\(-3\.5rem, -8dvh, -1\.5rem\)/,
+  );
   assert.doesNotMatch(css, /\.gojo-placeholder/);
   assert.doesNotMatch(css, /\.classroom-kicker/);
   assert.match(
@@ -1590,7 +1581,7 @@ test("CSS keeps colors centralized and every screen viewport-bound", async () =>
   assert.doesNotMatch(css, /\.lever-label/);
   assert.doesNotMatch(css, /\.casino-tray/);
   assert.doesNotMatch(css, /\.achievements-kicker/);
-  assert.match(css, /\.fallback-reel\.is-chip::before[\s\S]*?repeating-conic-gradient/);
+  assert.doesNotMatch(css, /casino-chip-mark|fallback-reel\.is-chip/);
   assert.match(
     css,
     /\.slot-machine\.is-ready \.jackpot-flash,[\s\S]*?display:\s*none/,
@@ -1614,8 +1605,8 @@ test("3D source uses centered jackpots, a dancing tiger, and precise lever rayca
   assert.match(source, /name = "jackpot-presentation-stage"/);
   assert.doesNotMatch(source, /prizeRoot\.position\.set/);
   assert.match(source, /new THREE\.Raycaster\(\)/);
-  assert.match(source, /character === "FICHA"/);
-  assert.match(source, /context\.arc\(/);
+  assert.doesNotMatch(source, /character === "FICHA"/);
+  assert.match(source, /context\.fillText\(character, 192, 205\)/);
   assert.match(source, /leverHitMeshes = \[model\.leverArm, model\.leverKnob\]/);
   assert.match(source, /intersectObjects\(leverHitMeshes, false\)/);
   assert.doesNotMatch(source, /leverPivot.*leverHitMeshes/);
@@ -1623,13 +1614,17 @@ test("3D source uses centered jackpots, a dancing tiger, and precise lever rayca
   assert.doesNotMatch(source, /tiger-smile-/);
 });
 
-test("casino source has one font-independent chip and no double payout", async () => {
-  // Guard the simplified seven-face economy and its procedural marker.
+test("casino source has six faces and no refunded-chip outcome", async () => {
+  // Guard the simplified economy while retaining the classroom reward path.
   const applicationSource = await readFile(resolve(projectRoot, "app.js"), "utf8");
-  assert.match(applicationSource, /character: "FICHA", label: "ficha"/);
   assert.match(applicationSource, /name: "pé da prima do vaper", modelId: "foot"/);
   assert.match(applicationSource, /niasguts-casino-bait-v1/);
-  assert.match(applicationSource, /"voce ganhou outra ficha"/);
+  assert.match(applicationSource, /const CASINO_PRIZE_CHANCE = 0\.125/);
+  assert.match(applicationSource, /CLASSROOM_REWARD_TOKENS = 5/);
+  assert.doesNotMatch(applicationSource, /CASINO_REFUND/);
+  assert.doesNotMatch(applicationSource, /character: "FICHA"/);
+  assert.doesNotMatch(applicationSource, /"voce ganhou outra ficha"/);
+  assert.doesNotMatch(applicationSource, /pendingCasinoOutcomeType === "refund"/);
   assert.doesNotMatch(applicationSource, /patrimônio líquido/);
   assert.doesNotMatch(applicationSource, /🪙/u);
   assert.doesNotMatch(applicationSource, /CASINO_DOUBLE_SYMBOL/);

@@ -658,36 +658,6 @@ h1 {
   border-radius: 0.65rem;
 }
 
-.casino-chip-mark,
-.fallback-reel.is-chip::before {
-  display: inline-grid;
-  aspect-ratio: 1;
-  place-items: center;
-  color: var(--navy-deep);
-  font-weight: 1000;
-  line-height: 1;
-  background:
-    radial-gradient(circle, var(--hair-blonde-soft) 0 34%, transparent 35%),
-    repeating-conic-gradient(
-      var(--hair-pink-dark) 0 10deg,
-      var(--hair-blonde) 10deg 30deg
-    );
-  border: 0.1em solid var(--navy-deep);
-  border-radius: 50%;
-  box-shadow: inset 0 0 0 0.11em var(--hair-blonde-soft);
-}
-
-.casino-chip-mark {
-  width: 1.45em;
-  margin-inline: 0.08em;
-  vertical-align: -0.28em;
-}
-
-.fallback-reel.is-chip::before {
-  width: min(58%, 4.8rem);
-  content: attr(data-chip-count);
-}
-
 /* Keyboard-only lever control. Pointer input is handled by WebGL raycasting. */
 .slot-lever {
   position: absolute;
@@ -1292,6 +1262,10 @@ h1 {
   border: 0.15rem solid var(--navy-deep);
   border-radius: clamp(0.65rem, 2vmin, 1rem);
   box-shadow: 0.24rem 0.28rem 0 var(--navy-deep), 0 0 1rem var(--casino-pink-glow);
+}
+
+.classroom-screen:not(.is-finale) .classroom-dialogue-box {
+  margin-block-start: clamp(-3.5rem, -8dvh, -1.5rem);
 }
 
 .classroom-screen.is-finale .classroom-dialogue-box {
