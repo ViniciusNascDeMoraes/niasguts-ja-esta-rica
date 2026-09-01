@@ -219,7 +219,7 @@ function createPageHarness(options = {}) {
     }
   }
   const releaseEntries = Array.from(
-    { length: 29 },
+    { length: 30 },
     (_, index) => new FakeElement("release-" + index),
   );
   const audio = new FakeElement("casino-music");
@@ -267,6 +267,8 @@ function createPageHarness(options = {}) {
   getElement("#achievements-background-image").dataset.src =
     "assets/images/casino/achievements-room-landscape.png";
   getElement("#classroom-finale").hidden = true;
+  getElement("#coffee-oracle-panel").hidden = true;
+  getElement("#toggle-coffee-oracle").setAttribute("aria-expanded", "false");
   getElement("#classroom-background-portrait").dataset.srcset =
     "assets/images/gojo/classroom-portrait.png";
   getElement("#classroom-background-image").dataset.src =
@@ -451,7 +453,7 @@ async function settleMicrotasks() {
   }
 }
 
-test("static page exposes the version 1.19 full-screen experience", async () => {
+test("static page exposes the version 1.20 full-screen experience", async () => {
   // Verify deployment markup and all required native controls.
   const html = await readFile(resolve(projectRoot, "index.html"), "utf8");
   assert.match(html, /href="styles\.css"/);
@@ -461,7 +463,12 @@ test("static page exposes the version 1.19 full-screen experience", async () => 
   assert.match(html, /id="casino-jackpot-continue"/);
   assert.match(html, /id="achievements-canvas"/);
   assert.match(html, /id="toggle-casino-music"/);
-  assert.match(html, /versão 1\.19/);
+  assert.match(html, /versão 1\.20/);
+  assert.match(html, /id="toggle-coffee-oracle"/);
+  assert.match(html, /aria-expanded="false"/);
+  assert.match(html, /aria-controls="coffee-oracle-panel"/);
+  assert.match(html, /id="coffee-oracle-panel"[\s\S]*?hidden/);
+  assert.match(html, /id="coffee-oracle-message"[\s\S]*?aria-live="polite"/);
   assert.match(html, /id="casino-title" aria-label="nanaBet"/);
   assert.match(html, /id="casino-logo"/);
   assert.match(html, /id="casino-chip-balance"/);
@@ -509,7 +516,7 @@ test("static page exposes the version 1.19 full-screen experience", async () => 
   assert.match(html, /GANHAR FICHAS NA AULA/);
   assert.equal((html.match(/class="classroom-answer"/g) ?? []).length, 3);
   assert.equal((html.match(/data-prize-id=/g) ?? []).length, 5);
-  assert.equal((html.match(/class="release-entry"/g) ?? []).length, 29);
+  assert.equal((html.match(/class="release-entry"/g) ?? []).length, 30);
   assert.ok(
     html.indexOf('<div class="casino-audio-controls"') <
       html.indexOf('<div class="casino-control-deck">'),
@@ -529,6 +536,121 @@ test("static page exposes the version 1.19 full-screen experience", async () => 
   assert.doesNotMatch(html, /classroom-kicker/);
   assert.doesNotMatch(html, /coraç/i);
   assert.doesNotMatch(html, /<style>/);
+});
+
+test("coffee oracle provides 366 unique fixed calendar readings", async () => {
+  // Keep every month and day stable against one leap-year catalogue.
+  const harness = await loadHarness();
+  const messages = JSON.parse(
+    vm.runInContext(
+      "JSON.stringify(Array.from(COFFEE_ORACLE_MESSAGES))",
+      harness.context,
+    ),
+  );
+  assert.equal(messages.length, 366);
+  assert.equal(new Set(messages).size, 366);
+  assert.equal(
+    messages.every(
+      (message) =>
+        typeof message === "string" &&
+        message.length > 0 &&
+        message.length <= 120,
+    ),
+    true,
+  );
+
+  const calendarIndices = JSON.parse(
+    vm.runInContext(
+      `JSON.stringify([
+        getCoffeeOracleMessageIndex(1, 1),
+        getCoffeeOracleMessageIndex(2, 28),
+        getCoffeeOracleMessageIndex(2, 29),
+        getCoffeeOracleMessageIndex(3, 1),
+        getCoffeeOracleMessageIndex(12, 31)
+      ])`,
+      harness.context,
+    ),
+  );
+  assert.deepEqual(calendarIndices, [0, 58, 59, 60, 365]);
+  assert.match(messages[59], /Dia raro/);
+  assert.match(messages[91], /Primeiro de abril/);
+  assert.match(messages[277], /Aniversário da Nana/);
+  assert.throws(
+    () => vm.runInContext("getCoffeeOracleMessageIndex(2, 30)", harness.context),
+    /Data inválida para o Oráculo do Café/,
+  );
+
+  const marchReadings = JSON.parse(
+    vm.runInContext(
+      `JSON.stringify([
+        getCoffeeOracleReading(new Date("2024-03-01T15:00:00Z")),
+        getCoffeeOracleReading(new Date("2025-03-01T15:00:00Z"))
+      ])`,
+      harness.context,
+    ),
+  );
+  assert.equal(marchReadings[0].messageIndex, 60);
+  assert.equal(marchReadings[1].messageIndex, 60);
+  assert.equal(marchReadings[0].message, marchReadings[1].message);
+});
+
+test("coffee oracle toggles accessibly and follows Porto Alegre midnight", async () => {
+  // Reveal only today's reading and replace it when the local date rolls over.
+  const harness = await loadHarness();
+  const button = harness.elements.get("#toggle-coffee-oracle");
+  const panel = harness.elements.get("#coffee-oracle-panel");
+  const date = harness.elements.get("#coffee-oracle-date");
+  const message = harness.elements.get("#coffee-oracle-message");
+
+  assert.equal(panel.hidden, true);
+  assert.equal(button.getAttribute("aria-expanded"), "false");
+  assert.equal(message.textContent, "");
+
+  button.dispatch("click");
+  assert.equal(panel.hidden, false);
+  assert.equal(button.getAttribute("aria-expanded"), "true");
+  assert.equal(
+    message.textContent,
+    vm.runInContext("coffeeOracleReading.message", harness.context),
+  );
+
+  assert.equal(
+    vm.runInContext(
+      'updateCoffeeOracle(new Date("2026-01-01T02:59:59Z"))',
+      harness.context,
+    ),
+    true,
+  );
+  assert.equal(date.dateTime, "2025-12-31");
+  assert.equal(
+    message.textContent,
+    vm.runInContext("COFFEE_ORACLE_MESSAGES[365]", harness.context),
+  );
+
+  assert.equal(
+    vm.runInContext(
+      'updateCoffeeOracle(new Date("2026-01-01T03:00:00Z"))',
+      harness.context,
+    ),
+    true,
+  );
+  assert.equal(date.dateTime, "2026-01-01");
+  assert.equal(
+    message.textContent,
+    vm.runInContext("COFFEE_ORACLE_MESSAGES[0]", harness.context),
+  );
+  assert.equal(
+    vm.runInContext(
+      'updateCoffeeOracle(new Date("2026-01-01T12:00:00Z"))',
+      harness.context,
+    ),
+    false,
+  );
+
+  button.dispatch("click");
+  assert.equal(panel.hidden, true);
+  assert.equal(button.getAttribute("aria-expanded"), "false");
+  assert.equal(message.textContent, "");
 });
 
 test("custom domain and every local media asset are release-ready", async () => {
@@ -1816,13 +1938,13 @@ test("secret patch notes paginate three releases and support P toggling", async 
   const harness = await loadHarness();
   assert.deepEqual(
     harness.releaseEntries.map((entry) => entry.hidden),
-    [false, false, false, ...Array(26).fill(true)],
+    [false, false, false, ...Array(27).fill(true)],
   );
   assert.equal(harness.elements.get("#release-page-status").textContent, "1/10");
   vm.runInContext("changeReleasePage(1)", harness.context);
   assert.deepEqual(
     harness.releaseEntries.map((entry) => entry.hidden),
-    [true, true, true, false, false, false, ...Array(23).fill(true)],
+    [true, true, true, false, false, false, ...Array(24).fill(true)],
   );
 
   const shortcut = {
@@ -1873,6 +1995,14 @@ test("CSS keeps colors centralized and every screen viewport-bound", async () =>
     /\.achievements-background img\s*\{[\s\S]*?object-fit:\s*cover/,
   );
   assert.match(css, /\.classroom-finale\s*\{[\s\S]*?z-index:\s*3/);
+  assert.match(
+    css,
+    /\.coffee-oracle-panel\s*\{[\s\S]*?width:\s*min\(100%, 44rem\);[\s\S]*?background:[\s\S]*?var\(--hair-blonde-soft\)/,
+  );
+  assert.match(
+    css,
+    /\.coffee-oracle-message\s*\{[\s\S]*?font-size:\s*clamp\(0\.68rem, 1\.85vmin, 0\.94rem\);[\s\S]*?text-wrap:\s*balance/,
+  );
   assert.match(
     css,
     /\.classroom-finale\s*\{[\s\S]*?transition:\s*opacity 300ms ease-out;[\s\S]*?will-change:\s*opacity/,

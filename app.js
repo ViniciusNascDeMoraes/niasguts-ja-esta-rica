@@ -5,6 +5,7 @@ const BIRTH_MONTH = 10;
 const BIRTH_DAY = 4;
 const BIRTH_HOUR = 12;
 const BIRTH_MINUTE = 16;
+const COFFEE_ORACLE_REFERENCE_YEAR = 2000;
 const MILLISECONDS_PER_SECOND = 1000;
 const SECONDS_PER_MINUTE = 60;
 const MINUTES_PER_HOUR = 60;
@@ -23,6 +24,397 @@ const NAME_VARIATIONS = [
   "don corleone de saia",
   "pobre lazarenta",
 ];
+const COFFEE_ORACLE_MESSAGES = Object.freeze([
+  // Janeiro: 31 mensagens.
+  "Ano novo, fortuna antiga: o café renasceu, a riqueza ainda está carregando.",
+  "A crema formou uma coroa; infelizmente, era só espuma com autoestima.",
+  "Hoje Nana estará rica em cafeína e perigosamente pobre em bom senso.",
+  "O coador aponta para o norte, onde aparentemente também não há dinheiro.",
+  "Gojo previu cinco fichas e um elogio; o extrato ficou fora da visão.",
+  "A nanaBet promete glória, mas o tigrinho já reservou o último espresso.",
+  "Marin aprova o visual de milionária; o orçamento continua em modo cosplay.",
+  "Uma moeda imaginária cairá no café. Não tente contabilizá-la.",
+  "O universo recomenda torra média e expectativas financeiras baixíssimas.",
+  "A riqueza passou por Porto Alegre, viu a fila do café e seguiu viagem.",
+  "Hoje o latte art será perfeito e qualquer plano de enriquecimento, abstrato.",
+  "O tigrinho sonhou com um jackpot e acordou abraçado numa xícara vazia.",
+  "Presságio do dia: três cafés, duas ideias ruins e nenhum patrimônio novo.",
+  "A calculadora pediu férias depois de estimar quando Nana ficará rica.",
+  "A espuma desenhou um cifrão. Foi a contribuição financeira do leite.",
+  "Gojo diz que Nana merece o mundo; a nanaBet oferece efeitos especiais.",
+  "O caixa fechou certo, o cabelo está lindo e a fortuna continua em análise.",
+  "Hoje a sorte virá moída na hora e será servida sem valor monetário.",
+  "Um espresso duplo resolverá tudo, exceto a parte de ficar rica.",
+  "A lua está em cappuccino, posição conhecida por causar compras de café.",
+  "O oráculo viu ouro no horizonte; era o pacote metalizado dos grãos.",
+  "Nana vencerá uma discussão e perderá para o preço de um docinho.",
+  "A fortuna enviou um áudio de dois segundos e apagou antes de ser ouvido.",
+  "O tigrinho está confiante demais. Proteja as fichas e o café.",
+  "Hoje toda riqueza será emocional, aromática e impossível de sacar.",
+  "Marin recomenda rosa, dourado e absoluta negação da planilha.",
+  "O destino oferece um café grátis, desde que alguém imaginário pague.",
+  "A cafeteira fará barulho de caixa registradora, sem produzir receita.",
+  "Gojo trouxe esperança; o boleto trouxe documentação complementar.",
+  "A previsão indica ganhos expressivos em charme e zero em liquidez.",
+  "Janeiro termina com a conta pequena, valente e bem cafeinada.",
+
+  // Fevereiro: 29 mensagens.
+  "Fevereiro começa curto, mas ainda encontra tempo para negar a riqueza.",
+  "Uma flor de latte surgirá; o dinheiro, tímido, não aparecerá na foto.",
+  "Nana terá sorte no amor ao café e azar em qualquer gráfico financeiro.",
+  "O tigrinho ensaiou uma dança de vitória sem verificar o resultado.",
+  "Hoje o espresso será intenso como a vontade de ignorar responsabilidades.",
+  "Gojo promete cuidar da Nana; a conta bancária não fez a mesma promessa.",
+  "O oráculo detectou uma oportunidade: pedir o café antes que esfrie.",
+  "A fortuna está em manutenção e deixou um cappuccino como desculpa.",
+  "Marin escolheu o look perfeito para gastar uma riqueza inexistente.",
+  "O leite vaporizado prevê nuvens, espuma e nenhuma chuva de dinheiro.",
+  "A nanaBet viu três presentes; o universo viu três caixas vazias.",
+  "Hoje Nana será diretora executiva do próprio intervalo para o café.",
+  "O café coado lentamente trará clareza sobre decisões que serão ignoradas.",
+  "Gojo enviará carinho suficiente para compensar qualquer saldo sem graça.",
+  "Uma ficha poderá brilhar muito; isso continua não sendo investimento.",
+  "O tigrinho beberá o café e culpará a volatilidade do mercado.",
+  "A previsão financeira foi substituída por um desenho de xícara.",
+  "Hoje a coragem vem em dose curta, quente e sem rendimentos.",
+  "O caixa do universo está fechado para balanço e para Nana.",
+  "Marin diz que confiança é o melhor acessório; ainda não aceita Pix.",
+  "A sorte chegará atrasada porque parou para tomar um espresso.",
+  "Nana encontrará riqueza entre duas xícaras: era apenas açúcar.",
+  "O oráculo recomenda não discutir probabilidades com um tigre dançante.",
+  "Um aroma promissor invadirá o ambiente e não pagará nenhuma conta.",
+  "Gojo aprova todas as respostas, menos 'já fiquei rica'.",
+  "Hoje haverá lucro líquido, se líquido significar café filtrado.",
+  "A fortuna piscou para Nana e entrou no ônibus errado.",
+  "Fevereiro fecha com espuma alta e expectativas devidamente aterradas.",
+  "Dia raro, previsão rara: Nana quase ficou rica num ano que mal existe.",
+
+  // Março: 31 mensagens.
+  "Março chega marchando, mas a fortuna continua sentada tomando café.",
+  "O vento de Porto Alegre trouxe aroma de grãos e levou qualquer orçamento.",
+  "A moagem está fina; a chance de riqueza, ainda mais fina.",
+  "Hoje Nana ganhará respeito, cafeína e um recibo muito comprido.",
+  "Gojo prevê uma resposta correta e cinco fichas com valor sentimental.",
+  "O tigrinho consultou as estrelas e cobrou a consulta em espresso.",
+  "Marin escolheu tons de milionária para um saldo minimalista.",
+  "Uma ideia brilhante surgirá depois do café e sumirá antes da planilha.",
+  "O coado de hoje terá notas de chocolate e decisões questionáveis.",
+  "A riqueza está a caminho, mas aparentemente escolheu entrega econômica.",
+  "Nana dominará o vaporizador e será derrotada por uma tampa de copo.",
+  "O universo mandou economizar; a cafeteria lançou um grão novo.",
+  "A crema está estável, ao contrário do plano financeiro do dia.",
+  "Gojo oferece apoio ilimitado e nenhuma consultoria contábil.",
+  "A nanaBet acendeu todas as luzes para anunciar absolutamente nada.",
+  "Hoje a xícara estará meio cheia e a carteira coerentemente meio vazia.",
+  "O tigrinho fará charme até alguém esquecer que ele tomou a última ficha.",
+  "Uma chuva de sorte está prevista, com baixa acumulação de patrimônio.",
+  "Marin aprova a pose; o banco solicita menos confiança e mais números.",
+  "O café gelado chega primeiro, seguido por uma responsabilidade quente.",
+  "Nana encontrará um tesouro: o biscoito esquecido ao lado da máquina.",
+  "O oráculo vê uma promoção, provavelmente de cappuccino.",
+  "Hoje o dinheiro falará baixo e a cafeteira responderá gritando.",
+  "Gojo garante que Nana já é preciosa; a riqueza material segue opcional.",
+  "Três símbolos quase combinarão, por educação e nada além disso.",
+  "A sorte foi moída grossa demais e passou direto pelo filtro.",
+  "Nana terá uma vitória pequena, elegante e coberta de espuma.",
+  "O destino pediu café sem açúcar e recebeu uma dívida doce.",
+  "A lua cheia iluminará o extrato sem melhorar o conteúdo.",
+  "O tigrinho promete responsabilidade logo depois desta dancinha.",
+  "Março termina; a fortuna não veio, mas o café rendeu bem.",
+
+  // Abril: 30 mensagens.
+  "O oráculo disse SIM. Primeiro de abril; a resposta oficial continua NÃO.",
+  "A verdade voltou: café forte, Nana linda e riqueza ausente.",
+  "Hoje uma ficha aparecerá onde ninguém deixou nenhuma.",
+  "Gojo ensinará matemática, mas evitará a divisão do patrimônio zero.",
+  "A chuva combina com café e com planos financeiros adiados.",
+  "O tigrinho trocará uma previsão ruim por duas igualmente decorativas.",
+  "Marin recomenda um acessório dourado para confundir os credores imaginários.",
+  "Nana terá energia de CEO e orçamento de intervalo de quinze minutos.",
+  "A cafeteira prevê pressão alta, temperatura exata e lucro nenhum.",
+  "O universo trouxe troco, mas era de uma compra que ainda será feita.",
+  "Hoje o latte art parecerá um mapa até a riqueza; ele termina na borda.",
+  "Gojo diz para confiar no processo. O processo pediu outro espresso.",
+  "A nanaBet exibirá brilho suficiente para esconder qualquer estatística.",
+  "Uma boa notícia chegará acompanhada de uma conta pequena.",
+  "O tigrinho encontrou a fortuna e gastou tudo em iluminação rosa.",
+  "Nana acertará o ponto do leite e errará o horário de dormir.",
+  "O café de hoje tem corpo, doçura e nenhuma obrigação tributária.",
+  "A riqueza fez check-in em Porto Alegre e cancelou a reserva.",
+  "Marin prevê elogios; o extrato prevê silêncio respeitoso.",
+  "O destino deixará uma ficha na mesa e levará duas expectativas.",
+  "Hoje Nana ficará rica em histórias que parecem mentira porque são.",
+  "Gojo sorri no horizonte; atrás dele, a planilha pega fogo discretamente.",
+  "A crema formará um círculo perfeito, sem qualquer poder de compra.",
+  "O oráculo recomenda cautela com tigres que conhecem probabilidades.",
+  "Uma brisa trará cheiro de café e nenhuma documentação bancária.",
+  "A sorte aceita pedidos até as seis, mas não garante entrega.",
+  "Nana descobrirá que economizar café reduz muito a felicidade.",
+  "O tigrinho declara falência emocional e pede colo.",
+  "A lua está favorável para cappuccino e hostil para planilhas.",
+  "Abril se despede com saldo de charme amplamente positivo.",
+
+  // Maio: 31 mensagens.
+  "Maio começa com café passado e fortuna passada direto por Nana.",
+  "O oráculo prevê uma riqueza tão discreta que ninguém conseguirá encontrá-la.",
+  "Hoje Gojo dará atenção premium sem cobrança de mensalidade.",
+  "A nanaBet está otimista; isso nunca foi um bom sinal para as fichas.",
+  "Marin aprova a maquiagem e reprova a sobriedade do orçamento.",
+  "Nana servirá excelência em uma xícara e caos no restante do dia.",
+  "O tigrinho contará até três e esquecerá por que começou.",
+  "A espuma do leite guardará um segredo que vale exatamente nada.",
+  "Hoje a fortuna virá em grãos e exigirá moagem adequada.",
+  "O café será curto; a lista de vontades continuará longa.",
+  "Gojo prevê cinco acertos e uma distração causada pelo próprio Gojo.",
+  "A carteira respirou fundo antes de entrar na cafeteria.",
+  "O universo recomenda investir tempo em beber o café ainda quente.",
+  "Uma luz dourada cercará Nana; será o reflexo da máquina de espresso.",
+  "O tigrinho promete devolver tudo em forma de coreografia.",
+  "Hoje o coado terá sabor de vitória administrativa.",
+  "Marin diz que repetir roupa economiza; Nana finge não ouvir.",
+  "A riqueza perdeu o endereço, mas o entregador trouxe um cookie.",
+  "O oráculo encontrou estabilidade no fundo de uma caneca pesada.",
+  "Nana terá uma ideia milionária que prefere permanecer anônima.",
+  "A nanaBet tocará uma fanfarra para celebrar o gasto de uma ficha.",
+  "Gojo oferece proteção contra contas, exceto as que chegam por e-mail.",
+  "O café da tarde trará paz até alguém mencionar dinheiro.",
+  "A sorte vai sorrir, pedir um gole e desaparecer.",
+  "Hoje uma cereja na roleta terá mais confiança que o planejamento inteiro.",
+  "O tigrinho vestirá postura profissional por quase quatro segundos.",
+  "Nana dominará o dia com uma colher pequena e ambição enorme.",
+  "A crema desenhou uma seta apontando para outro café.",
+  "Marin prevê fotos lindas e recibos cuidadosamente fora do enquadramento.",
+  "O destino não trouxe riqueza, mas acertou a temperatura da bebida.",
+  "Maio fecha a conta: muitos cafés, pouco ouro e excelente presença.",
+
+  // Junho: 30 mensagens.
+  "Junho abre frio; o café aquece, o patrimônio observa de longe.",
+  "Nana será rica em cobertores e pobre em vontade de sair.",
+  "O oráculo prevê vapor, neblina e um boleto usando cachecol.",
+  "Gojo traz calor humano; a cafeteira cuida do restante.",
+  "A nanaBet acendeu uma lareira virtual para queimar probabilidades.",
+  "Hoje o tigrinho dançará para espantar o frio e as fichas.",
+  "Marin escolheu camadas; a conta bancária escolheu se esconder.",
+  "O espresso chegará quente e a fortuna continuará congelada.",
+  "Nana encontrará conforto numa xícara maior que o orçamento.",
+  "A espuma prevê um inverno de decisões financeiramente criativas.",
+  "Gojo corrigirá a matemática e elogiará até os números negativos.",
+  "O universo enviou uma promoção de café como teste de caráter.",
+  "Hoje a riqueza será medida em meias quentes e doses duplas.",
+  "O tigrinho afirma que o frio altera as chances. Ele inventou isso agora.",
+  "A sorte baterá à porta, verá a temperatura e voltará para casa.",
+  "Nana fará latte art com precisão e planos com entusiasmo.",
+  "A máquina de espresso produzirá pressão suficiente para todo o mês.",
+  "Marin prevê um casaco perfeito e nenhum bolso cheio.",
+  "O café coado terá notas de caramelo e responsabilidade adiada.",
+  "Gojo diz que Nana merece férias; a fortuna não respondeu ao formulário.",
+  "A nanaBet oferece luzes quentes e resultados friamente previsíveis.",
+  "Hoje um presente misterioso conterá outro mistério menor.",
+  "O oráculo recomenda abraçar a caneca, não a planilha.",
+  "Nana terá sorte suficiente para encontrar a tomada mais próxima.",
+  "O tigrinho derrubará uma ficha e chamará isso de estratégia.",
+  "A lua de inverno favorece café extra e compras nada extras.",
+  "Marin ilumina o dia; o saldo prefere permanecer no escuro.",
+  "A riqueza mandou lembranças de um lugar com clima melhor.",
+  "Hoje o espresso será pequeno, poderoso e economicamente neutro.",
+  "Junho termina aquecido por café e expectativas moderadas.",
+
+  // Julho: 31 mensagens.
+  "Julho começa com a fortuna de férias e a cafeteira de plantão.",
+  "O tigrinho colocou óculos escuros para não encarar as probabilidades.",
+  "Nana terá um dia brilhante, embora o brilho não seja ouro.",
+  "Gojo prevê tranquilidade depois de uma conta simples e um café difícil.",
+  "A nanaBet declarou temporada de presentes rigorosamente misteriosos.",
+  "Marin recomenda confiança suficiente para entrar sem olhar o preço.",
+  "Hoje a espuma ficará tão bonita que merecerá um salário próprio.",
+  "O oráculo encontrou moedas no sofá; todas pertencem a outra dimensão.",
+  "Nana vencerá o sono por decisão unânime da cafeína.",
+  "A riqueza prometeu voltar depois do recesso e não deixou contato.",
+  "O café de hoje terá acidez cítrica e consequências suaves.",
+  "Gojo aprova o esforço, mesmo quando a calculadora não colabora.",
+  "O tigrinho fará uma pirueta para distrair da ausência de reembolso.",
+  "Marin prevê um dia cor-de-rosa com detalhes em dívida imaginária.",
+  "A sorte virá embrulhada, mas esquecerá de trazer conteúdo.",
+  "Nana encontrará equilíbrio segurando café em cada mão.",
+  "A cafeteira emitirá três bipes proféticos e um pedido de limpeza.",
+  "Hoje a nanaBet estará 100% confiante e 0% responsável.",
+  "O universo recomenda uma pausa antes da próxima excelente má ideia.",
+  "Gojo aparecerá na imaginação com cinco fichas e cabelo impecável.",
+  "A crema indica caminhos; todos terminam no balcão da cafeteria.",
+  "O tigrinho viu um diamante e perguntou se dava para trocar por café.",
+  "Nana será promovida a baronesa honorária do espresso duplo.",
+  "A fortuna cabe numa xícara hoje, mas a xícara está vazia.",
+  "Marin diz que o segredo é combinar o look com a falta de planejamento.",
+  "O oráculo prevê uma surpresa gentil e um recibo agressivo.",
+  "A lua ilumina uma ficha solitária pedindo decisões melhores.",
+  "Hoje o café terá aroma de produtividade que talvez nunca aconteça.",
+  "Gojo oferece um elogio raro; raro mesmo seria um rendimento.",
+  "A riqueza passou de casaco e não reconheceu Nana na rua.",
+  "Julho termina com cafeína acumulada e patrimônio em fase conceitual.",
+
+  // Agosto: 31 mensagens.
+  "Agosto começa longo, ideal para adiar a riqueza com bastante calma.",
+  "Nana terá trinta e uma oportunidades de pedir só mais um café.",
+  "O tigrinho prevê vento forte vindo da direção das fichas.",
+  "Gojo resolveu a equação: carinho infinito dividido por conta nenhuma.",
+  "Marin recomenda dourado para manifestar uma riqueza cenográfica.",
+  "A nanaBet prepara um espetáculo onde o orçamento é o figurante.",
+  "Hoje a máquina de espresso falará mais alto que qualquer conselho.",
+  "O oráculo encontrou um futuro próspero atrás de uma mancha de café.",
+  "Nana vencerá a preguiça por poucos pontos e muita cafeína.",
+  "A sorte virá de ônibus, descerá uma parada antes e mandará mensagem.",
+  "Gojo promete repetir a explicação até a riqueza entender.",
+  "O tigrinho organizará as fichas por cor e perderá a contagem.",
+  "Hoje o café terá notas de frutas e uma nota fiscal surpreendente.",
+  "Marin prevê acessórios caros; o oráculo sugere apenas admirar.",
+  "A fortuna está tímida, mas a espuma vai aparecer bastante.",
+  "Nana descobrirá uma nova forma de chamar pausa de reunião estratégica.",
+  "A nanaBet mostrará um sete que se recusa a assumir compromisso.",
+  "O coador segura os grãos; alguém precisa segurar as expectativas.",
+  "Gojo diz que cinco de cinco já conta como riqueza acadêmica.",
+  "O universo oferecerá uma chance única de lavar a própria caneca.",
+  "Hoje o tigrinho terá energia de campeão e histórico de suspeito.",
+  "Marin transforma qualquer corredor em passarela, menos o do banco.",
+  "Nana receberá um sinal claro: a luz da cafeteira acendeu.",
+  "A riqueza tentou ligar, mas o celular estava no silencioso.",
+  "O café será equilibrado; a agenda fará oposição.",
+  "O oráculo prevê uma tarde doce com cobertura de improviso.",
+  "Gojo trará respostas; o dinheiro continuará fazendo perguntas.",
+  "A nanaBet oferece mistério suficiente para preencher três rolos.",
+  "Hoje uma ficha terá uma jornada curta e cinematográfica.",
+  "O tigrinho acusa o mês de ser longo demais para poucas dancinhas.",
+  "Agosto termina; Nana sobreviveu rica em experiência não conversível.",
+
+  // Setembro: 30 mensagens.
+  "Setembro traz flores, café fresco e finanças ainda em botão.",
+  "Nana verá beleza no latte e ameaça no valor da sobremesa.",
+  "O oráculo prevê primavera no humor e inverno no patrimônio.",
+  "Gojo colherá elogios enquanto o tigrinho planta confusão.",
+  "Marin recomenda cores claras para iluminar números pequenos.",
+  "A nanaBet colocou flores no gabinete; as chances não mudaram.",
+  "Hoje a fortuna florescerá num vaso que pertence a outra pessoa.",
+  "A cafeteira anuncia a estação com um jato de vapor dramático.",
+  "Nana terá sorte com plantas que não exigem planilha.",
+  "O tigrinho oferecerá uma cereja como plano de aposentadoria.",
+  "Gojo prevê cinco fichas e uma primavera inteira de carinho.",
+  "A riqueza brotou, mas alguém confundiu com um grão de café.",
+  "Hoje o espresso terá aroma floral e comportamento imprevisível.",
+  "Marin montará um look capaz de valorizar até um cupom vencido.",
+  "O universo recomenda regar sonhos e não derramar o coado.",
+  "Nana encontrará uma pétala no balcão e chamará de bônus.",
+  "A nanaBet prevê três flores; o tigrinho trouxe três presentes.",
+  "O oráculo viu um jardim de oportunidades fechado para manutenção.",
+  "Gojo garante que errar faz parte; perder ficha também, segundo o tigre.",
+  "Hoje a espuma crescerá mais rápido que qualquer investimento fictício.",
+  "Marin diz que brilho combina com tudo, inclusive com absoluta pobreza.",
+  "A sorte deixará perfume de café e nenhuma pista adicional.",
+  "Nana dominará a arte de parecer ocupada enquanto espera o espresso.",
+  "O tigrinho plantou uma ficha esperando colher duas. Não conte a ele.",
+  "A primavera chegou; a riqueza pediu mais alguns meses.",
+  "Gojo trará uma equação fácil e um sorriso difícil de ignorar.",
+  "Hoje o café gelado e o quente discutirão pela prioridade.",
+  "A fortuna mandou flores sem cartão e sem valor declarado.",
+  "O oráculo recomenda aproveitar a luz e ignorar o extrato.",
+  "Setembro acaba florido, aromático e financeiramente consistente no NÃO.",
+
+  // Outubro: 31 mensagens.
+  "Outubro abre com café solene e expectativas usando roupa de festa.",
+  "O tigrinho preparou confete, mas ainda não sabe para qual resultado.",
+  "Gojo ensaia parabéns enquanto Nana finge não contar os minutos.",
+  "Aniversário da Nana: mais maravilhosa, mais experiente e ainda não rica.",
+  "O oráculo prevê bolo, café e uma riqueza totalmente decorativa.",
+  "Marin escolheu o look da festa; o orçamento escolheu não comparecer.",
+  "Hoje a nanaBet dará parabéns com luzes e cobrará uma ficha pelo show.",
+  "Nana encontrará uma vela extra e fará um pedido financeiramente ousado.",
+  "A fortuna enviou presente sem nota; dentro havia mais esperança.",
+  "Gojo promete uma aula particular e atenção integral.",
+  "O café de hoje terá gosto de comemoração fora de época.",
+  "O tigrinho escondeu o bolo atrás dos rolos e esqueceu o plano.",
+  "Marin prevê fotos lindas, luz perfeita e nenhum patrocinador.",
+  "Nana será rica em sobras de doce por aproximadamente duas horas.",
+  "A crema desenhou balões, ou talvez fossem apenas círculos.",
+  "O universo recomenda celebrar qualquer vitória que caiba numa xícara.",
+  "Gojo trouxe cinco fichas embrulhadas em elogios.",
+  "Hoje a riqueza usará fantasia e ninguém descobrirá quem ela é.",
+  "A nanaBet decorou o gabinete; as probabilidades vieram de preto.",
+  "O oráculo prevê um susto: o preço de um café especial.",
+  "Nana dominará o terror de encontrar a máquina em limpeza.",
+  "O tigrinho jura que aquele barulho foi fantasma, não engrenagem.",
+  "Marin aprova qualquer fantasia que tenha detalhes dourados.",
+  "A lua cheia iluminará uma caneca esquecida na mesa.",
+  "Gojo aparece no corredor e assusta apenas a concentração.",
+  "Hoje o café será tão escuro quanto o futuro do último boleto.",
+  "A fortuna bateu na porta fantasiada de entregador e foi embora.",
+  "Nana encontrará coragem no fundo da segunda xícara.",
+  "O tigrinho praticará um rugido assustador com voz de desenho.",
+  "A nanaBet promete doces; entrega símbolos com ótima iluminação.",
+  "Outubro termina com travessuras, café e patrimônio fantasma.",
+
+  // Novembro: 30 mensagens.
+  "Novembro chega discreto, como a riqueza tentando não ser cobrada.",
+  "Nana terá um café honesto e uma previsão completamente suspeita.",
+  "O tigrinho abriu uma reunião para discutir por que ninguém confia nele.",
+  "Gojo prevê tranquilidade, desde que a matemática não envolva juros.",
+  "Marin escolheu brilho suficiente para antecipar as festas.",
+  "A nanaBet fará manutenção preventiva depois de perder a prevenção.",
+  "Hoje a fortuna estará em modo avião e o espresso, em modo turbo.",
+  "O oráculo recomenda revisar prioridades depois do próximo café.",
+  "Nana achará uma ficha no bolso de uma roupa que não tem bolsos.",
+  "A crema terá formato de nuvem, sem chuva de dinheiro prevista.",
+  "Gojo elogia a persistência; o tigrinho chama de cliente recorrente.",
+  "O universo oferecerá silêncio até a máquina começar a moer.",
+  "Hoje Marin aprova o estilo e desaprova a iluminação do extrato.",
+  "A riqueza marcou presença como talvez e saiu antes da chamada.",
+  "Nana fará um café tão bom que esquecerá de querer ser milionária por um minuto.",
+  "O tigrinho promete transparência atrás de três cilindros girando.",
+  "A nanaBet encontrou estabilidade apoiando o gabinete na parede.",
+  "O oráculo viu cinco fichas; Gojo provavelmente está por perto.",
+  "Hoje o coado terá doçura natural e despesas artificiais.",
+  "Marin prevê um elogio inesperado e uma compra muito esperada.",
+  "Nana transformará cansaço em café com eficiência industrial.",
+  "A fortuna está reservando energia para dezembro.",
+  "Gojo diz que toda pergunta tem resposta; esta continua sendo NÃO.",
+  "O tigrinho fará contas usando as próprias listras como ábaco.",
+  "Hoje uma cereja surgirá longe demais das outras duas.",
+  "O café trará foco suficiente para notar a falta de foco financeiro.",
+  "A sorte fará escala em Porto Alegre e perderá a conexão.",
+  "Nana receberá aplausos do vaporizador e vai aceitar.",
+  "O universo recomenda guardar forças, não necessariamente dinheiro.",
+  "Novembro fecha sem fortuna, mas com a xícara devidamente limpa.",
+
+  // Dezembro: 31 mensagens.
+  "Dezembro chegou com luzes douradas e orçamento em modo econômico.",
+  "O tigrinho pediu presente antes de explicar o que fez com as fichas.",
+  "Nana terá espírito festivo e uma fatura igualmente animada.",
+  "Gojo prevê férias, carinho e cinco contas resolvidas na matemática.",
+  "Marin montou um look de festa que parece mais rico que o oráculo.",
+  "A nanaBet pendurou luzes; agora cada derrota pisca em três cores.",
+  "Hoje o café terá canela e uma vaga sensação de planejamento.",
+  "A fortuna está embrulhada, mas esqueceram de escrever o destinatário.",
+  "Nana encontrará uma moeda de chocolate e respeitará sua utilidade.",
+  "O oráculo recomenda presentes feitos com afeto e orçamento alheio imaginário.",
+  "Gojo aparece sob as luzes e toda planilha perde importância.",
+  "O tigrinho ensaiará uma música sem autorização para adicionar áudio.",
+  "Hoje a crema parecerá neve para quem tiver muita boa vontade.",
+  "Marin prevê brilho, fotos e uma sacola que não será comentada.",
+  "A riqueza mandou cartão de boas festas sem endereço de retorno.",
+  "Nana sobreviverá ao mês graças a café e calendários acabando.",
+  "A nanaBet promete um milagre festivo, sujeito às mesmas probabilidades.",
+  "O universo oferece uma pausa entre dois espressos igualmente necessários.",
+  "Gojo embrulhou cinco fichas e esqueceu de esconder o sorriso.",
+  "O tigrinho declara que comportamento conta como presente. Ele está nervoso.",
+  "Hoje o café será compartilhado e a fortuna continuará individualmente ausente.",
+  "Nana encontrará alegria numa sobremesa que cabia no orçamento ontem.",
+  "Marin aprova o dourado; o banco prefere tons neutros e silêncio.",
+  "A véspera traz café, luzes e nenhuma confirmação oficial de riqueza.",
+  "O oráculo prevê cinco fichas perto de alguém de cabelo branco.",
+  "A última semana chega com energia de sexta e saldo de segunda.",
+  "O tigrinho guardou uma cereja para a ceia e perdeu as outras duas.",
+  "Hoje a fortuna fará retrospectiva sem cenas inéditas.",
+  "Nana encerrará pendências ou mudará seus nomes para metas futuras.",
+  "O penúltimo café do ano será seguido por vários cafés não contabilizados.",
+  "Fim do ano: Nana não ficou rica, mas acumulou café, histórias e cinco fichas.",
+]);
 const CASINO_ART_ROOT = "assets/images/casino/";
 const CASINO_NORMAL_SYMBOLS = [
   {
@@ -205,6 +597,7 @@ let achievements3DFailed = false;
 let casinoArtInitialized = false;
 let achievementsBackgroundInitialized = false;
 let releasePage = 0;
+let coffeeOracleReading = null;
 let casinoResultFlashTimerId = null;
 let classroomQuestions = [];
 let classroomIntroIndex = 0;
@@ -308,6 +701,11 @@ const portoAlegreFormatter = new Intl.DateTimeFormat("en-CA", {
   second: "2-digit",
   hourCycle: "h23",
 });
+const coffeeOracleDateFormatter = new Intl.DateTimeFormat("pt-BR", {
+  timeZone: PORTO_ALEGRE_TIME_ZONE,
+  day: "numeric",
+  month: "long",
+});
 
 const counter = document.querySelector("#age-counter");
 const counterValues = {
@@ -317,6 +715,10 @@ const counterValues = {
   minutes: document.querySelector("#minutes"),
   seconds: document.querySelector("#seconds"),
 };
+const coffeeOracleButton = document.querySelector("#toggle-coffee-oracle");
+const coffeeOraclePanel = document.querySelector("#coffee-oracle-panel");
+const coffeeOracleDate = document.querySelector("#coffee-oracle-date");
+const coffeeOracleMessage = document.querySelector("#coffee-oracle-message");
 const casinoDialog = document.querySelector("#casino-dialog");
 const casinoOpenButton = document.querySelector("#open-casino");
 const casinoLever = document.querySelector("#spin-casino");
@@ -1928,6 +2330,84 @@ function getPortoAlegreParts(date) {
   return fields;
 }
 
+function getCoffeeOracleMessageIndex(month, day) {
+  // Map every calendar date onto the fixed leap-year catalogue.
+  const referenceDate = new Date(
+    Date.UTC(COFFEE_ORACLE_REFERENCE_YEAR, month - 1, day),
+  );
+
+  if (
+    referenceDate.getUTCMonth() !== month - 1 ||
+    referenceDate.getUTCDate() !== day
+  ) {
+    throw new RangeError("Data inválida para o Oráculo do Café");
+  }
+
+  const referenceYearStart = Date.UTC(COFFEE_ORACLE_REFERENCE_YEAR, 0, 1);
+  return Math.floor(
+    (referenceDate.getTime() - referenceYearStart) / MILLISECONDS_PER_DAY,
+  );
+}
+
+function getCoffeeOracleReading(date) {
+  // Select the stable month-and-day message under Porto Alegre calendar rules.
+  const fields = getPortoAlegreParts(date);
+  const messageIndex = getCoffeeOracleMessageIndex(fields.month, fields.day);
+  return {
+    dateKey:
+      fields.year + "-" + String(fields.month).padStart(2, "0") + "-" +
+      String(fields.day).padStart(2, "0"),
+    dateLabel: coffeeOracleDateFormatter.format(date),
+    message: COFFEE_ORACLE_MESSAGES[messageIndex],
+    messageIndex,
+  };
+}
+
+function renderCoffeeOracleReading() {
+  // Fill the expanded inline panel without moving focus away from its toggle.
+  if (coffeeOracleReading === null) {
+    return;
+  }
+
+  coffeeOracleDate.textContent = coffeeOracleReading.dateLabel;
+  coffeeOracleDate.dateTime = coffeeOracleReading.dateKey;
+  coffeeOracleMessage.textContent = coffeeOracleReading.message;
+}
+
+function updateCoffeeOracle(date = new Date()) {
+  // Change the visible prophecy only when Porto Alegre reaches a new date.
+  const nextReading = getCoffeeOracleReading(date);
+
+  if (
+    coffeeOracleReading !== null &&
+    coffeeOracleReading.dateKey === nextReading.dateKey
+  ) {
+    return false;
+  }
+
+  coffeeOracleReading = nextReading;
+  if (!coffeeOraclePanel.hidden) {
+    renderCoffeeOracleReading();
+  }
+  return true;
+}
+
+function toggleCoffeeOracle() {
+  // Reveal or collapse today's single fixed reading without persistence.
+  const shouldOpen = coffeeOraclePanel.hidden;
+  coffeeOraclePanel.hidden = !shouldOpen;
+  coffeeOracleButton.setAttribute("aria-expanded", String(shouldOpen));
+
+  if (shouldOpen) {
+    if (coffeeOracleReading === null) {
+      updateCoffeeOracle();
+    }
+    renderCoffeeOracleReading();
+  } else {
+    coffeeOracleMessage.textContent = "";
+  }
+}
+
 function getPortoAlegreBirthday(year) {
   // Convert the birthday time in Porto Alegre into an exact instant.
   const targetAsUtc = Date.UTC(
@@ -1961,6 +2441,7 @@ const birthInstant = getPortoAlegreBirthday(BIRTH_YEAR);
 function updateCounter() {
   // Show completed years and elapsed time since the latest birthday.
   const now = new Date();
+  updateCoffeeOracle(now);
 
   if (now < birthInstant) {
     for (const value of Object.values(counterValues)) {
@@ -2024,6 +2505,7 @@ renderCasinoTokens();
 renderReleasePage();
 casinoOpenButton.addEventListener("click", openCasino);
 achievementsOpenButton.addEventListener("click", openAchievements);
+coffeeOracleButton.addEventListener("click", toggleCoffeeOracle);
 classroomOpenButton.addEventListener("click", openClassroom);
 classroomContinue.addEventListener("click", handleClassroomContinue);
 for (const answerButton of classroomAnswerButtons) {

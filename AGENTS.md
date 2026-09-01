@@ -28,6 +28,14 @@
 - Keep `nanabet-palette-reference.png` as a local design reference only. The existing semantic CSS palette remains authoritative and must not be replaced by the reference sheet colors without a new explicit decision.
 - Keep the main page and every dialog within the viewport without document or dialog scrollbars at normal zoom, from `320x568` portrait and `568x320` landscape through desktop sizes.
 
+## Coffee Oracle
+
+- Keep a compact `☕ ORÁCULO` toggle in the main actions and reveal its reading in an inline panel below those actions.
+- Keep exactly 366 unique literal messages, each no longer than 120 characters, balanced across coffee, barista, wealth, nanaBet, Gojo, Marin, Porto Alegre, and affectionate absurdity.
+- Select messages from a fixed leap-year calendar using the current month and day in `America/Sao_Paulo`. Keep every calendar date stable between years and reserve its own message for 29 February.
+- Update an open reading when Porto Alegre reaches a new date. Do not add rerolls, date browsing, persistence, sound, external data, or additional assets.
+- Start the panel collapsed on every page load. The same accessible button must open and close it while keeping `aria-expanded` truthful.
+
 ## Casino Joke
 
 - The `FIQUE RICA!` button opens the coffee-themed fictional slot machine.
@@ -127,6 +135,7 @@
   - `1.17`: local nanaBet logo, illustrated chip and reel symbols, plus orientation-aware achievement-room backgrounds with lazy loading and fallbacks.
   - `1.18`: constrained illustrated chip and legend icons in both dimensions so their compact panels no longer stretch across the viewport.
   - `1.19`: stable decoded two-frame crossfade from the non-animated reward pose to the orientation-aware finale CG, with a full-width portrait dialogue panel.
+  - `1.20`: inline Coffee Oracle with 366 unique fixed calendar-day messages selected under Porto Alegre time-zone rules.
 - Update the footer version, patch notes, and this mapping together for each future user-visible release.
 
 ## Architecture and Delivery
