@@ -4,8 +4,10 @@
 
 - Keep the site a small, playful, dependency-free static page.
 - The question asks whether the displayed identity is rich. The answer is always `NÃO`.
-- Pick one display name per page load and use it in both the heading and browser title.
-- Keep these exact name options: `amanda`, `nana`, `niasguts`, `nia`, `vito corleone de saia`, `diabo loiro`, `demonio de porto alegre`, `barista de porto alegre`, `don corleone de saia`, and `pobre lazarenta`.
+- Pick one initial display name per page load, then let the visitor edit that name inline for the current visit.
+- Limit the editable display name to 32 characters, update its dynamic consumers while typing, and do not persist it across reloads.
+- Use the current display name in the heading, browser title, dramatic-verdict label, certificate preview, PNG, and native share text.
+- Keep these exact name options: `amanda`, `nana`, `niasguts`, `nia`, `vito corleone de saia`, `diabo loiro`, `demonio de porto alegre`, `barista de porto alegre`, `don corleone de saia`, `pobre lazarenta`, and `fernando collor de calcinha`.
 - Do not add a separate barista badge. The barista reference belongs only in the random name list and in the coffee jokes.
 
 ## Time and Identity
@@ -25,6 +27,7 @@
 - On viewports at or below `34rem`, hide the GIF area and do not create image elements or request GIF files.
 - Keep accessible alternative text and link each displayed GIF to its original Tenor page for attribution.
 - Keep the delivered nanaBet artwork under `assets/images/casino/` with descriptive filenames. Do not resize, regenerate, or eagerly request it from the main page.
+- Keep the six delivered `1086x1448` prize-card PNGs unchanged under `assets/images/casino/prize-cards/`: five fronts and one mystery back. Use their descriptive filenames and retain a CSS fallback for every card.
 - Keep `nanabet-palette-reference.png` as a local design reference only. The existing semantic CSS palette remains authoritative and must not be replaced by the reference sheet colors without a new explicit decision.
 - Keep the main page and every dialog within the viewport without document or dialog scrollbars at normal zoom, from `320x568` portrait and `568x320` landscape through desktop sizes.
 
@@ -35,6 +38,17 @@
 - Select messages from a fixed leap-year calendar using the current month and day in `America/Sao_Paulo`. Keep every calendar date stable between years and reserve its own message for 29 February.
 - Update an open reading when Porto Alegre reaches a new date. Do not add rerolls, date browsing, persistence, sound, external data, or additional assets.
 - Start the panel collapsed on every page load. The same accessible button must open and close it while keeping `aria-expanded` truthful.
+
+## Dramatic Verdict and Certificate
+
+- Keep the main verdict as a native `NÃO` button whose visible answer never changes. Advance through the five fixed audit messages on activation, hold the final stamped result for three seconds, then reset automatically.
+- Keep the dramatic audit replayable and visit-local. Use only semantic-palette CSS effects, announce each complete message politely, and replace motion with static emphasis under reduced motion.
+- Keep a visible `CERTIFICADO` button in the main actions. It opens a fullscreen, viewport-contained Certificate of Non-Wealth personalized with the current editable display name.
+- Create one Porto Alegre issue date and exact time with seconds plus an `NR-AAAAMMDD-HHMMSS` protocol on the first opening and reuse them until reload. Do not persist certificate state.
+- If the display name changes after issuance, update the existing certificate name and invalidate only its generated PNG; keep its issue date, time, and protocol.
+- Keep a crisp responsive HTML preview and generate the downloadable A4-landscape PNG locally from a hidden canvas. Read all export colors from the semantic CSS palette and do not add assets or dependencies.
+- Show readable cursive `Tigrinho` and `nanaBet` signatures in both the HTML preview and generated PNG, alongside their printed roles and the existing coffee seal.
+- Always offer `BAIXAR PNG`; expose native file sharing only when the browser reports support. Keep cancellation silent and report real export failures accessibly.
 
 ## Casino Joke
 
@@ -48,17 +62,18 @@
 - Build three physical six-symbol cylindrical reels and stop them sequentially with deceleration. Use five ordinary faces plus the mystery-gift face.
 - Texture those six reel faces with the delivered coffee, tiger, diamond, cherries, seven, and gift PNGs. Load them only when the casino first opens, and retain each existing character as its individual 3D and HTML fallback.
 - Show the delivered nanaBet PNG in the sharp HTML marquee while retaining the native `nanaBet` heading as its accessible and visual load-failure fallback. Use the delivered star-centered chip PNG in the balance and one-chip rule, and the delivered gift PNG in the achievement rule.
-- Load the shared 3D module only when the casino or achievement gallery first opens; do not load it eagerly on the main page. Keep a functional HTML reel fallback for WebGL or module failure.
+- Load the shared 3D module only when the casino first opens; do not load it eagerly on the main page or from the achievement gallery. Keep a functional HTML reel fallback for WebGL or module failure.
 - Start each visitor with five virtual chips stored under `niasguts-casino-fichas-v1`. Charge one chip before each spin and keep the balance visible only inside the casino.
 - Make the first eligible spin per browser land the mystery-gift triple for `pé da prima do vaper`. Persist the consumed bait under `niasguts-casino-bait-v1`; if storage is unavailable, consume it for the current visit only.
 - After the guaranteed first result, resolve each spin from one exclusive roll: 12.5% lands a mystery-gift achievement and 87.5% is an ordinary loss. Every spin spends one chip; only the classroom lesson replenishes chips. Keep ordinary losses free of matching triples.
 - When the balance reaches zero, disable the lever and show `SEM FICHAS` with the `GANHAR FICHAS NA AULA` button. Do not add a reset or emergency chip path.
-- Award `esposa do nenepira`, `pé da prima do vaper`, `bólos`, `350 reais`, and `lanche do subway` only through mystery-gift triples. Keep the stable `prima-vaper` saved ID. Award locked prizes before repeats; allow repeats only after all five are unlocked.
+- Award `esposa do nenepira`, `pé da prima do vaper`, `bólos`, `355 reais + juros`, and `lanche do subway` only through mystery-gift triples. Keep the stable `prima-vaper` and `350-reais` saved IDs. Award locked prizes before repeats; allow repeats only after all five are unlocked.
 - Show ready, spinning, and ordinary-loss messages in a centered non-blocking HTML card for two seconds, then retain the same text in the compact bottom result panel. Do not use jackpot effects for these messages.
 - Keep the two-line symbol legend in a compact square at the lower right, separate from the result panel and lever.
 - Build a procedural chibi tiger opposite the lever with exactly two eyes, visible inner ears, two short forehead stripes, and four cheek-only whiskers. Do not add smile strokes or hair-like geometry below its nose. Dance at 30 fps only while the casino is visible, use a stronger victory dance during jackpots, and keep it static under reduced motion.
-- Keep jackpot UI blocking until `CONTINUAR` or `Escape`. Show a large crisp title, the prize name, new/repeat badge, flash, rays, confetti, pooled 3D particles, cabinet lights, tiger celebration, and the enlarged matching 3D prize.
-- Anchor the jackpot presentation to the camera, normalize every prize around its bounds, and keep the prize centered in front of all decorative effects. Keep only the crisp HTML copy and confirmation control above it.
+- Keep jackpot UI blocking until `CONTINUAR` or `Escape`. Show a large crisp title, the prize name, new/repeat badge, flash, rays, confetti, pooled 3D particles, cabinet lights, tiger celebration, and the enlarged matching HTML prize card.
+- Anchor the retained jackpot effects to the camera and keep the centered, untransformed HTML prize card in front of every decorative effect. Keep its copy and confirmation control crisp above the WebGL layer.
+- Once a spin selects a winning outcome, preload only its matching prize front. Do not request any prize card merely by opening the casino.
 - Keep the main financial verdict as `NÃO` after every prize.
 - Keep coffee references in the symbols or failure messages.
 - Use `assets/musica.mp3` as looped casino-only music at 25% initial volume.
@@ -89,13 +104,20 @@
 ## Achievements
 
 - Keep a main-page `CONQUISTAS` button with a live unlocked count.
-- Show five permanent 3D pedestals with procedural mystery crates while locked. Reveal the matching procedural ring, cartoon foot with five toes, layered cake, `R$350` suitcase, or logo-free sandwich and its prize name only after the matching mystery-gift trinca lands.
-- Render the achievement models in one WebGL canvas aligned with native HTML labels. Float and rotate unlocked prizes at 20 fps only while visible; keep locked mysteries static and honor reduced motion.
+- Show five permanent illustrated-card slots. Use the mystery-back card while locked, then reveal the matching delivered front and its HTML prize name only after the matching mystery-gift trinca lands.
+- Request the mystery back and only the currently unlocked fronts when the gallery first opens; never request card art from the main page. Keep a previously decoded card visible until its replacement is ready.
+- Float unlocked card art only while visible, keep locked mysteries static, animate a new reveal for 1.1 seconds or a repeat for 450 milliseconds, and honor reduced motion.
 - Show the delivered landscape or portrait achievement-room background behind the full gallery according to viewport orientation. Request it only when achievements first open and retain the existing gradient when it cannot load.
-- Raise a new prize from the payout tray for 1.1 seconds. Bounce and glow a repeated prize for 450 milliseconds.
 - After all five prizes are unlocked, keep the cabinet gold and pink and show `COLEÇÃO COMPLETA`.
 - Store known unlocked prize IDs as a JSON array under `niasguts-achievements-v1` in `localStorage`.
 - If browser storage is unavailable, preserve progress for the current visit and show the persistence warning. Do not add a reset control.
+
+## Secret Achievement Cheat
+
+- Open the unadvertised cheat dialog only with an unmodified `F3` press while the main page is unobstructed. Do not show a visible hint or reveal its code in patch notes.
+- Accept `gojopelado` after trimming and case-folding. A valid code unlocks all five stable achievement IDs, uses the normal achievement storage path, closes the cheat, and opens the gallery at `5/5` without changing chips or showing a jackpot.
+- Show exactly `código inválido.` after a wrong entry. Closing with its button or `Escape` clears both the field and feedback.
+- If storage is unavailable, keep the cheat unlocks for the current visit and expose the existing gallery persistence warning.
 
 ## Footer and Releases
 
@@ -136,6 +158,10 @@
   - `1.18`: constrained illustrated chip and legend icons in both dimensions so their compact panels no longer stretch across the viewport.
   - `1.19`: stable decoded two-frame crossfade from the non-animated reward pose to the orientation-aware finale CG, with a full-width portrait dialogue panel.
   - `1.20`: inline Coffee Oracle with 366 unique fixed calendar-day messages selected under Porto Alegre time-zone rules.
+  - `1.21`: five-stage replayable dramatic `NÃO` audit and a personalized local Certificate of Non-Wealth with PNG download and supported native sharing.
+  - `1.22`: visit-local inline display-name editing synchronized with the question, browser title, dramatic verdict, and every certificate output.
+  - `1.23`: interest-adjusted `355 reais + juros` prize plus exact Porto Alegre certificate time and readable Tigrinho and nanaBet signatures in HTML and PNG.
+  - `1.24`: illustrated prize cards replaced the displayed 3D trophies, `fernando collor de calcinha` joined the randomized names, and an unadvertised achievement cheat was added.
 - Update the footer version, patch notes, and this mapping together for each future user-visible release.
 
 ## Architecture and Delivery

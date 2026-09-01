@@ -23,7 +23,10 @@ const NAME_VARIATIONS = [
   "barista de porto alegre",
   "don corleone de saia",
   "pobre lazarenta",
+  "fernando collor de calcinha",
 ];
+const DISPLAY_NAME_MAX_LENGTH = 32;
+const DISPLAY_NAME_LONG_THRESHOLD = 24;
 const COFFEE_ORACLE_MESSAGES = Object.freeze([
   // Janeiro: 31 mensagens.
   "Ano novo, fortuna antiga: o café renasceu, a riqueza ainda está carregando.",
@@ -416,6 +419,9 @@ const COFFEE_ORACLE_MESSAGES = Object.freeze([
   "Fim do ano: Nana não ficou rica, mas acumulou café, histórias e cinco fichas.",
 ]);
 const CASINO_ART_ROOT = "assets/images/casino/";
+const PRIZE_CARD_ROOT = CASINO_ART_ROOT + "prize-cards/";
+const MYSTERY_PRIZE_CARD_SOURCE =
+  PRIZE_CARD_ROOT + "card-verso-misterioso.png";
 const CASINO_NORMAL_SYMBOLS = [
   {
     character: "☕",
@@ -453,15 +459,36 @@ const SLOT_SYMBOLS = [
   CASINO_PRIZE_SYMBOL,
 ];
 const CASINO_PRIZES = [
-  { id: "esposa-nenepira", name: "esposa do nenepira", modelId: "ring" },
-  { id: "prima-vaper", name: "pé da prima do vaper", modelId: "foot" },
-  { id: "bolos", name: "bólos", modelId: "cake" },
-  { id: "350-reais", name: "350 reais", modelId: "cash-case" },
-  { id: "lanche-subway", name: "lanche do subway", modelId: "sandwich" },
+  {
+    id: "esposa-nenepira",
+    name: "esposa do nenepira",
+    cardSource: PRIZE_CARD_ROOT + "card-esposa-nenepira.png",
+  },
+  {
+    id: "prima-vaper",
+    name: "pé da prima do vaper",
+    cardSource: PRIZE_CARD_ROOT + "card-pe-prima-vaper.png",
+  },
+  {
+    id: "bolos",
+    name: "bólos",
+    cardSource: PRIZE_CARD_ROOT + "card-bolos.png",
+  },
+  {
+    id: "350-reais",
+    name: "355 reais + juros",
+    cardSource: PRIZE_CARD_ROOT + "card-355-reais-juros.png",
+  },
+  {
+    id: "lanche-subway",
+    name: "lanche do subway",
+    cardSource: PRIZE_CARD_ROOT + "card-lanche-subway.png",
+  },
 ];
 const ACHIEVEMENTS_STORAGE_KEY = "niasguts-achievements-v1";
 const CASINO_TOKENS_STORAGE_KEY = "niasguts-casino-fichas-v1";
 const CASINO_BAIT_STORAGE_KEY = "niasguts-casino-bait-v1";
+const ACHIEVEMENT_CHEAT_CODE = "gojopelado";
 const INITIAL_CASINO_TOKENS = 5;
 const INITIAL_REEL_SYMBOL_INDICES = [0, 1, 4];
 const CASINO_REEL_FULL_TURNS = [5, 6, 7];
@@ -494,6 +521,17 @@ const CLASSROOM_POSE_SOURCES = {
 };
 const CLASSROOM_INTRO_POSES = ["caring", "neutral", "reassuring"];
 const RELEASES_PER_PAGE = 3;
+const DRAMATIC_NO_RESET_DELAY_MS = 3000;
+const DRAMATIC_NO_STEPS = Object.freeze([
+  "consultando o saldo...",
+  "chamando a auditoria da nanaBet...",
+  "revistando o cofrinho e a jarra de gorjetas...",
+  "pedindo uma segunda opinião ao tigrinho...",
+  "VERIFICAMOS NOVAMENTE: NÃO.",
+]);
+const CERTIFICATE_CANVAS_WIDTH = 1600;
+const CERTIFICATE_CANVAS_HEIGHT = 1131;
+const CERTIFICATE_FILE_NAME = "certificado-oficial-de-nao-riqueza.png";
 const CASINO_FAILURE_MESSAGES = [
   "quase! mas o tigrinho ficou com tudo.",
   "a banca venceu. continua não rica.",
@@ -572,6 +610,7 @@ const unlockedAchievementIds = new Set();
 const classroomPoseCache = new Map();
 const casinoSymbolImageCache = new Map();
 const loadedCasinoSymbolImages = new Map();
+const prizeCardImageCache = new Map();
 let pendingCasinoOutcome = [];
 let pendingCasinoPrize = null;
 let pendingCasinoOutcomeType = "loss";
@@ -587,17 +626,22 @@ let casinoMusicWanted = true;
 let casinoIsOpen = false;
 let casinoMusicCommandId = 0;
 let casino3D = null;
-let achievements3D = null;
 let shared3DModulePromise = null;
 let casino3DLoadPromise = null;
-let achievements3DLoadPromise = null;
 let casinoSymbolImagesPromise = null;
 let casino3DFailed = false;
-let achievements3DFailed = false;
 let casinoArtInitialized = false;
 let achievementsBackgroundInitialized = false;
+let achievementCardsInitialized = false;
+let jackpotCardRequestId = 0;
 let releasePage = 0;
+let selectedName = "";
+let displayNameBeforeEdit = "";
 let coffeeOracleReading = null;
+let dramaticNoStage = 0;
+let dramaticNoResetTimerId = null;
+let certificateRecord = null;
+let certificateBlobPromise = null;
 let casinoResultFlashTimerId = null;
 let classroomQuestions = [];
 let classroomIntroIndex = 0;
@@ -706,6 +750,12 @@ const coffeeOracleDateFormatter = new Intl.DateTimeFormat("pt-BR", {
   day: "numeric",
   month: "long",
 });
+const certificateDateFormatter = new Intl.DateTimeFormat("pt-BR", {
+  timeZone: PORTO_ALEGRE_TIME_ZONE,
+  day: "2-digit",
+  month: "long",
+  year: "numeric",
+});
 
 const counter = document.querySelector("#age-counter");
 const counterValues = {
@@ -715,10 +765,26 @@ const counterValues = {
   minutes: document.querySelector("#minutes"),
   seconds: document.querySelector("#seconds"),
 };
+const question = document.querySelector("#question");
+const displayNameEditor = document.querySelector("#display-name");
 const coffeeOracleButton = document.querySelector("#toggle-coffee-oracle");
 const coffeeOraclePanel = document.querySelector("#coffee-oracle-panel");
 const coffeeOracleDate = document.querySelector("#coffee-oracle-date");
 const coffeeOracleMessage = document.querySelector("#coffee-oracle-message");
+const dramaticVerdict = document.querySelector("#dramatic-verdict");
+const dramaticNoButton = document.querySelector("#dramatic-no");
+const dramaticNoStatus = document.querySelector("#dramatic-no-status");
+const certificateDialog = document.querySelector("#certificate-dialog");
+const certificateOpenButton = document.querySelector("#open-certificate");
+const certificateName = document.querySelector("#certificate-name");
+const certificateDate = document.querySelector("#certificate-date");
+const certificateProtocol = document.querySelector("#certificate-protocol");
+const certificateCanvas = document.querySelector("#certificate-canvas");
+const certificateDownloadButton = document.querySelector(
+  "#download-certificate",
+);
+const certificateShareButton = document.querySelector("#share-certificate");
+const certificateStatus = document.querySelector("#certificate-status");
 const casinoDialog = document.querySelector("#casino-dialog");
 const casinoOpenButton = document.querySelector("#open-casino");
 const casinoLever = document.querySelector("#spin-casino");
@@ -774,6 +840,10 @@ const classroomArtStatus = document.querySelector("#classroom-art-status");
 const classroomCharacter = document.querySelector("#gojo-character");
 const casinoJackpot = document.querySelector("#casino-jackpot");
 const casinoJackpotBadge = document.querySelector("#casino-jackpot-badge");
+const casinoJackpotCard = document.querySelector("#casino-jackpot-card");
+const casinoJackpotCardImage = document.querySelector(
+  "#casino-jackpot-card-image",
+);
 const casinoJackpotPrize = document.querySelector("#casino-jackpot-prize");
 const casinoJackpotContinue = document.querySelector(
   "#casino-jackpot-continue",
@@ -793,14 +863,16 @@ const achievementsBackgroundPortrait = document.querySelector(
 const achievementsBackgroundImage = document.querySelector(
   "#achievements-background-image",
 );
-const achievementsCanvas = document.querySelector("#achievements-canvas");
-const achievementsLoading = document.querySelector("#achievements-loading");
 const achievementCompletePlaque = document.querySelector(
   "#achievement-complete-plaque",
 );
 const achievementStorageNote = document.querySelector(
   "#achievement-storage-note",
 );
+const cheatDialog = document.querySelector("#cheat-dialog");
+const cheatForm = document.querySelector("#cheat-form");
+const cheatCodeInput = document.querySelector("#cheat-code");
+const cheatStatus = document.querySelector("#cheat-status");
 const patchNotesDialog = document.querySelector("#patch-notes-dialog");
 const releaseEntries = document.querySelectorAll(".release-entry");
 const releasePrevious = document.querySelector("#release-previous");
@@ -1504,8 +1576,69 @@ function consumeCasinoBait() {
   }
 }
 
+function loadPrizeCardImage(source) {
+  // Decode each delivered card once without requesting it from the main page.
+  if (prizeCardImageCache.has(source)) {
+    return prizeCardImageCache.get(source);
+  }
+
+  const image = new Image();
+  image.decoding = "async";
+  const ready = new Promise((resolveImage) => {
+    image.addEventListener("load", () => resolveImage(image), { once: true });
+    image.addEventListener("error", () => resolveImage(null), { once: true });
+  }).then(async (loadedImage) => {
+    if (loadedImage === null) {
+      return null;
+    }
+
+    if (typeof loadedImage.decode === "function") {
+      try {
+        await loadedImage.decode();
+      } catch {
+        // A completed local load remains usable if decode() cannot finish.
+      }
+    }
+
+    return loadedImage;
+  });
+  prizeCardImageCache.set(source, ready);
+  image.src = source;
+  return ready;
+}
+
+function requestAchievementCard(slot, source) {
+  // Retain the current decoded card until its requested replacement is ready.
+  const image = slot.querySelector(".achievement-card-image");
+  if (image.dataset.cardSource === source) {
+    return loadPrizeCardImage(source);
+  }
+
+  image.dataset.cardSource = source;
+  slot.classList.remove("is-card-ready", "is-card-error");
+  slot.classList.add("is-card-loading");
+  const ready = loadPrizeCardImage(source);
+  void ready.then((loadedImage) => {
+    if (image.dataset.cardSource !== source) {
+      return;
+    }
+
+    slot.classList.remove("is-card-loading");
+    if (loadedImage === null) {
+      image.hidden = true;
+      slot.classList.add("is-card-error");
+      return;
+    }
+
+    image.src = source;
+    image.hidden = false;
+    slot.classList.add("is-card-ready");
+  });
+  return ready;
+}
+
 function renderAchievements() {
-  // Keep the HTML labels and the WebGL gallery synchronized.
+  // Keep each native label and lazily requested card synchronized.
   for (const slot of achievementSlots) {
     const prize = CASINO_PRIZES.find(
       (candidate) => candidate.id === slot.dataset.prizeId,
@@ -1513,7 +1646,7 @@ function renderAchievements() {
     const isUnlocked =
       prize !== undefined && unlockedAchievementIds.has(prize.id);
     const name = slot.querySelector(".achievement-name");
-    const fallbackMark = slot.querySelector(".achievement-fallback-mark");
+    const fallback = slot.querySelector(".achievement-card-fallback");
 
     slot.classList.toggle("is-locked", !isUnlocked);
     slot.classList.toggle("is-unlocked", isUnlocked);
@@ -1522,7 +1655,14 @@ function renderAchievements() {
       isUnlocked ? "Conquista desbloqueada: " + prize.name : "Conquista oculta",
     );
     name.textContent = isUnlocked ? prize.name : "conquista oculta";
-    fallbackMark.textContent = isUnlocked ? "3D" : "?";
+    fallback.textContent = isUnlocked ? "PRÊMIO" : "?";
+
+    if (achievementCardsInitialized) {
+      requestAchievementCard(
+        slot,
+        isUnlocked ? prize.cardSource : MYSTERY_PRIZE_CARD_SOURCE,
+      );
+    }
   }
 
   const unlockedCount = unlockedAchievementIds.size;
@@ -1534,7 +1674,6 @@ function renderAchievements() {
   achievementCompletePlaque.hidden = !isComplete;
   achievementStorageNote.hidden = achievementsArePersistent;
   achievementsScreen.classList.toggle("is-complete", isComplete);
-  achievements3D?.setUnlocked([...unlockedAchievementIds]);
   casino3D?.setCollectionComplete(isComplete);
 }
 
@@ -1606,17 +1745,43 @@ function showCasinoMessage(message, tone = "default", emphasize = true) {
 }
 
 function playPendingAchievementAnimation() {
-  // Animate the prize most recently awarded when its gallery is visible.
-  if (pendingAchievementAnimation === null || achievements3D === null) {
+  // Animate the most recently awarded card only when its gallery is visible.
+  if (pendingAchievementAnimation === null || !achievementsDialog.open) {
     return;
   }
 
-  achievements3D.highlightPrize(
-    pendingAchievementAnimation.id,
-    pendingAchievementAnimation.isNew,
-    reducedMotionMediaQuery.matches,
-  );
+  const pendingAnimation = pendingAchievementAnimation;
   pendingAchievementAnimation = null;
+  const slot = [...achievementSlots].find(
+    (candidate) => candidate.dataset.prizeId === pendingAnimation.id,
+  );
+  const prize = CASINO_PRIZES.find(
+    (candidate) => candidate.id === pendingAnimation.id,
+  );
+  if (slot === undefined || prize === undefined) {
+    return;
+  }
+
+  const animationClass = pendingAnimation.isNew
+    ? "is-new-reveal"
+    : "is-repeat-reveal";
+  void requestAchievementCard(slot, prize.cardSource).then(() => {
+    if (!achievementsDialog.open || reducedMotionMediaQuery.matches) {
+      return;
+    }
+
+    slot.classList.remove("is-new-reveal", "is-repeat-reveal");
+    window.requestAnimationFrame(() => {
+      if (!achievementsDialog.open) {
+        return;
+      }
+      slot.classList.add(animationClass);
+      window.setTimeout(
+        () => slot.classList.remove(animationClass),
+        pendingAnimation.isNew ? 1100 : 450,
+      );
+    });
+  });
 }
 
 function readCasinoPalette() {
@@ -1776,7 +1941,7 @@ function initializeAchievementsBackground() {
 }
 
 function load3DModule() {
-  // Share the one pinned local Three.js presentation module between both views.
+  // Load the pinned local Three.js presentation only when the casino opens.
   if (shared3DModulePromise === null) {
     shared3DModulePromise = import("./casino-3d.mjs");
   }
@@ -1795,16 +1960,6 @@ function showCasinoFallback() {
   renderFallbackOutcome(currentFallbackOutcome());
   casinoLoading.textContent = "modo 3D indisponível; usando rolos simples.";
   renderCasinoTokens();
-}
-
-function showAchievementsFallback() {
-  // Preserve readable progress if the 3D trophy gallery cannot start.
-  achievements3DFailed = true;
-  achievements3D?.dispose();
-  achievements3D = null;
-  achievementsScreen.classList.remove("is-3d-loading", "is-3d-ready");
-  achievementsScreen.classList.add("is-3d-fallback");
-  achievementsLoading.textContent = "vitrine 3D indisponível.";
 }
 
 function syncCasino3DVisibility(view = casino3D) {
@@ -1830,7 +1985,6 @@ async function ensureCasino3D() {
           palette: readCasinoPalette(),
           symbols: SLOT_SYMBOLS.map((symbol) => symbol.character),
           symbolImages,
-          prizes: CASINO_PRIZES,
           initialIndices: INITIAL_REEL_SYMBOL_INDICES,
           reducedMotion: reducedMotionMediaQuery.matches,
           onLeverActivate: startCasinoSpin,
@@ -1855,45 +2009,6 @@ async function ensureCasino3D() {
   }
 
   return casino3DLoadPromise;
-}
-
-async function ensureAchievements3D() {
-  // Initialize the shared-canvas trophy gallery only on first opening.
-  if (achievements3D !== null || achievements3DFailed) {
-    return achievements3D;
-  }
-
-  if (achievements3DLoadPromise === null) {
-    achievementsScreen.classList.add("is-3d-loading");
-    achievements3DLoadPromise = load3DModule()
-      .then(({ createAchievements3D }) => {
-        achievements3D = createAchievements3D({
-          canvas: achievementsCanvas,
-          palette: readCasinoPalette(),
-          prizes: CASINO_PRIZES,
-          slots: [...achievementSlots],
-          unlockedIds: [...unlockedAchievementIds],
-          reducedMotion: reducedMotionMediaQuery.matches,
-          onContextFailure: showAchievementsFallback,
-        });
-        achievementsScreen.classList.remove(
-          "is-3d-loading",
-          "is-3d-fallback",
-        );
-        achievementsScreen.classList.add("is-3d-ready");
-        achievementsLoading.hidden = true;
-        achievements3D.setVisible(achievementsDialog.open && !document.hidden);
-        playPendingAchievementAnimation();
-        return achievements3D;
-      })
-      .catch((error) => {
-        console.warn("Não foi possível iniciar a vitrine 3D.", error);
-        showAchievementsFallback();
-        return null;
-      });
-  }
-
-  return achievements3DLoadPromise;
 }
 
 function updateCasinoMusicControl() {
@@ -1956,7 +2071,6 @@ function handleCasinoMusicError() {
 function handleCasinoVisibilityChange() {
   // Pause hidden work and resume only when the visitor still wants music.
   syncCasino3DVisibility();
-  achievements3D?.setVisible(achievementsDialog.open && !document.hidden);
   void reconcileCasinoMusic();
 }
 
@@ -2017,9 +2131,18 @@ function closeCasinoJackpot() {
   }
 
   casinoJackpotOpen = false;
+  jackpotCardRequestId += 1;
   casinoJackpot.hidden = true;
   slotMachine.classList.remove("is-jackpot");
-  casino3D?.hidePrize();
+  casinoJackpotCard.classList.remove(
+    "is-card-loading",
+    "is-card-ready",
+    "is-card-error",
+    "is-new-prize",
+    "is-repeat-prize",
+  );
+  casinoJackpotCardImage.hidden = true;
+  casino3D?.hideJackpot();
   renderCasinoTokens();
 
   if (casinoTokenBalance > 0) {
@@ -2059,7 +2182,8 @@ function handleCasinoKeydown(event) {
 }
 
 function openAchievements() {
-  // Open the full-screen gallery and position its single WebGL canvas.
+  // Open the full-screen gallery and lazily request its current cards.
+  achievementCardsInitialized = true;
   renderAchievements();
 
   if (!achievementsDialog.open) {
@@ -2067,16 +2191,497 @@ function openAchievements() {
   }
 
   initializeAchievementsBackground();
-  void ensureAchievements3D().then(() => {
-    achievements3D?.setVisible(!document.hidden);
-    achievements3D?.resize();
-    playPendingAchievementAnimation();
-  });
+  playPendingAchievementAnimation();
 }
 
-function handleAchievementsClose() {
-  // Stop its low-rate animation while the gallery is hidden.
-  achievements3D?.setVisible(false);
+function normalizeDisplayName(value, trimEdges = true) {
+  // Convert editable text into one plain, single-spaced, bounded name.
+  const singleSpacedName = String(value).replace(/\s+/gu, " ");
+  const limitedName = Array.from(singleSpacedName)
+    .slice(0, DISPLAY_NAME_MAX_LENGTH)
+    .join("");
+  return trimEdges ? limitedName.trim() : limitedName;
+}
+
+function setDisplayedName(value, updateEditor = false) {
+  // Synchronize every dynamic identity consumer from one valid current name.
+  const normalizedName = normalizeDisplayName(value);
+
+  if (normalizedName.length === 0) {
+    return false;
+  }
+
+  selectedName = normalizedName;
+  if (updateEditor) {
+    displayNameEditor.textContent = selectedName;
+  }
+
+  const questionText = selectedName + " já está rica?";
+  document.title = questionText;
+  question.dataset.nameSize =
+    Array.from(selectedName).length > DISPLAY_NAME_LONG_THRESHOLD
+      ? "long"
+      : "regular";
+  dramaticNoButton.setAttribute(
+    "aria-label",
+    "Verificar novamente se " + selectedName + " já está rica",
+  );
+
+  if (certificateRecord !== null && certificateRecord.name !== selectedName) {
+    certificateRecord.name = selectedName;
+    certificateBlobPromise = null;
+    certificateShareButton.hidden = true;
+    certificateStatus.textContent = "";
+    renderCertificateRecord();
+  }
+
+  return true;
+}
+
+function handleDisplayNameFocus() {
+  // Remember the current identity so Escape can cancel this editing session.
+  displayNameBeforeEdit = selectedName;
+}
+
+function handleDisplayNameInput(event) {
+  // Apply valid edits live while preserving an unfinished trailing space.
+  if (event.isComposing) {
+    return;
+  }
+
+  const rawName = displayNameEditor.textContent;
+  const editableName = normalizeDisplayName(rawName, false);
+  const containsFormatting = (displayNameEditor.children?.length ?? 0) > 0;
+
+  if (rawName !== editableName || containsFormatting) {
+    displayNameEditor.textContent = editableName;
+    const selection = window.getSelection?.();
+    const range = document.createRange?.();
+
+    if (selection != null && range != null) {
+      range.selectNodeContents(displayNameEditor);
+      range.collapse(false);
+      selection.removeAllRanges();
+      selection.addRange(range);
+    }
+  }
+
+  setDisplayedName(editableName);
+}
+
+function handleDisplayNameBeforeInput(event) {
+  // Treat virtual-keyboard line breaks as confirmation instead of new content.
+  if (
+    event.inputType === "insertParagraph" ||
+    event.inputType === "insertLineBreak"
+  ) {
+    event.preventDefault();
+    displayNameEditor.blur();
+  }
+}
+
+function handleDisplayNameBlur() {
+  // Commit normalized text or restore the last non-empty live value.
+  if (!setDisplayedName(displayNameEditor.textContent, true)) {
+    displayNameEditor.textContent = selectedName;
+  }
+}
+
+function handleDisplayNameKeydown(event) {
+  // Confirm with Enter or restore the focus-time name with Escape.
+  if (event.key === "Enter") {
+    event.preventDefault();
+    displayNameEditor.blur();
+  } else if (event.key === "Escape") {
+    event.preventDefault();
+    setDisplayedName(displayNameBeforeEdit, true);
+    displayNameEditor.blur();
+  }
+}
+
+function resetDramaticNo() {
+  // Return the replayable audit to its original verdict without changing it.
+  if (dramaticNoResetTimerId !== null) {
+    window.clearTimeout(dramaticNoResetTimerId);
+    dramaticNoResetTimerId = null;
+  }
+
+  dramaticNoStage = 0;
+  dramaticVerdict.dataset.stage = "0";
+  dramaticNoStatus.textContent = "";
+  dramaticNoButton.removeAttribute("aria-disabled");
+}
+
+function advanceDramaticNo() {
+  // Escalate one deterministic audit step and hold the final stamp briefly.
+  if (dramaticNoStage >= DRAMATIC_NO_STEPS.length) {
+    return;
+  }
+
+  dramaticNoStage += 1;
+  dramaticVerdict.dataset.stage = String(dramaticNoStage);
+  dramaticNoStatus.textContent = DRAMATIC_NO_STEPS[dramaticNoStage - 1];
+
+  if (dramaticNoStage === DRAMATIC_NO_STEPS.length) {
+    dramaticNoButton.setAttribute("aria-disabled", "true");
+    dramaticNoResetTimerId = window.setTimeout(
+      resetDramaticNo,
+      DRAMATIC_NO_RESET_DELAY_MS,
+    );
+  }
+}
+
+function createCertificateRecord(date = new Date()) {
+  // Create one timestamped issue record whose current display name may be refreshed.
+  const fields = getPortoAlegreParts(date);
+  const year = String(fields.year);
+  const month = String(fields.month).padStart(2, "0");
+  const day = String(fields.day).padStart(2, "0");
+  const hour = String(fields.hour).padStart(2, "0");
+  const minute = String(fields.minute).padStart(2, "0");
+  const second = String(fields.second).padStart(2, "0");
+  const dateKey = year + "-" + month + "-" + day;
+  const timeLabel = hour + ":" + minute + ":" + second;
+
+  return {
+    name: selectedName,
+    dateTimeKey: dateKey + "T" + timeLabel,
+    dateLabel: certificateDateFormatter.format(date),
+    timeLabel,
+    issuedAtLabel:
+      certificateDateFormatter.format(date) +
+      " às " +
+      timeLabel +
+      " · Porto Alegre",
+    protocol: "NR-" + year + month + day + "-" + hour + minute + second,
+  };
+}
+
+function renderCertificateRecord() {
+  // Keep the responsive HTML preview and exported canvas on the same record.
+  if (certificateRecord === null) {
+    certificateRecord = createCertificateRecord();
+  }
+
+  certificateName.textContent = certificateRecord.name;
+  certificateDate.textContent = certificateRecord.issuedAtLabel;
+  certificateDate.dateTime = certificateRecord.dateTimeKey;
+  certificateProtocol.textContent = certificateRecord.protocol;
+}
+
+function getCertificatePaletteColor(propertyName) {
+  // Read the authoritative Marin palette directly from semantic CSS tokens.
+  return getComputedStyle(document.documentElement)
+    .getPropertyValue(propertyName)
+    .trim();
+}
+
+function setFittedCertificateFont(context, text, maximumWidth, initialSize) {
+  // Keep every approved randomized name on one crisp line in the PNG.
+  let fontSize = initialSize;
+  const fontFamily = '"Arial Rounded MT Bold", "Trebuchet MS", sans-serif';
+  context.font = "1000 " + fontSize + "px " + fontFamily;
+
+  while (fontSize > 48 && context.measureText(text).width > maximumWidth) {
+    fontSize -= 4;
+    context.font = "1000 " + fontSize + "px " + fontFamily;
+  }
+}
+
+function drawCertificateSeal(context, centerX, centerY, colors) {
+  // Draw a font-independent coffee seal for the exported document.
+  context.save();
+  context.fillStyle = colors.blonde;
+  context.strokeStyle = colors.navyDeep;
+  context.lineWidth = 12;
+  context.beginPath();
+  context.arc(centerX, centerY, 78, 0, Math.PI * 2);
+  context.fill();
+  context.stroke();
+
+  context.fillStyle = colors.shirt;
+  context.strokeStyle = colors.navyDeep;
+  context.lineWidth = 9;
+  context.fillRect(centerX - 39, centerY - 18, 72, 50);
+  context.strokeRect(centerX - 39, centerY - 18, 72, 50);
+  context.beginPath();
+  context.arc(centerX + 35, centerY + 4, 23, -Math.PI / 2, Math.PI / 2);
+  context.stroke();
+
+  context.lineWidth = 7;
+  for (const offset of [-22, 0, 22]) {
+    context.beginPath();
+    context.moveTo(centerX + offset, centerY - 34);
+    context.lineTo(centerX + offset + 8, centerY - 57);
+    context.stroke();
+  }
+  context.restore();
+}
+
+function drawCertificateCanvas() {
+  // Reproduce the visible certificate as a high-resolution local PNG source.
+  renderCertificateRecord();
+  certificateCanvas.width = CERTIFICATE_CANVAS_WIDTH;
+  certificateCanvas.height = CERTIFICATE_CANVAS_HEIGHT;
+  const context = certificateCanvas.getContext("2d");
+
+  if (context === null) {
+    throw new Error("Canvas 2D indisponível");
+  }
+
+  const colors = {
+    navyDeep: getCertificatePaletteColor("--navy-deep"),
+    navy: getCertificatePaletteColor("--navy"),
+    shirt: getCertificatePaletteColor("--shirt"),
+    blonde: getCertificatePaletteColor("--hair-blonde"),
+    blondeSoft: getCertificatePaletteColor("--hair-blonde-soft"),
+    pink: getCertificatePaletteColor("--hair-pink"),
+    pinkDark: getCertificatePaletteColor("--hair-pink-dark"),
+    pinkSoft: getCertificatePaletteColor("--hair-pink-soft"),
+    tieRed: getCertificatePaletteColor("--tie-red"),
+    blueSoft: getCertificatePaletteColor("--skirt-blue-soft"),
+  };
+
+  context.fillStyle = colors.shirt;
+  context.fillRect(0, 0, CERTIFICATE_CANVAS_WIDTH, CERTIFICATE_CANVAS_HEIGHT);
+  context.fillStyle = colors.pinkSoft;
+  context.fillRect(0, 0, CERTIFICATE_CANVAS_WIDTH, 72);
+  context.fillStyle = colors.blueSoft;
+  context.fillRect(0, CERTIFICATE_CANVAS_HEIGHT - 72, CERTIFICATE_CANVAS_WIDTH, 72);
+  context.strokeStyle = colors.navyDeep;
+  context.lineWidth = 26;
+  context.strokeRect(28, 28, CERTIFICATE_CANVAS_WIDTH - 56, CERTIFICATE_CANVAS_HEIGHT - 56);
+  context.strokeStyle = colors.pink;
+  context.lineWidth = 8;
+  context.strokeRect(62, 62, CERTIFICATE_CANVAS_WIDTH - 124, CERTIFICATE_CANVAS_HEIGHT - 124);
+
+  context.textAlign = "center";
+  context.textBaseline = "middle";
+  context.fillStyle = colors.pinkDark;
+  context.font = '900 28px "Trebuchet MS", sans-serif';
+  context.fillText("MINISTÉRIO DA NANABET · PORTO ALEGRE", 800, 132);
+
+  context.fillStyle = colors.navyDeep;
+  context.font = '1000 68px "Arial Rounded MT Bold", "Trebuchet MS", sans-serif';
+  context.fillText("CERTIFICADO OFICIAL", 800, 218);
+  context.fillText("DE NÃO RIQUEZA", 800, 292);
+
+  context.fillStyle = colors.navy;
+  context.font = '700 30px "Trebuchet MS", sans-serif';
+  context.fillText("Certificamos, para os devidos fins, que", 800, 378);
+
+  context.fillStyle = colors.tieRed;
+  setFittedCertificateFont(context, certificateRecord.name, 1230, 92);
+  context.fillText(certificateRecord.name, 800, 466);
+  context.fillStyle = colors.pink;
+  context.fillRect(285, 524, 1030, 8);
+
+  context.fillStyle = colors.navyDeep;
+  context.font = '700 29px "Trebuchet MS", sans-serif';
+  context.fillText(
+    "foi submetida a uma auditoria rigorosamente duvidosa e,",
+    800,
+    584,
+  );
+  context.fillText(
+    "até a presente data, ainda não está rica.",
+    800,
+    630,
+  );
+
+  context.fillStyle = colors.blondeSoft;
+  context.fillRect(440, 684, 720, 112);
+  context.strokeStyle = colors.navyDeep;
+  context.lineWidth = 8;
+  context.strokeRect(440, 684, 720, 112);
+  context.fillStyle = colors.tieRed;
+  context.font = '1000 62px "Arial Rounded MT Bold", "Trebuchet MS", sans-serif';
+  context.fillText("VEREDITO: NÃO", 800, 742);
+
+  context.fillStyle = colors.navy;
+  context.font = '700 25px "Trebuchet MS", sans-serif';
+  context.fillText("emitido em " + certificateRecord.issuedAtLabel, 800, 828);
+  context.fillText("protocolo " + certificateRecord.protocol, 800, 866);
+
+  drawCertificateSeal(context, 800, 977, colors);
+  context.lineWidth = 3;
+  context.strokeStyle = colors.navyDeep;
+  context.beginPath();
+  context.moveTo(170, 963);
+  context.lineTo(590, 963);
+  context.moveTo(1010, 963);
+  context.lineTo(1430, 963);
+  context.stroke();
+
+  context.textAlign = "center";
+  context.fillStyle = colors.tieRed;
+  context.font = '700 46px "Segoe Script", "Brush Script MT", cursive';
+  context.fillText("Tigrinho", 380, 946);
+  context.fillStyle = colors.pinkDark;
+  context.fillText("nanaBet", 1220, 946);
+
+  context.fillStyle = colors.navyDeep;
+  context.font = '700 23px "Trebuchet MS", sans-serif';
+  context.fillText("Auditoria do Tigrinho", 380, 993);
+  context.font = '600 18px "Trebuchet MS", sans-serif';
+  context.fillText("auditor felino", 380, 1021);
+  context.font = '700 23px "Trebuchet MS", sans-serif';
+  context.fillText("Ministério da nanaBet", 1220, 993);
+  context.font = '600 18px "Trebuchet MS", sans-serif';
+  context.fillText("riqueza não localizada", 1220, 1021);
+}
+
+function getCertificateBlob() {
+  // Encode once per current name and share the same file across both actions.
+  if (certificateBlobPromise !== null) {
+    return certificateBlobPromise;
+  }
+
+  try {
+    drawCertificateCanvas();
+  } catch (error) {
+    return Promise.reject(error);
+  }
+
+  certificateBlobPromise = new Promise((resolve, reject) => {
+    if (typeof certificateCanvas.toBlob !== "function") {
+      reject(new Error("Exportação PNG indisponível"));
+      return;
+    }
+
+    certificateCanvas.toBlob((blob) => {
+      if (blob === null) {
+        reject(new Error("Falha ao gerar o PNG"));
+        return;
+      }
+      resolve(blob);
+    }, "image/png");
+  }).catch((error) => {
+    certificateBlobPromise = null;
+    throw error;
+  });
+
+  return certificateBlobPromise;
+}
+
+function createCertificateFile(blob) {
+  // Build the browser-native file used only by the optional share sheet.
+  if (typeof File !== "function") {
+    return null;
+  }
+
+  return new File([blob], CERTIFICATE_FILE_NAME, { type: "image/png" });
+}
+
+function browserCanShareCertificate(file) {
+  // Keep unsupported sharing out of the interface instead of showing an error.
+  if (
+    file === null ||
+    typeof navigator === "undefined" ||
+    typeof navigator.share !== "function" ||
+    typeof navigator.canShare !== "function"
+  ) {
+    return false;
+  }
+
+  try {
+    return navigator.canShare({ files: [file] });
+  } catch {
+    return false;
+  }
+}
+
+async function prepareCertificateShare() {
+  // Reveal sharing only after the real generated file passes capability checks.
+  certificateShareButton.hidden = true;
+
+  if (
+    typeof navigator === "undefined" ||
+    typeof navigator.share !== "function" ||
+    typeof navigator.canShare !== "function" ||
+    typeof File !== "function"
+  ) {
+    return;
+  }
+
+  try {
+    const blob = await getCertificateBlob();
+    const file = createCertificateFile(blob);
+    certificateShareButton.hidden = !browserCanShareCertificate(file);
+  } catch {
+    certificateStatus.textContent =
+      "não foi possível preparar o arquivo; a prévia continua disponível.";
+  }
+}
+
+function openCertificate() {
+  // Open one stable, personalized certificate and prepare optional sharing.
+  renderCertificateRecord();
+  certificateStatus.textContent = "";
+  certificateDialog.showModal();
+  void prepareCertificateShare();
+}
+
+function handleCertificateClose() {
+  // Clear transient feedback while retaining this visit's official record.
+  certificateStatus.textContent = "";
+}
+
+async function downloadCertificate() {
+  // Create a temporary local URL and trigger a dependency-free PNG download.
+  certificateDownloadButton.disabled = true;
+  certificateStatus.textContent = "preparando o certificado...";
+
+  try {
+    const blob = await getCertificateBlob();
+    const objectUrl = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = objectUrl;
+    link.download = CERTIFICATE_FILE_NAME;
+    link.hidden = true;
+    document.body.append(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(objectUrl);
+    certificateStatus.textContent = "certificado baixado.";
+  } catch {
+    certificateStatus.textContent = "não foi possível gerar o certificado em PNG.";
+  } finally {
+    certificateDownloadButton.disabled = false;
+  }
+}
+
+async function shareCertificate() {
+  // Hand the generated PNG to the operating system's native share sheet.
+  certificateShareButton.disabled = true;
+  certificateStatus.textContent = "preparando o compartilhamento...";
+
+  try {
+    const blob = await getCertificateBlob();
+    const file = createCertificateFile(blob);
+
+    if (!browserCanShareCertificate(file)) {
+      certificateShareButton.hidden = true;
+      certificateStatus.textContent =
+        "compartilhamento indisponível; você ainda pode baixar o PNG.";
+      return;
+    }
+
+    await navigator.share({
+      files: [file],
+      title: "Certificado Oficial de Não Riqueza",
+      text: certificateRecord.name + " ainda não está rica.",
+    });
+    certificateStatus.textContent = "certificado compartilhado.";
+  } catch (error) {
+    if (error?.name === "AbortError") {
+      certificateStatus.textContent = "";
+    } else {
+      certificateStatus.textContent = "não foi possível compartilhar o certificado.";
+    }
+  } finally {
+    certificateShareButton.disabled = false;
+  }
 }
 
 function renderReleasePage() {
@@ -2102,6 +2707,56 @@ function changeReleasePage(direction) {
   renderReleasePage();
 }
 
+function handleAchievementCheatShortcut(event) {
+  // Open the unadvertised terminal only from the unobstructed main page.
+  if (
+    event.key === "F3" &&
+    !event.ctrlKey &&
+    !event.altKey &&
+    !event.shiftKey &&
+    !event.metaKey &&
+    !casinoDialog.open &&
+    !achievementsDialog.open &&
+    !classroomDialog.open &&
+    !certificateDialog.open &&
+    !patchNotesDialog.open &&
+    !cheatDialog.open
+  ) {
+    event.preventDefault();
+    cheatCodeInput.value = "";
+    cheatStatus.textContent = "";
+    cheatDialog.showModal();
+    cheatCodeInput.focus();
+  }
+}
+
+function handleAchievementCheatSubmit(event) {
+  // Unlock the existing stable IDs without altering chips or casino odds.
+  event.preventDefault();
+  const submittedCode = cheatCodeInput.value.trim().toLocaleLowerCase("pt-BR");
+  if (submittedCode !== ACHIEVEMENT_CHEAT_CODE) {
+    cheatStatus.textContent = "código inválido.";
+    cheatCodeInput.focus();
+    cheatCodeInput.select?.();
+    return;
+  }
+
+  for (const prize of CASINO_PRIZES) {
+    unlockedAchievementIds.add(prize.id);
+  }
+  pendingAchievementAnimation = null;
+  saveAchievements();
+  renderAchievements();
+  cheatDialog.close();
+  openAchievements();
+}
+
+function handleAchievementCheatClose() {
+  // Forget the typed code and any validation feedback after every exit.
+  cheatCodeInput.value = "";
+  cheatStatus.textContent = "";
+}
+
 function handlePatchNotesShortcut(event) {
   // Keep the release history secret behind an unmodified P key.
   const target = event.target;
@@ -2117,7 +2772,9 @@ function handlePatchNotesShortcut(event) {
     !isEditing &&
     !casinoDialog.open &&
     !achievementsDialog.open &&
-    !classroomDialog.open
+    !classroomDialog.open &&
+    !certificateDialog.open &&
+    !cheatDialog.open
   ) {
     event.preventDefault();
     releasePage = 0;
@@ -2205,8 +2862,32 @@ function chooseCasinoOutcome() {
   pendingCasinoOutcome = createOrdinaryLosingOutcome();
 }
 
+function requestJackpotCard(prize) {
+  // Reveal only the decoded card for the current blocking jackpot.
+  const requestId = jackpotCardRequestId + 1;
+  jackpotCardRequestId = requestId;
+  casinoJackpotCardImage.hidden = true;
+  casinoJackpotCard.classList.remove("is-card-ready", "is-card-error");
+  casinoJackpotCard.classList.add("is-card-loading");
+  void loadPrizeCardImage(prize.cardSource).then((loadedImage) => {
+    if (requestId !== jackpotCardRequestId || !casinoJackpotOpen) {
+      return;
+    }
+
+    casinoJackpotCard.classList.remove("is-card-loading");
+    if (loadedImage === null) {
+      casinoJackpotCard.classList.add("is-card-error");
+      return;
+    }
+
+    casinoJackpotCardImage.src = prize.cardSource;
+    casinoJackpotCardImage.hidden = false;
+    casinoJackpotCard.classList.add("is-card-ready");
+  });
+}
+
 function showCasinoJackpot(prize, isNewPrize) {
-  // Block the machine behind a persistent, emphatic prize presentation.
+  // Block the machine behind one crisp card and the retained 3D effects.
   clearCasinoResultFlash();
   casinoJackpotOpen = true;
   slotMachine.classList.add("is-jackpot");
@@ -2214,9 +2895,13 @@ function showCasinoJackpot(prize, isNewPrize) {
     ? "NOVA CONQUISTA"
     : "VOCÊ GANHOU DE NOVO";
   casinoJackpotPrize.textContent = prize.name;
+  casinoJackpotCard.classList.remove("is-new-prize", "is-repeat-prize");
+  casinoJackpotCard.classList.add(
+    isNewPrize ? "is-new-prize" : "is-repeat-prize",
+  );
   casinoJackpot.hidden = false;
-  casino3D?.showPrize(
-    prize.modelId,
+  requestJackpotCard(prize);
+  casino3D?.showJackpot(
     !isNewPrize,
     reducedMotionMediaQuery.matches,
   );
@@ -2280,6 +2965,9 @@ async function startCasinoSpin() {
   casinoTokenBalance -= 1;
   saveCasinoTokens();
   chooseCasinoOutcome();
+  if (pendingCasinoOutcomeType === "prize" && pendingCasinoPrize !== null) {
+    void loadPrizeCardImage(pendingCasinoPrize.cardSource);
+  }
   renderCasinoTokens();
   showCasinoMessage("os rolos estão girando...", "spinning");
   slotMachine.classList.add("is-spinning");
@@ -2503,9 +3191,24 @@ updateCasinoMusicControl();
 renderAchievements();
 renderCasinoTokens();
 renderReleasePage();
+displayNameEditor.addEventListener("focus", handleDisplayNameFocus);
+displayNameEditor.addEventListener("input", handleDisplayNameInput);
+displayNameEditor.addEventListener("compositionend", handleDisplayNameInput);
+displayNameEditor.addEventListener("beforeinput", handleDisplayNameBeforeInput);
+displayNameEditor.addEventListener("blur", handleDisplayNameBlur);
+displayNameEditor.addEventListener("keydown", handleDisplayNameKeydown);
+dramaticNoButton.addEventListener("click", advanceDramaticNo);
 casinoOpenButton.addEventListener("click", openCasino);
 achievementsOpenButton.addEventListener("click", openAchievements);
 coffeeOracleButton.addEventListener("click", toggleCoffeeOracle);
+certificateOpenButton.addEventListener("click", openCertificate);
+certificateDownloadButton.addEventListener("click", () => {
+  void downloadCertificate();
+});
+certificateShareButton.addEventListener("click", () => {
+  void shareCertificate();
+});
+certificateDialog.addEventListener("close", handleCertificateClose);
 classroomOpenButton.addEventListener("click", openClassroom);
 classroomContinue.addEventListener("click", handleClassroomContinue);
 for (const answerButton of classroomAnswerButtons) {
@@ -2527,19 +3230,21 @@ casinoDialog.addEventListener("cancel", handleCasinoCancel);
 casinoDialog.addEventListener("keydown", handleCasinoKeydown);
 classroomDialog.addEventListener("close", handleClassroomClose);
 casinoJackpotContinue.addEventListener("click", closeCasinoJackpot);
-achievementsDialog.addEventListener("close", handleAchievementsClose);
+cheatForm.addEventListener("submit", handleAchievementCheatSubmit);
+cheatDialog.addEventListener("close", handleAchievementCheatClose);
 releasePrevious.addEventListener("click", () => changeReleasePage(-1));
 releaseNext.addEventListener("click", () => changeReleasePage(1));
+document.addEventListener("keydown", handleAchievementCheatShortcut);
 document.addEventListener("keydown", handlePatchNotesShortcut);
 document.addEventListener("visibilitychange", handleCasinoVisibilityChange);
 mobileGifMediaQuery.addEventListener("change", showRandomMarinGifs);
 
-// Pick one displayed identity for this page visit.
-const selectedName =
-  NAME_VARIATIONS[Math.floor(Math.random() * NAME_VARIATIONS.length)];
-const questionText = selectedName + " já está rica?";
-document.querySelector("#question").textContent = questionText;
-document.title = questionText;
+// Pick one editable initial identity for this page visit.
+setDisplayedName(
+  NAME_VARIATIONS[Math.floor(Math.random() * NAME_VARIATIONS.length)],
+  true,
+);
+displayNameBeforeEdit = selectedName;
 
 showRandomMarinGifs();
 scheduleNextUpdate();

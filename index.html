@@ -20,11 +20,41 @@
 
         <div class="main-primary">
           <p class="eyebrow">status financeiro em tempo real</p>
-          <h1 id="question">niasguts já está rica?</h1>
+          <h1 class="question-heading" id="question" data-name-size="regular">
+            <span
+              class="editable-name"
+              id="display-name"
+              contenteditable="plaintext-only"
+              role="textbox"
+              aria-label="Nome exibido; clique ou toque para editar"
+              aria-multiline="false"
+              spellcheck="false"
+              enterkeyhint="done"
+              data-maxlength="32"
+              title="Clique ou toque para editar o nome"
+            >niasguts</span>
+            <span class="question-suffix">já está rica?</span>
+          </h1>
 
-          <div class="verdict">
-            <p class="answer" aria-label="Não">NÃO</p>
+          <div class="verdict" id="dramatic-verdict" data-stage="0">
+            <button
+              class="answer"
+              id="dramatic-no"
+              type="button"
+              aria-label="Verificar novamente se niasguts já está rica"
+              aria-describedby="dramatic-no-status"
+            >NÃO</button>
+            <span class="dramatic-paper dramatic-paper-one" aria-hidden="true"></span>
+            <span class="dramatic-paper dramatic-paper-two" aria-hidden="true"></span>
+            <span class="dramatic-paper dramatic-paper-three" aria-hidden="true"></span>
           </div>
+          <p
+            class="dramatic-no-status"
+            id="dramatic-no-status"
+            role="status"
+            aria-live="polite"
+            aria-atomic="true"
+          ></p>
 
           <div class="main-actions">
             <button
@@ -53,6 +83,16 @@
             >
               <span aria-hidden="true">☕</span>
               <span>ORÁCULO</span>
+            </button>
+            <button
+              class="certificate-button"
+              id="open-certificate"
+              type="button"
+              aria-haspopup="dialog"
+              aria-controls="certificate-dialog"
+            >
+              <span aria-hidden="true">▤</span>
+              <span>CERTIFICADO</span>
             </button>
           </div>
 
@@ -111,7 +151,7 @@
               ajude ela a ficar rica doando em
               <a href="https://pixie.gg/niagott" target="_blank" rel="noopener noreferrer">pixie.gg/niagott</a>
             </p>
-            <span class="version-label">versão 1.20</span>
+            <span class="version-label">versão 1.24</span>
           </footer>
         </div>
       </section>
@@ -301,7 +341,19 @@
             <div class="jackpot-copy">
               <p class="jackpot-badge" id="casino-jackpot-badge">NOVA CONQUISTA</p>
               <h3 class="jackpot-title" id="casino-jackpot-title">VOCÊ GANHOU</h3>
-              <p class="jackpot-prize" id="casino-jackpot-prize"></p>
+              <figure class="jackpot-card" id="casino-jackpot-card">
+                <span class="jackpot-card-fallback" aria-hidden="true">?</span>
+                <img
+                  class="jackpot-card-image"
+                  id="casino-jackpot-card-image"
+                  alt=""
+                  width="1086"
+                  height="1448"
+                  decoding="async"
+                  hidden
+                >
+                <figcaption class="jackpot-prize" id="casino-jackpot-prize"></figcaption>
+              </figure>
               <button class="jackpot-continue" id="casino-jackpot-continue" type="button">
                 CONTINUAR
               </button>
@@ -441,31 +493,41 @@
         </header>
 
         <div class="achievement-stage" id="achievement-stage">
-          <canvas class="achievements-canvas" id="achievements-canvas" aria-hidden="true"></canvas>
-          <p class="achievements-loading" id="achievements-loading" role="status">
-            preparando a vitrine 3D...
-          </p>
-
           <ol class="achievement-grid" id="achievement-grid" aria-label="Slots de conquistas">
             <li class="achievement-slot is-locked" data-prize-id="esposa-nenepira" aria-label="Conquista oculta">
-              <span class="achievement-model-space" aria-hidden="true"><span class="achievement-fallback-mark">?</span></span>
-              <span class="achievement-name">conquista oculta</span>
+              <span class="achievement-card-shell">
+                <span class="achievement-card-fallback" aria-hidden="true">?</span>
+                <img class="achievement-card-image" alt="" width="1086" height="1448" decoding="async" hidden>
+                <span class="achievement-name">conquista oculta</span>
+              </span>
             </li>
             <li class="achievement-slot is-locked" data-prize-id="prima-vaper" aria-label="Conquista oculta">
-              <span class="achievement-model-space" aria-hidden="true"><span class="achievement-fallback-mark">?</span></span>
-              <span class="achievement-name">conquista oculta</span>
+              <span class="achievement-card-shell">
+                <span class="achievement-card-fallback" aria-hidden="true">?</span>
+                <img class="achievement-card-image" alt="" width="1086" height="1448" decoding="async" hidden>
+                <span class="achievement-name">conquista oculta</span>
+              </span>
             </li>
             <li class="achievement-slot is-locked" data-prize-id="bolos" aria-label="Conquista oculta">
-              <span class="achievement-model-space" aria-hidden="true"><span class="achievement-fallback-mark">?</span></span>
-              <span class="achievement-name">conquista oculta</span>
+              <span class="achievement-card-shell">
+                <span class="achievement-card-fallback" aria-hidden="true">?</span>
+                <img class="achievement-card-image" alt="" width="1086" height="1448" decoding="async" hidden>
+                <span class="achievement-name">conquista oculta</span>
+              </span>
             </li>
             <li class="achievement-slot is-locked" data-prize-id="350-reais" aria-label="Conquista oculta">
-              <span class="achievement-model-space" aria-hidden="true"><span class="achievement-fallback-mark">?</span></span>
-              <span class="achievement-name">conquista oculta</span>
+              <span class="achievement-card-shell">
+                <span class="achievement-card-fallback" aria-hidden="true">?</span>
+                <img class="achievement-card-image" alt="" width="1086" height="1448" decoding="async" hidden>
+                <span class="achievement-name">conquista oculta</span>
+              </span>
             </li>
             <li class="achievement-slot is-locked" data-prize-id="lanche-subway" aria-label="Conquista oculta">
-              <span class="achievement-model-space" aria-hidden="true"><span class="achievement-fallback-mark">?</span></span>
-              <span class="achievement-name">conquista oculta</span>
+              <span class="achievement-card-shell">
+                <span class="achievement-card-fallback" aria-hidden="true">?</span>
+                <img class="achievement-card-image" alt="" width="1086" height="1448" decoding="async" hidden>
+                <span class="achievement-name">conquista oculta</span>
+              </span>
             </li>
           </ol>
         </div>
@@ -478,6 +540,109 @@
             não foi possível salvar; o progresso vale só nesta visita.
           </p>
         </div>
+      </section>
+    </dialog>
+
+    <dialog
+      class="site-dialog certificate-dialog"
+      id="certificate-dialog"
+      aria-labelledby="certificate-title"
+      aria-describedby="certificate-description"
+    >
+      <section class="certificate-screen">
+        <form class="dialog-close-form certificate-close-form" method="dialog">
+          <button class="dialog-close" type="submit" aria-label="Fechar certificado">×</button>
+        </form>
+
+        <header class="certificate-header">
+          <p>documento rigorosamente oficial</p>
+          <h2>Cartório da nanaBet</h2>
+        </header>
+
+        <article class="certificate-card" id="certificate-preview">
+          <span class="certificate-corner certificate-corner-top" aria-hidden="true"></span>
+          <span class="certificate-corner certificate-corner-bottom" aria-hidden="true"></span>
+          <p class="certificate-authority">MINISTÉRIO DA NANABET · PORTO ALEGRE</p>
+          <h2 class="certificate-title" id="certificate-title">
+            Certificado Oficial de Não Riqueza
+          </h2>
+          <p class="certificate-intro">Certificamos, para os devidos fins, que</p>
+          <strong class="certificate-name" id="certificate-name">niasguts</strong>
+          <p class="certificate-description" id="certificate-description">
+            foi submetida a uma auditoria rigorosamente duvidosa e, até a presente
+            data, ainda não está rica.
+          </p>
+          <strong class="certificate-verdict">VEREDITO: NÃO</strong>
+
+          <div class="certificate-record">
+            <p>emitido em <time id="certificate-date"></time></p>
+            <p>protocolo <span id="certificate-protocol"></span></p>
+          </div>
+
+          <div class="certificate-signatures" aria-label="Assinaturas responsáveis">
+            <p>
+              <span class="certificate-signature-mark certificate-signature-tiger" aria-hidden="true">Tigrinho</span>
+              <span class="certificate-signature-authority">Auditoria do Tigrinho</span>
+              <strong>auditor felino</strong>
+            </p>
+            <span class="certificate-seal" aria-hidden="true">☕</span>
+            <p>
+              <span class="certificate-signature-mark certificate-signature-nanabet" aria-hidden="true">nanaBet</span>
+              <span class="certificate-signature-authority">Ministério da nanaBet</span>
+              <strong>riqueza não localizada</strong>
+            </p>
+          </div>
+        </article>
+
+        <div class="certificate-actions">
+          <button class="certificate-action" id="download-certificate" type="button">
+            BAIXAR PNG
+          </button>
+          <button
+            class="certificate-action certificate-share"
+            id="share-certificate"
+            type="button"
+            hidden
+          >COMPARTILHAR</button>
+        </div>
+        <p class="certificate-status" id="certificate-status" role="status" aria-live="polite"></p>
+        <canvas
+          id="certificate-canvas"
+          width="1600"
+          height="1131"
+          aria-hidden="true"
+          hidden
+        ></canvas>
+      </section>
+    </dialog>
+
+    <dialog
+      class="site-dialog cheat-dialog"
+      id="cheat-dialog"
+      aria-labelledby="cheat-title"
+    >
+      <section class="cheat-screen">
+        <form class="dialog-close-form cheat-close-form" method="dialog">
+          <button class="dialog-close" type="submit" aria-label="Fechar código secreto">×</button>
+        </form>
+
+        <form class="cheat-panel" id="cheat-form" novalidate>
+          <p class="cheat-kicker">acesso restrito</p>
+          <h2 class="cheat-title" id="cheat-title">Terminal da nanaBet</h2>
+          <label class="cheat-label" for="cheat-code">código</label>
+          <input
+            class="cheat-input"
+            id="cheat-code"
+            name="code"
+            type="text"
+            maxlength="32"
+            autocomplete="off"
+            autocapitalize="none"
+            spellcheck="false"
+          >
+          <button class="cheat-submit" type="submit">CONFIRMAR</button>
+          <p class="cheat-status" id="cheat-status" role="status" aria-live="polite"></p>
+        </form>
       </section>
     </dialog>
 
@@ -497,6 +662,10 @@
         </header>
 
         <ol class="release-list" id="release-list" aria-label="Histórico de versões">
+          <li class="release-entry"><h3>versão 1.24</h3><p>Os prêmios viraram cards ilustrados, fernando collor de calcinha entrou no sorteio e um segredo novo foi escondido na página.</p></li>
+          <li class="release-entry"><h3>versão 1.23</h3><p>O prêmio acumulou juros e virou 355 reais + juros; o certificado passou a registrar a hora de Porto Alegre e ganhou assinaturas do Tigrinho e da nanaBet.</p></li>
+          <li class="release-entry"><h3>versão 1.22</h3><p>O nome sorteado virou um título editável e agora atualiza ao vivo a pergunta, a aba e o certificado oficial.</p></li>
+          <li class="release-entry"><h3>versão 1.21</h3><p>O NÃO ganhou uma auditoria dramática em cinco atos, e o Cartório da nanaBet passou a emitir certificados oficiais para baixar e compartilhar.</p></li>
           <li class="release-entry"><h3>versão 1.20</h3><p>O Oráculo do Café ganhou 366 previsões únicas, uma para cada data do calendário de Porto Alegre.</p></li>
           <li class="release-entry"><h3>versão 1.19</h3><p>A cena final do Gojo ganhou um crossfade estável, sem o flicker entre a pose de recompensa e a CG, e o diálogo passou a ocupar a base no modo retrato.</p></li>
           <li class="release-entry"><h3>versão 1.18</h3><p>A ficha e a legenda do cassino voltaram ao tamanho compacto após a correção das alturas dos ícones.</p></li>
@@ -531,7 +700,7 @@
 
         <nav class="release-pagination" aria-label="Paginação dos patch notes">
           <button class="release-page-button" id="release-previous" type="button">ANTERIOR</button>
-          <span class="release-page-status" id="release-page-status" aria-live="polite">1/10</span>
+          <span class="release-page-status" id="release-page-status" aria-live="polite">1/12</span>
           <button class="release-page-button" id="release-next" type="button">PRÓXIMA</button>
         </nav>
       </section>

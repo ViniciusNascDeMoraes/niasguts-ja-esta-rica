@@ -10,10 +10,7 @@ const LEVER_TOTAL_DURATION_MS =
   LEVER_PULL_DURATION_MS + LEVER_HOLD_DURATION_MS + LEVER_RETURN_DURATION_MS;
 const REEL_START_DELAY_MS = 260;
 const DANCE_FRAME_INTERVAL_MS = 1000 / 30;
-const GALLERY_FRAME_INTERVAL_MS = 1000 / 20;
 const JACKPOT_STAGE_DISTANCE = 7;
-const JACKPOT_MAX_WIDTH_RATIO = 0.46;
-const JACKPOT_MAX_HEIGHT_RATIO = 0.34;
 
 function easeInOutCubic(progress) {
   // Smooth both ends of a physical control movement.
@@ -21,9 +18,8 @@ function easeInOutCubic(progress) {
     ? 4 * progress * progress * progress
     : 1 - Math.pow(-2 * progress + 2, 3) / 2;
 }
-
 function easeOutCubic(progress) {
-  // Decelerate reel and prize movement into an exact resting pose.
+  // Decelerate reels, lever movement, and effect fades into resting states.
   return 1 - Math.pow(1 - progress, 3);
 }
 
@@ -44,33 +40,6 @@ export function calculateReelTargetRotation(
     fullTurns * FULL_TURN_RADIANS -
     backwardSteps * symbolAngle
   );
-}
-
-export function calculatePrizePresentationLayout(options) {
-  // Fit a centered prize into the clear middle band of any casino viewport.
-  const {
-    viewportWidth,
-    viewportHeight,
-    verticalFovDegrees,
-    distance = JACKPOT_STAGE_DISTANCE,
-    modelWidth,
-    modelHeight,
-  } = options;
-  const aspect = viewportWidth / viewportHeight;
-  const visibleHeight =
-    2 * distance * Math.tan(THREE.MathUtils.degToRad(verticalFovDegrees) / 2);
-  const visibleWidth = visibleHeight * aspect;
-  const scale = Math.min(
-    (visibleWidth * JACKPOT_MAX_WIDTH_RATIO) / modelWidth,
-    (visibleHeight * JACKPOT_MAX_HEIGHT_RATIO) / modelHeight,
-  );
-
-  return {
-    position: [0, 0, -distance],
-    scale,
-    visibleHeight,
-    visibleWidth,
-  };
 }
 
 function createStandardMaterial(color, options = {}) {
@@ -160,35 +129,6 @@ function addCylinder(
   mesh.name = name;
   parent.add(mesh);
   return mesh;
-}
-
-function createTextTexture(text, background, foreground) {
-  // Draw sharp text for a plaque attached to an actual 3D object.
-  const textureCanvas = document.createElement("canvas");
-  textureCanvas.width = 512;
-  textureCanvas.height = 256;
-  const context = textureCanvas.getContext("2d");
-
-  if (context === null) {
-    throw new Error("Canvas 2D is unavailable for a 3D plaque.");
-  }
-
-  context.fillStyle = background;
-  context.fillRect(0, 0, textureCanvas.width, textureCanvas.height);
-  context.strokeStyle = foreground;
-  context.lineWidth = 18;
-  context.strokeRect(12, 12, 488, 232);
-  context.fillStyle = foreground;
-  context.font = '900 126px "Arial Rounded MT Bold", "Trebuchet MS", sans-serif';
-  context.textAlign = "center";
-  context.textBaseline = "middle";
-  context.fillText(text, 256, 137);
-
-  const texture = new THREE.CanvasTexture(textureCanvas);
-  texture.colorSpace = THREE.SRGBColorSpace;
-  texture.minFilter = THREE.LinearMipmapLinearFilter;
-  texture.magFilter = THREE.LinearFilter;
-  return texture;
 }
 
 function createSymbolTexture(
@@ -286,316 +226,8 @@ function createReel(
   return reel;
 }
 
-function createPedestal(palette) {
-  // Create the permanent plinth used by every trophy slot.
-  const group = new THREE.Group();
-  const baseMaterial = createStandardMaterial(palette.navy, {
-    metalness: 0.42,
-    roughness: 0.24,
-  });
-  const rimMaterial = createStandardMaterial(palette.hairBlonde, {
-    metalness: 0.66,
-    roughness: 0.18,
-    emissive: palette.hairBlonde,
-    emissiveIntensity: 0.08,
-  });
-  addCylinder(group, 0.86, 1, 0.3, [0, -0.95, 0], baseMaterial, 40);
-  addCylinder(group, 0.76, 0.86, 0.18, [0, -0.72, 0], rimMaterial, 40);
-  return group;
-}
-
-function createRingPrize(palette) {
-  // Model a gold ring with a faceted blue gem.
-  const group = new THREE.Group();
-  const gold = createStandardMaterial(palette.hairBlonde, {
-    metalness: 0.82,
-    roughness: 0.16,
-    emissive: palette.hairBlonde,
-    emissiveIntensity: 0.08,
-  });
-  const gem = createStandardMaterial(palette.skirtBlue, {
-    metalness: 0.32,
-    roughness: 0.08,
-    emissive: palette.skirtBlue,
-    emissiveIntensity: 0.34,
-  });
-  const band = applyShadows(
-    new THREE.Mesh(new THREE.TorusGeometry(0.58, 0.13, 18, 56), gold),
-  );
-  band.position.y = 0.45;
-  band.rotation.x = 0.18;
-  group.add(band);
-  const setting = addBox(group, [0.42, 0.18, 0.36], [0, 1.03, 0], gold);
-  setting.rotation.x = 0.15;
-  const stone = applyShadows(
-    new THREE.Mesh(new THREE.OctahedronGeometry(0.32, 0), gem),
-  );
-  stone.position.set(0, 1.28, 0.04);
-  stone.scale.set(0.9, 1.25, 0.9);
-  group.add(stone);
-  return group;
-}
-
-export function createFootPrize(palette) {
-  // Model a playful cartoon foot with five individually readable toes.
-  const group = new THREE.Group();
-  const skin = createStandardMaterial(palette.hairBlondeSoft, {
-    roughness: 0.58,
-  });
-  const warmSkin = createStandardMaterial(palette.hairBlonde, {
-    roughness: 0.5,
-  });
-  const nail = createStandardMaterial(palette.hairPink, {
-    metalness: 0.08,
-    roughness: 0.32,
-  });
-
-  addCylinder(
-    group,
-    0.31,
-    0.42,
-    0.92,
-    [0, 0.76, -0.46],
-    skin,
-    28,
-    "foot-ankle",
-  );
-  addSphere(
-    group,
-    0.62,
-    [0, 0.28, -0.34],
-    skin,
-    [0.78, 0.66, 0.92],
-    "foot-heel",
-  );
-  addSphere(
-    group,
-    0.7,
-    [0, 0.2, 0.28],
-    skin,
-    [1.05, 0.52, 1.16],
-    "foot-forefoot",
-  );
-  addSphere(
-    group,
-    0.42,
-    [0, 0.05, 0.14],
-    warmSkin,
-    [1.15, 0.16, 1.2],
-    "foot-sole-pad",
-  );
-
-  const toes = [
-    { x: -0.43, y: 0.2, z: 0.93, radius: 0.23 },
-    { x: -0.17, y: 0.21, z: 1.04, radius: 0.19 },
-    { x: 0.07, y: 0.2, z: 1.01, radius: 0.175 },
-    { x: 0.28, y: 0.19, z: 0.94, radius: 0.15 },
-    { x: 0.46, y: 0.17, z: 0.84, radius: 0.13 },
-  ];
-
-  for (let toeIndex = 0; toeIndex < toes.length; toeIndex += 1) {
-    const toe = toes[toeIndex];
-    addSphere(
-      group,
-      toe.radius,
-      [toe.x, toe.y, toe.z],
-      skin,
-      [1, 0.78, 1.08],
-      "foot-toe-" + (toeIndex + 1),
-    );
-    addSphere(
-      group,
-      toe.radius * 0.58,
-      [toe.x, toe.y + toe.radius * 0.54, toe.z + toe.radius * 0.4],
-      nail,
-      [0.72, 0.16, 0.62],
-      "foot-nail-" + (toeIndex + 1),
-    );
-  }
-
-  return group;
-}
-
-function createCakePrize(palette) {
-  // Model a stacked celebration cake with piped frosting and a candle.
-  const group = new THREE.Group();
-  const sponge = createStandardMaterial(palette.hairBlondeSoft, {
-    roughness: 0.56,
-  });
-  const frosting = createStandardMaterial(palette.hairPinkSoft, {
-    roughness: 0.4,
-  });
-  const accent = createStandardMaterial(palette.hairPink, {
-    roughness: 0.34,
-  });
-  const flame = createStandardMaterial(palette.hairBlonde, {
-    emissive: palette.hairBlonde,
-    emissiveIntensity: 0.8,
-    roughness: 0.2,
-  });
-  addCylinder(group, 0.8, 0.8, 0.56, [0, -0.12, 0], sponge, 40);
-  addCylinder(group, 0.82, 0.82, 0.15, [0, 0.22, 0], frosting, 40);
-  addCylinder(group, 0.57, 0.57, 0.48, [0, 0.52, 0], sponge, 36);
-  addCylinder(group, 0.59, 0.59, 0.14, [0, 0.82, 0], frosting, 36);
-  for (let index = 0; index < 10; index += 1) {
-    const angle = (index / 10) * FULL_TURN_RADIANS;
-    addSphere(
-      group,
-      0.1,
-      [Math.cos(angle) * 0.72, 0.23, Math.sin(angle) * 0.72],
-      accent,
-    );
-  }
-  addCylinder(group, 0.055, 0.055, 0.45, [0, 1.08, 0], accent, 12);
-  const flameMesh = applyShadows(
-    new THREE.Mesh(new THREE.OctahedronGeometry(0.13, 0), flame),
-  );
-  flameMesh.position.y = 1.38;
-  flameMesh.scale.y = 1.5;
-  group.add(flameMesh);
-  return group;
-}
-
-function createCashCasePrize(palette) {
-  // Model a prize suitcase with a real R$350 plaque on its front.
-  const group = new THREE.Group();
-  const caseMaterial = createStandardMaterial(palette.navy, {
-    metalness: 0.46,
-    roughness: 0.25,
-  });
-  const trimMaterial = createStandardMaterial(palette.hairBlonde, {
-    metalness: 0.74,
-    roughness: 0.16,
-  });
-  addBox(group, [1.55, 0.92, 0.5], [0, 0.25, 0], caseMaterial);
-  addBox(group, [1.64, 0.08, 0.56], [0, 0.25, 0], trimMaterial);
-  addBox(group, [0.09, 1, 0.56], [-0.65, 0.25, 0], trimMaterial);
-  addBox(group, [0.09, 1, 0.56], [0.65, 0.25, 0], trimMaterial);
-  const handle = applyShadows(
-    new THREE.Mesh(new THREE.TorusGeometry(0.27, 0.065, 12, 28, Math.PI), trimMaterial),
-  );
-  handle.position.set(0, 0.77, 0);
-  group.add(handle);
-  const plaqueTexture = createTextTexture(
-    "R$350",
-    palette.hairPinkSoft,
-    palette.navyDeep,
-  );
-  const plaqueMaterial = new THREE.MeshStandardMaterial({
-    map: plaqueTexture,
-    roughness: 0.34,
-  });
-  const plaque = applyShadows(
-    new THREE.Mesh(new THREE.PlaneGeometry(1.05, 0.52), plaqueMaterial),
-  );
-  plaque.position.set(0, 0.25, 0.256);
-  group.add(plaque);
-  return group;
-}
-
-function createSandwichPrize(palette) {
-  // Model a logo-free layered sandwich.
-  const group = new THREE.Group();
-  const bread = createStandardMaterial(palette.hairBlondeSoft, {
-    roughness: 0.58,
-  });
-  const crust = createStandardMaterial(palette.hairBlonde, {
-    roughness: 0.5,
-  });
-  const lettuce = createStandardMaterial(palette.skirtBlue, {
-    roughness: 0.46,
-  });
-  const tomato = createStandardMaterial(palette.tieRed, {
-    roughness: 0.42,
-  });
-  const cheese = createStandardMaterial(palette.hairPink, {
-    roughness: 0.42,
-  });
-  addSphere(group, 0.8, [0, 0.73, 0], crust, [1.35, 0.44, 0.72]);
-  addSphere(group, 0.7, [0, 0.79, 0.04], bread, [1.35, 0.37, 0.7]);
-  addBox(group, [1.72, 0.13, 0.82], [0, 0.36, 0], lettuce);
-  const cheeseLayer = addBox(
-    group,
-    [1.55, 0.1, 0.76],
-    [0.08, 0.19, 0],
-    cheese,
-  );
-  cheeseLayer.rotation.y = 0.08;
-  addBox(group, [1.58, 0.13, 0.73], [-0.04, 0.03, 0], tomato);
-  addSphere(group, 0.76, [0, -0.18, 0], crust, [1.3, 0.34, 0.7]);
-  addSphere(group, 0.67, [0, -0.12, 0.04], bread, [1.3, 0.28, 0.68]);
-  return group;
-}
-
-function createMysteryPrize(palette) {
-  // Model a locked mystery crate instead of displaying a flat emoji.
-  const group = new THREE.Group();
-  const boxMaterial = createStandardMaterial(palette.navy, {
-    metalness: 0.32,
-    roughness: 0.28,
-  });
-  const trimMaterial = createStandardMaterial(palette.hairPinkDark, {
-    metalness: 0.42,
-    roughness: 0.24,
-  });
-  addBox(group, [1.22, 1.22, 1.22], [0, 0.18, 0], boxMaterial);
-  addBox(group, [1.34, 0.12, 1.34], [0, 0.75, 0], trimMaterial);
-  addBox(group, [0.12, 1.34, 1.34], [0, 0.18, 0], trimMaterial);
-  const questionTexture = createTextTexture(
-    "?",
-    palette.navy,
-    palette.hairBlonde,
-  );
-  const questionMaterial = new THREE.MeshStandardMaterial({
-    map: questionTexture,
-    roughness: 0.32,
-  });
-  const question = applyShadows(
-    new THREE.Mesh(new THREE.PlaneGeometry(0.76, 0.76), questionMaterial),
-  );
-  question.position.set(0, 0.18, 0.616);
-  group.add(question);
-  return group;
-}
-
-function createPrizeModel(modelId, palette) {
-  // Route stable prize IDs to their procedural model factories.
-  if (modelId === "ring") {
-    return createRingPrize(palette);
-  }
-  if (modelId === "foot") {
-    return createFootPrize(palette);
-  }
-  if (modelId === "cake") {
-    return createCakePrize(palette);
-  }
-  if (modelId === "cash-case") {
-    return createCashCasePrize(palette);
-  }
-  if (modelId === "sandwich") {
-    return createSandwichPrize(palette);
-  }
-  throw new Error("Unknown 3D prize model: " + modelId);
-}
-
-function createCenteredPrizePresentation(modelId, palette) {
-  // Center unlike procedural models around one stable animation pivot.
-  const presentation = new THREE.Group();
-  presentation.name = "jackpot-prize-" + modelId;
-  const model = createPrizeModel(modelId, palette);
-  model.updateWorldMatrix(true, true);
-  const bounds = new THREE.Box3().setFromObject(model);
-  const center = bounds.getCenter(new THREE.Vector3());
-  const size = bounds.getSize(new THREE.Vector3());
-  model.position.sub(center);
-  presentation.userData.modelSize = size;
-  presentation.userData.presentationScale = 1;
-  presentation.add(model);
-  return presentation;
-}
-
-function createJackpotPresentation(camera, palette, prizes) {
-  // Keep every celebration layer camera-centered with the real prize foremost.
+function createJackpotPresentation(camera, palette) {
+  // Keep the celebration geometry camera-centered behind the HTML prize card.
   const stage = new THREE.Group();
   stage.name = "jackpot-presentation-stage";
   stage.position.set(0, 0, -JACKPOT_STAGE_DISTANCE);
@@ -734,17 +366,6 @@ function createJackpotPresentation(camera, palette, prizes) {
   }
   stage.add(confettiRoot);
 
-  const prizeModels = new Map();
-  for (const prize of prizes) {
-    const presentation = createCenteredPrizePresentation(
-      prize.modelId,
-      palette,
-    );
-    presentation.visible = false;
-    stage.add(presentation);
-    prizeModels.set(prize.modelId, presentation);
-  }
-
   return {
     backdrop,
     confetti,
@@ -754,7 +375,6 @@ function createJackpotPresentation(camera, palette, prizes) {
     halo,
     particleRoot,
     particles,
-    prizeModels,
     rayMaterials,
     rays,
     stage,
@@ -952,9 +572,8 @@ function buildCasinoModel(
   symbols,
   symbolImages,
   initialIndices,
-  prizes,
 ) {
-  // Assemble a deep cabinet, physical reels, external lever, tiger, and prizes.
+  // Assemble a deep cabinet, physical reels, external lever, and tiger.
   const machine = new THREE.Group();
   machine.name = "nanaBet";
   machine.position.x = 0.35;
@@ -1118,7 +737,7 @@ function buildCasinoModel(
   tiger.scale.setScalar(0.78);
   tiger.rotation.y = 0.18;
   scene.add(tiger);
-  const jackpot = createJackpotPresentation(camera, palette, prizes);
+  const jackpot = createJackpotPresentation(camera, palette);
 
   machine.traverse((object) => {
     if (object.isMesh) {
@@ -1212,7 +831,6 @@ export function createCasino3D(options) {
     palette,
     symbols,
     symbolImages = Array(symbols.length).fill(null),
-    prizes,
     initialIndices,
     reducedMotion = false,
     onLeverActivate = () => {},
@@ -1279,7 +897,6 @@ export function createCasino3D(options) {
     symbols,
     symbolImages,
     initialIndices,
-    prizes,
   );
   const reelIndices = [...initialIndices];
   const symbolAngle = FULL_TURN_RADIANS / symbols.length;
@@ -1309,33 +926,15 @@ export function createCasino3D(options) {
   }
 
   function updateJackpotLayout(width, height) {
-    // Refit every normalized model while the stage remains at screen center.
-    let sharedLayout = null;
-    for (const prize of model.jackpot.prizeModels.values()) {
-      const size = prize.userData.modelSize;
-      const previousScale = prize.userData.presentationScale || 1;
-      const animationMultiplier = prize.scale.x / previousScale;
-      const layout = calculatePrizePresentationLayout({
-        viewportWidth: width,
-        viewportHeight: height,
-        verticalFovDegrees: camera.fov,
-        modelWidth: size.x,
-        modelHeight: size.y,
-      });
-      prize.userData.presentationScale = layout.scale;
-      if (prize.visible) {
-        prize.scale.setScalar(layout.scale * animationMultiplier);
-      }
-      sharedLayout = layout;
-    }
-
-    if (sharedLayout === null) {
-      return;
-    }
-
-    model.jackpot.stage.position.set(...sharedLayout.position);
-    model.jackpot.visibleHeight = sharedLayout.visibleHeight;
-    model.jackpot.visibleWidth = sharedLayout.visibleWidth;
+    // Fill the camera view with effects while the HTML card stays foremost.
+    const visibleHeight =
+      2 *
+      JACKPOT_STAGE_DISTANCE *
+      Math.tan(THREE.MathUtils.degToRad(camera.fov) / 2);
+    const visibleWidth = visibleHeight * (width / height);
+    model.jackpot.stage.position.set(0, 0, -JACKPOT_STAGE_DISTANCE);
+    model.jackpot.visibleHeight = visibleHeight;
+    model.jackpot.visibleWidth = visibleWidth;
     const flashDepthRatio =
       (JACKPOT_STAGE_DISTANCE + Math.abs(model.jackpot.flash.position.z)) /
       JACKPOT_STAGE_DISTANCE;
@@ -1343,23 +942,20 @@ export function createCasino3D(options) {
       (JACKPOT_STAGE_DISTANCE + Math.abs(model.jackpot.backdrop.position.z)) /
       JACKPOT_STAGE_DISTANCE;
     model.jackpot.backdrop.scale.set(
-      sharedLayout.visibleWidth * backdropDepthRatio * 0.54,
-      sharedLayout.visibleHeight * backdropDepthRatio * 0.54,
+      visibleWidth * backdropDepthRatio * 0.54,
+      visibleHeight * backdropDepthRatio * 0.54,
       1,
     );
     model.jackpot.flash.scale.set(
-      sharedLayout.visibleWidth * flashDepthRatio * 0.54,
-      sharedLayout.visibleHeight * flashDepthRatio * 0.54,
+      visibleWidth * flashDepthRatio * 0.54,
+      visibleHeight * flashDepthRatio * 0.54,
       1,
     );
-    const rayRadius = Math.hypot(
-      sharedLayout.visibleWidth,
-      sharedLayout.visibleHeight,
-    ) * 0.62;
+    const rayRadius = Math.hypot(visibleWidth, visibleHeight) * 0.62;
     model.jackpot.rays.scale.setScalar(rayRadius);
     const haloScale = Math.min(
-      sharedLayout.visibleWidth * 0.24,
-      sharedLayout.visibleHeight * 0.26,
+      visibleWidth * 0.24,
+      visibleHeight * 0.26,
     );
     model.jackpot.halo.scale.setScalar(haloScale);
   }
@@ -1522,7 +1118,7 @@ export function createCasino3D(options) {
   }
 
   function updateParticles(timestamp) {
-    // Reuse pooled sparks and confetti behind the camera-aligned prize.
+    // Reuse pooled sparks and confetti behind the camera-aligned HTML card.
     if (jackpotState === null || reducedMotion) {
       return;
     }
@@ -1566,51 +1162,22 @@ export function createCasino3D(options) {
   }
 
   function updateJackpot(timestamp) {
-    // Raise or bounce the actual prize, then keep it floating until confirmation.
+    // Animate only the effects that sit behind the crisp HTML prize card.
     if (jackpotState === null) {
       return;
     }
     const elapsed = timestamp - jackpotState.startedAt;
-    const introDuration = jackpotState.isRepeat ? 450 : 1100;
-    const introProgress = Math.min(1, elapsed / introDuration);
-    const prize = jackpotState.prize;
-    const presentationScale = prize.userData.presentationScale;
-
-    if (reducedMotion) {
-      prize.position.y = 0;
-      prize.scale.setScalar(presentationScale);
+    if (reducedMotion || jackpotState.skipMotion) {
       model.jackpot.halo.rotation.z = 0;
+      model.jackpot.rays.rotation.z = 0;
       model.jackpot.flashMaterial.opacity = 0;
       for (const bulbMaterial of model.bulbMaterials) {
         bulbMaterial.emissiveIntensity = 1.05;
       }
       model.trayMaterial.emissiveIntensity = 0.85;
       return;
-    } else if (jackpotState.isRepeat) {
-      const bounce = Math.sin(introProgress * Math.PI) * 0.36;
-      prize.position.y = bounce;
-      prize.scale.setScalar(presentationScale * (1 + bounce * 0.3));
-    } else {
-      prize.position.y = THREE.MathUtils.lerp(
-        -model.jackpot.visibleHeight * 0.38,
-        0,
-        easeOutCubic(introProgress),
-      );
-      const scaleMultiplier = THREE.MathUtils.lerp(
-        0.24,
-        1,
-        easeOutCubic(introProgress),
-      );
-      prize.scale.setScalar(presentationScale * scaleMultiplier);
     }
 
-    if (!reducedMotion && introProgress >= 1) {
-      prize.position.y = Math.sin(elapsed / 280) * 0.12;
-      prize.rotation.y += 0.035;
-      prize.scale.setScalar(
-        presentationScale * (jackpotState.isRepeat ? 1.02 : 1),
-      );
-    }
     model.jackpot.halo.rotation.z = elapsed / 1000;
     model.jackpot.rays.rotation.z = -elapsed / 8000;
     model.jackpot.flashMaterial.opacity =
@@ -1619,14 +1186,15 @@ export function createCasino3D(options) {
     for (const rayMaterial of model.jackpot.rayMaterials) {
       rayMaterial.opacity = rayOpacity;
     }
-    const lightPulse = 1.05 + Math.sin(elapsed / 80) * 0.8;
+    const pulsePeriod = jackpotState.isRepeat ? 110 : 80;
+    const lightPulse = 1.05 + Math.sin(elapsed / pulsePeriod) * 0.8;
     for (const bulbMaterial of model.bulbMaterials) {
       bulbMaterial.emissiveIntensity = Math.max(0.3, lightPulse);
     }
-    model.trayMaterial.emissiveIntensity = 0.8 + Math.abs(Math.sin(elapsed / 95));
+    model.trayMaterial.emissiveIntensity =
+      0.8 + Math.abs(Math.sin(elapsed / 95));
     updateParticles(timestamp);
   }
-
   function finishSpin(state) {
     // Snap all moving parts to exact indexed faces and resolve the promise.
     if (spinState !== state) {
@@ -1767,23 +1335,8 @@ export function createCasino3D(options) {
     requestFrame();
   }
 
-  function showPrize(modelId, isRepeat, skipMotion) {
-    // Present the matching real model and start the reusable victory system.
-    for (const prize of model.jackpot.prizeModels.values()) {
-      prize.visible = false;
-      prize.position.set(0, 0, 0);
-      prize.rotation.set(0, 0, 0);
-    }
-    const prize = model.jackpot.prizeModels.get(modelId);
-    if (prize === undefined) {
-      return;
-    }
-    prize.visible = true;
-    prize.position.y =
-      skipMotion || isRepeat ? 0 : -model.jackpot.visibleHeight * 0.38;
-    prize.scale.setScalar(
-      prize.userData.presentationScale * (skipMotion ? 1 : 0.24),
-    );
+  function showJackpot(isRepeat, skipMotion) {
+    // Start the reusable 3D victory effects behind the HTML prize card.
     model.jackpot.stage.visible = true;
     model.jackpot.flash.visible = !skipMotion;
     model.jackpot.flashMaterial.opacity = skipMotion ? 0 : 0.9;
@@ -1792,16 +1345,16 @@ export function createCasino3D(options) {
     model.jackpot.particleRoot.visible = !skipMotion;
     model.jackpot.confettiRoot.visible = !skipMotion;
     jackpotState = {
-      startedAt: performance.now(),
-      prize,
       isRepeat,
+      skipMotion,
+      startedAt: performance.now(),
     };
     requestFrame();
     renderOnce();
   }
 
-  function hidePrize() {
-    // Reset the pooled prize presentation after explicit confirmation.
+  function hideJackpot() {
+    // Reset the pooled presentation after explicit confirmation.
     jackpotState = null;
     model.jackpot.stage.visible = false;
     model.jackpot.flash.visible = false;
@@ -1810,9 +1363,6 @@ export function createCasino3D(options) {
     model.jackpot.halo.visible = false;
     model.jackpot.particleRoot.visible = false;
     model.jackpot.confettiRoot.visible = false;
-    for (const prize of model.jackpot.prizeModels.values()) {
-      prize.visible = false;
-    }
     for (const bulbMaterial of model.bulbMaterials) {
       bulbMaterial.emissiveIntensity = 0.72;
     }
@@ -1906,298 +1456,13 @@ export function createCasino3D(options) {
   return {
     celebrate,
     dispose,
-    hidePrize,
+    hideJackpot,
     resize,
     setCollectionComplete,
     setLeverFocus,
     setLeverInteractive,
     setVisible,
-    showPrize,
+    showJackpot,
     spinTo,
-  };
-}
-
-export function createAchievements3D(options) {
-  // Build one responsive WebGL gallery aligned to five native HTML slots.
-  const {
-    canvas,
-    palette,
-    prizes,
-    slots,
-    unlockedIds,
-    reducedMotion = false,
-    onContextFailure = () => {},
-  } = options;
-  const renderer = createCasinoRenderer(canvas, palette);
-  renderer.shadowMap.enabled = false;
-  const scene = new THREE.Scene();
-  const camera = new THREE.OrthographicCamera(0, 1, 1, 0, 1, 2000);
-  camera.position.set(0, 0, 1000);
-  const ambientLight = new THREE.HemisphereLight(
-    new THREE.Color(palette.shirt),
-    new THREE.Color(palette.navyDeep),
-    2.7,
-  );
-  scene.add(ambientLight);
-  const keyLight = new THREE.DirectionalLight(
-    new THREE.Color(palette.shirt),
-    4.2,
-  );
-  keyLight.position.set(100, 400, 600);
-  scene.add(keyLight);
-  const pinkLight = new THREE.PointLight(
-    new THREE.Color(palette.hairPink),
-    10,
-    1200,
-    1.5,
-  );
-  scene.add(pinkLight);
-  const goldLight = new THREE.PointLight(
-    new THREE.Color(palette.hairBlonde),
-    9,
-    1200,
-    1.5,
-  );
-  scene.add(goldLight);
-
-  const unlockedSet = new Set(unlockedIds);
-  const items = new Map();
-  for (let prizeIndex = 0; prizeIndex < prizes.length; prizeIndex += 1) {
-    const prize = prizes[prizeIndex];
-    const root = new THREE.Group();
-    const pedestal = createPedestal(palette);
-    const mystery = createMysteryPrize(palette);
-    const model = createPrizeModel(prize.modelId, palette);
-    mystery.position.y = -0.05;
-    model.position.y = -0.08;
-    root.add(pedestal, mystery, model);
-    const glowMaterial = new THREE.MeshBasicMaterial({
-      color: new THREE.Color(palette.hairBlonde),
-      transparent: true,
-      opacity: 0.72,
-      side: THREE.DoubleSide,
-    });
-    const glow = new THREE.Mesh(
-      new THREE.TorusGeometry(1.15, 0.065, 10, 48),
-      glowMaterial,
-    );
-    glow.position.set(0, 0.25, -0.4);
-    glow.visible = false;
-    root.add(glow);
-    scene.add(root);
-    const isUnlocked = unlockedSet.has(prize.id);
-    mystery.visible = !isUnlocked;
-    model.visible = isUnlocked;
-    items.set(prize.id, {
-      glow,
-      model,
-      mystery,
-      prize,
-      root,
-      slot: slots[prizeIndex],
-    });
-  }
-
-  let frameRequest = 0;
-  let isVisible = true;
-  let isDisposed = false;
-  let lastFrameTimestamp = 0;
-  let highlighted = null;
-
-  function renderOnce() {
-    // Draw the gallery only while its full-screen dialog is visible.
-    if (!isDisposed && isVisible) {
-      renderer.render(scene, camera);
-    }
-  }
-
-  function resize() {
-    // Align every procedural pedestal to its responsive HTML slot.
-    if (isDisposed) {
-      return;
-    }
-    const canvasBounds = canvas.getBoundingClientRect();
-    const width = Math.max(1, Math.round(canvasBounds.width));
-    const height = Math.max(1, Math.round(canvasBounds.height));
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5));
-    renderer.setSize(width, height, false);
-    camera.left = 0;
-    camera.right = width;
-    camera.top = height;
-    camera.bottom = 0;
-    camera.updateProjectionMatrix();
-    keyLight.position.set(width * 0.2, height * 0.9, 650);
-    pinkLight.position.set(width * 0.08, height * 0.5, 320);
-    goldLight.position.set(width * 0.92, height * 0.65, 320);
-
-    for (const item of items.values()) {
-      const modelSpace = item.slot.querySelector(".achievement-model-space");
-      const bounds = modelSpace.getBoundingClientRect();
-      const centerX = bounds.left - canvasBounds.left + bounds.width / 2;
-      const centerY =
-        height - (bounds.top - canvasBounds.top + bounds.height / 2);
-      const scale = Math.max(10, Math.min(bounds.width, bounds.height) / 3.25);
-      item.root.position.set(centerX, centerY - scale * 0.08, 0);
-      item.root.scale.setScalar(scale);
-    }
-    renderOnce();
-  }
-
-  function requestFrame() {
-    // Coalesce low-rate gallery animation frames.
-    if (frameRequest === 0 && !isDisposed && isVisible) {
-      frameRequest = window.requestAnimationFrame(renderFrame);
-    }
-  }
-
-  function renderFrame(timestamp) {
-    // Float unlocked prizes at 20 fps and animate only the active reveal.
-    frameRequest = 0;
-    if (!isVisible || isDisposed) {
-      return;
-    }
-    if (timestamp - lastFrameTimestamp >= GALLERY_FRAME_INTERVAL_MS) {
-      lastFrameTimestamp = timestamp;
-      for (const item of items.values()) {
-        if (item.model.visible) {
-          if (!reducedMotion) {
-            item.model.rotation.y += 0.025;
-            item.model.position.y =
-              -0.08 + Math.sin(timestamp / 520 + item.root.position.x) * 0.06;
-          }
-        }
-      }
-
-      if (highlighted !== null) {
-        const elapsed = timestamp - highlighted.startedAt;
-        const progress = Math.min(1, elapsed / highlighted.duration);
-        const item = highlighted.item;
-        if (highlighted.reducedMotion) {
-          item.glow.visible = true;
-        } else if (highlighted.isNew) {
-          item.model.position.y =
-            -0.08 - (1 - easeOutCubic(progress)) * 1.35;
-          const scale = THREE.MathUtils.lerp(
-            0.25,
-            1,
-            easeOutCubic(progress),
-          );
-          item.model.scale.setScalar(scale);
-          item.glow.rotation.z += 0.12;
-        } else {
-          const bounce = Math.sin(progress * Math.PI) * 0.32;
-          item.model.scale.setScalar(1 + bounce);
-          item.glow.rotation.z += 0.2;
-        }
-
-        if (progress >= 1) {
-          item.model.scale.setScalar(1);
-          item.glow.visible = false;
-          highlighted = null;
-        }
-      }
-      renderOnce();
-    }
-
-    if (!reducedMotion || highlighted !== null) {
-      requestFrame();
-    }
-  }
-
-  function setUnlocked(nextUnlockedIds) {
-    // Reveal only models whose stable prize IDs are known as unlocked.
-    const nextUnlocked = new Set(nextUnlockedIds);
-    for (const [prizeId, item] of items) {
-      const isUnlocked = nextUnlocked.has(prizeId);
-      item.model.visible = isUnlocked;
-      item.mystery.visible = !isUnlocked;
-    }
-    renderOnce();
-    requestFrame();
-  }
-
-  function highlightPrize(prizeId, isNew, skipMotion) {
-    // Raise a new trophy for 1.1 s or bounce a repeat for 450 ms.
-    const item = items.get(prizeId);
-    if (item === undefined) {
-      return;
-    }
-    item.model.visible = true;
-    item.mystery.visible = false;
-    item.model.scale.setScalar(1);
-    item.glow.visible = true;
-    highlighted = {
-      duration: isNew ? 1100 : 450,
-      isNew,
-      item,
-      reducedMotion: skipMotion,
-      startedAt: performance.now(),
-    };
-    if (skipMotion) {
-      renderOnce();
-      window.setTimeout(() => {
-        if (highlighted?.item === item) {
-          item.glow.visible = false;
-          highlighted = null;
-          renderOnce();
-        }
-      }, isNew ? 1100 : 450);
-    } else {
-      requestFrame();
-    }
-  }
-
-  function setVisible(nextVisible) {
-    // Stop the 20 fps gallery loop while hidden.
-    isVisible = nextVisible;
-    if (isVisible) {
-      resize();
-      requestFrame();
-    } else if (frameRequest !== 0) {
-      window.cancelAnimationFrame(frameRequest);
-      frameRequest = 0;
-    }
-  }
-
-  function handleContextLost(event) {
-    // Let the page switch to its readable fallback.
-    event.preventDefault();
-    onContextFailure();
-  }
-
-  function dispose() {
-    // Release listeners, observer, frame, and gallery GPU resources.
-    if (isDisposed) {
-      return;
-    }
-    isDisposed = true;
-    resizeObserver?.disconnect();
-    if (resizeObserver === null) {
-      window.removeEventListener("resize", resize);
-    }
-    if (frameRequest !== 0) {
-      window.cancelAnimationFrame(frameRequest);
-    }
-    canvas.removeEventListener("webglcontextlost", handleContextLost);
-    disposeScene(scene, renderer);
-  }
-
-  canvas.addEventListener("webglcontextlost", handleContextLost);
-  const resizeObserver =
-    typeof ResizeObserver === "function" ? new ResizeObserver(resize) : null;
-  if (resizeObserver === null) {
-    window.addEventListener("resize", resize);
-  } else {
-    resizeObserver.observe(canvas);
-  }
-  resize();
-  requestFrame();
-
-  return {
-    dispose,
-    highlightPrize,
-    resize,
-    setUnlocked,
-    setVisible,
   };
 }

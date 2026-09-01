@@ -138,6 +138,20 @@ class FakeElement {
     this.focused = true;
   }
 
+  blur() {
+    this.focused = false;
+    this.dispatch("blur");
+  }
+
+  click() {
+    this.clicked = true;
+    this.dispatch("click");
+  }
+
+  remove() {
+    this.removed = true;
+  }
+
   getBoundingClientRect() {
     return {
       left: 0,
@@ -156,6 +170,68 @@ class FakeElement {
   close() {
     this.open = false;
     this.dispatch("close");
+  }
+}
+
+class FakeCanvasContext {
+  // Record the subset of Canvas 2D operations used by the certificate export.
+  constructor() {
+    this.calls = [];
+    this.font = "";
+    this.fillStyle = "";
+    this.strokeStyle = "";
+    this.lineWidth = 1;
+    this.textAlign = "start";
+    this.textBaseline = "alphabetic";
+  }
+
+  record(name, ...values) {
+    this.calls.push([name, ...values]);
+  }
+
+  save() { this.record("save"); }
+  restore() { this.record("restore"); }
+  beginPath() { this.record("beginPath"); }
+  fill() { this.record("fill"); }
+  stroke() { this.record("stroke"); }
+  fillRect(...values) { this.record("fillRect", ...values); }
+  strokeRect(...values) { this.record("strokeRect", ...values); }
+  arc(...values) { this.record("arc", ...values); }
+  moveTo(...values) { this.record("moveTo", ...values); }
+  lineTo(...values) { this.record("lineTo", ...values); }
+  fillText(...values) { this.record("fillText", ...values); }
+
+  measureText(text) {
+    return { width: String(text).length * 48 };
+  }
+}
+
+class FakeCanvas extends FakeElement {
+  // Encode one deterministic image blob while retaining drawing evidence.
+  constructor() {
+    super("canvas");
+    this.width = 300;
+    this.height = 150;
+    this.context = new FakeCanvasContext();
+    this.toBlobCalls = 0;
+  }
+
+  getContext(type) {
+    return type === "2d" ? this.context : null;
+  }
+
+  toBlob(callback, type) {
+    this.toBlobCalls += 1;
+    callback({ type, size: 128 });
+  }
+}
+
+class FakeFile {
+  // Represent the file contract passed to navigator.share.
+  constructor(parts, name, options = {}) {
+    this.parts = parts;
+    this.name = name;
+    this.type = options.type ?? "";
   }
 }
 
@@ -219,7 +295,7 @@ function createPageHarness(options = {}) {
     }
   }
   const releaseEntries = Array.from(
-    { length: 30 },
+    { length: 34 },
     (_, index) => new FakeElement("release-" + index),
   );
   const audio = new FakeElement("casino-music");
@@ -244,6 +320,8 @@ function createPageHarness(options = {}) {
   }
 
   elements.set("#casino-music", audio);
+  const certificateCanvas = new FakeCanvas();
+  elements.set("#certificate-canvas", certificateCanvas);
   const classroomFinaleImage = new FakeImage(
     options.finaleAutoLoad !== false,
   );
@@ -269,6 +347,9 @@ function createPageHarness(options = {}) {
   getElement("#classroom-finale").hidden = true;
   getElement("#coffee-oracle-panel").hidden = true;
   getElement("#toggle-coffee-oracle").setAttribute("aria-expanded", "false");
+  getElement("#dramatic-verdict").dataset.stage = "0";
+  getElement("#share-certificate").hidden = true;
+  getElement("#display-name").isContentEditable = true;
   getElement("#classroom-background-portrait").dataset.srcset =
     "assets/images/gojo/classroom-portrait.png";
   getElement("#classroom-background-image").dataset.src =
@@ -292,7 +373,7 @@ function createPageHarness(options = {}) {
     storage.set("niasguts-casino-bait-v1", "true");
   }
 
-  let randomValues = [];
+  let randomValues = [...(options.randomValues ?? [])];
   const fakeMath = Object.create(Math);
   fakeMath.random = () => randomValues.shift() ?? 0;
   const timers = new Map();
@@ -300,6 +381,30 @@ function createPageHarness(options = {}) {
   const animationFrames = new Map();
   let nextAnimationFrameId = 1;
   const documentListeners = new Map();
+  const sharedPayloads = [];
+  const revokedObjectUrls = [];
+  const documentBody = new FakeElement("body");
+  const navigatorObject = options.shareApiAvailable === false
+    ? {}
+    : {
+        canShare(payload) {
+          return options.shareSupported === true && payload.files?.length === 1;
+        },
+        async share(payload) {
+          if (options.shareError !== undefined) {
+            throw options.shareError;
+          }
+          sharedPayloads.push(payload);
+        },
+      };
+  const urlObject = {
+    createObjectURL() {
+      return "blob:certificate-1";
+    },
+    revokeObjectURL(value) {
+      revokedObjectUrls.push(value);
+    },
+  };
   const windowObject = {
     devicePixelRatio: 1,
     matchMedia: (query) => ({
@@ -334,6 +439,7 @@ function createPageHarness(options = {}) {
     },
   };
   const documentObject = {
+    body: documentBody,
     hidden: false,
     title: "",
     documentElement: new FakeElement("html"),
@@ -388,11 +494,14 @@ function createPageHarness(options = {}) {
     console,
     Date,
     Intl,
+    File: FakeFile,
     Image: HarnessImage,
     Math: fakeMath,
     performance,
     localStorage,
+    navigator: navigatorObject,
     document: documentObject,
+    URL: urlObject,
     getComputedStyle: () => ({ getPropertyValue: () => "#000000" }),
     window: windowObject,
   });
@@ -402,14 +511,18 @@ function createPageHarness(options = {}) {
     achievementSlots,
     animationFrames,
     audio,
+    certificateCanvas,
     classroomAnswerButtons,
     classroomFinaleImage,
     context,
     createdImages,
     documentListeners,
+    documentBody,
     elements,
     fallbackReels,
     releaseEntries,
+    revokedObjectUrls,
+    sharedPayloads,
     runAnimationFrame() {
       const frameEntry = animationFrames.entries().next().value;
       assert.notEqual(frameEntry, undefined, "animation frame not found");
@@ -440,7 +553,7 @@ async function loadHarness(options = {}) {
   const applicationSource = await readFile(resolve(projectRoot, "app.js"), "utf8");
   vm.runInContext(applicationSource, harness.context, { filename: "app.js" });
   vm.runInContext(
-    "casino3DFailed = true; achievements3DFailed = true",
+    "casino3DFailed = true",
     harness.context,
   );
   return harness;
@@ -453,7 +566,7 @@ async function settleMicrotasks() {
   }
 }
 
-test("static page exposes the version 1.20 full-screen experience", async () => {
+test("static page exposes the version 1.24 full-screen experience", async () => {
   // Verify deployment markup and all required native controls.
   const html = await readFile(resolve(projectRoot, "index.html"), "utf8");
   assert.match(html, /href="styles\.css"/);
@@ -461,9 +574,28 @@ test("static page exposes the version 1.20 full-screen experience", async () => 
   assert.match(html, /id="casino-canvas"/);
   assert.match(html, /id="casino-token-balance"/);
   assert.match(html, /id="casino-jackpot-continue"/);
-  assert.match(html, /id="achievements-canvas"/);
+  assert.doesNotMatch(html, /id="achievements-canvas"/);
   assert.match(html, /id="toggle-casino-music"/);
-  assert.match(html, /versão 1\.20/);
+  assert.match(html, /versão 1\.24/);
+  assert.match(
+    html,
+    /id="display-name"[\s\S]*?contenteditable="plaintext-only"[\s\S]*?data-maxlength="32"/,
+  );
+  assert.match(html, /class="question-suffix">já está rica\?<\/span>/);
+  assert.match(html, /id="dramatic-no"[\s\S]*?>NÃO<\/button>/);
+  assert.match(html, /id="dramatic-no-status"[\s\S]*?aria-live="polite"/);
+  assert.equal((html.match(/class="dramatic-paper /g) ?? []).length, 3);
+  assert.match(html, /id="open-certificate"/);
+  assert.match(html, /aria-controls="certificate-dialog"/);
+  assert.match(html, /id="certificate-dialog"/);
+  assert.match(html, /id="certificate-preview"/);
+  assert.match(html, /id="download-certificate"/);
+  assert.match(html, /id="share-certificate"[\s\S]*?hidden/);
+  assert.match(html, /id="certificate-canvas"[\s\S]*?width="1600"/);
+  assert.match(html, /height="1131"/);
+  assert.equal((html.match(/class="certificate-signature-mark /g) ?? []).length, 2);
+  assert.match(html, />Tigrinho<\/span>/);
+  assert.match(html, />nanaBet<\/span>/);
   assert.match(html, /id="toggle-coffee-oracle"/);
   assert.match(html, /aria-expanded="false"/);
   assert.match(html, /aria-controls="coffee-oracle-panel"/);
@@ -516,7 +648,14 @@ test("static page exposes the version 1.20 full-screen experience", async () => 
   assert.match(html, /GANHAR FICHAS NA AULA/);
   assert.equal((html.match(/class="classroom-answer"/g) ?? []).length, 3);
   assert.equal((html.match(/data-prize-id=/g) ?? []).length, 5);
-  assert.equal((html.match(/class="release-entry"/g) ?? []).length, 30);
+  assert.equal((html.match(/class="achievement-card-image"/g) ?? []).length, 5);
+  assert.equal((html.match(/class="achievement-card-fallback"/g) ?? []).length, 5);
+  assert.equal((html.match(/class="release-entry"/g) ?? []).length, 34);
+  assert.match(html, /id="casino-jackpot-card-image"/);
+  assert.match(html, /id="cheat-dialog"/);
+  assert.match(html, /id="cheat-form"/);
+  assert.match(html, /id="cheat-code"/);
+  assert.doesNotMatch(html, /gojopelado/i);
   assert.ok(
     html.indexOf('<div class="casino-audio-controls"') <
       html.indexOf('<div class="casino-control-deck">'),
@@ -653,6 +792,351 @@ test("coffee oracle toggles accessibly and follows Porto Alegre midnight", async
   assert.equal(message.textContent, "");
 });
 
+test("dramatic NÃO advances through five fixed audits and resets", async () => {
+  // Keep the answer unchanged while escalating one replayable accessible status.
+  const harness = await loadHarness();
+  const button = harness.elements.get("#dramatic-no");
+  const verdict = harness.elements.get("#dramatic-verdict");
+  const status = harness.elements.get("#dramatic-no-status");
+  const expectedMessages = JSON.parse(
+    vm.runInContext("JSON.stringify(Array.from(DRAMATIC_NO_STEPS))", harness.context),
+  );
+
+  assert.equal(verdict.dataset.stage, "0");
+  assert.equal(status.textContent, "");
+  assert.equal(button.getAttribute("aria-disabled"), null);
+  assert.equal(
+    button.getAttribute("aria-label"),
+    "Verificar novamente se amanda já está rica",
+  );
+
+  for (let index = 0; index < expectedMessages.length; index += 1) {
+    button.dispatch("click");
+    assert.equal(verdict.dataset.stage, String(index + 1));
+    assert.equal(status.textContent, expectedMessages[index]);
+  }
+
+  assert.equal(status.textContent, "VERIFICAMOS NOVAMENTE: NÃO.");
+  assert.equal(button.getAttribute("aria-disabled"), "true");
+  button.dispatch("click");
+  assert.equal(verdict.dataset.stage, "5");
+  assert.equal(harness.timers.size >= 1, true);
+
+  harness.runTimer(3000);
+  assert.equal(verdict.dataset.stage, "0");
+  assert.equal(status.textContent, "");
+  assert.equal(button.getAttribute("aria-disabled"), null);
+
+  button.dispatch("click");
+  assert.equal(verdict.dataset.stage, "1");
+});
+
+test("delivered nanaBet cards replace the fulfilled artist briefing", async () => {
+  // Keep exactly the six final descriptive files and remove the fulfilled request.
+  const filenames = [
+    "card-esposa-nenepira.png",
+    "card-pe-prima-vaper.png",
+    "card-bolos.png",
+    "card-355-reais-juros.png",
+    "card-lanche-subway.png",
+    "card-verso-misterioso.png",
+  ];
+  const cardDirectory = resolve(
+    projectRoot,
+    "assets",
+    "images",
+    "casino",
+    "prize-cards",
+  );
+  assert.deepEqual((await readdir(cardDirectory)).sort(), filenames.sort());
+  assert.equal(
+    (await readdir(projectRoot)).includes("PEDIDO_ARTES_CARDS_NANABET.txt"),
+    false,
+  );
+
+  const applicationSource = await readFile(resolve(projectRoot, "app.js"), "utf8");
+  for (const filename of filenames) {
+    assert.match(applicationSource, new RegExp(filename.replace(".", "\\.")));
+  }
+});
+
+test("all eleven randomized names include fernando and propagate normally", async () => {
+  // Select the final equal-weight entry and verify the shared identity pipeline.
+  const expectedNames = [
+    "amanda",
+    "nana",
+    "niasguts",
+    "nia",
+    "vito corleone de saia",
+    "diabo loiro",
+    "demonio de porto alegre",
+    "barista de porto alegre",
+    "don corleone de saia",
+    "pobre lazarenta",
+    "fernando collor de calcinha",
+  ];
+  const harness = await loadHarness({ randomValues: [0.999999] });
+  assert.deepEqual(
+    JSON.parse(vm.runInContext("JSON.stringify(NAME_VARIATIONS)", harness.context)),
+    expectedNames,
+  );
+  assert.equal(
+    harness.elements.get("#display-name").textContent,
+    "fernando collor de calcinha",
+  );
+  assert.equal(
+    harness.context.document.title,
+    "fernando collor de calcinha já está rica?",
+  );
+  assert.equal(
+    harness.elements.get("#question").dataset.nameSize,
+    "long",
+  );
+});
+
+test("editable display name synchronizes the page and every certificate output", async () => {
+  // Keep all dynamic identity consumers on the same visit-local name.
+  const harness = await loadHarness({ shareSupported: true });
+  const editor = harness.elements.get("#display-name");
+  const question = harness.elements.get("#question");
+  const dramaticButton = harness.elements.get("#dramatic-no");
+  const certificateDialog = harness.elements.get("#certificate-dialog");
+  const certificateOpenButton = harness.elements.get("#open-certificate");
+  const certificateShareButton = harness.elements.get("#share-certificate");
+
+  assert.equal(editor.textContent, "amanda");
+  assert.equal(vm.runInContext("document.title", harness.context), "amanda já está rica?");
+  assert.equal(question.dataset.nameSize, "regular");
+
+  editor.dispatch("focus");
+  editor.textContent = "barista milionária impossível";
+  editor.dispatch("input");
+  assert.equal(
+    vm.runInContext("document.title", harness.context),
+    "barista milionária impossível já está rica?",
+  );
+  assert.equal(question.dataset.nameSize, "long");
+  assert.equal(
+    dramaticButton.getAttribute("aria-label"),
+    "Verificar novamente se barista milionária impossível já está rica",
+  );
+
+  vm.runInContext(
+    'certificateRecord = createCertificateRecord(new Date("2026-08-31T15:04:05Z"))',
+    harness.context,
+  );
+  certificateOpenButton.dispatch("click");
+  await settleMicrotasks();
+  const originalProtocol = harness.elements.get("#certificate-protocol").textContent;
+  assert.equal(
+    harness.elements.get("#certificate-name").textContent,
+    "barista milionária impossível",
+  );
+  assert.equal(harness.certificateCanvas.toBlobCalls, 1);
+
+  certificateDialog.close();
+  editor.dispatch("focus");
+  editor.textContent = "nana editada";
+  editor.dispatch("input");
+  assert.equal(harness.elements.get("#certificate-name").textContent, "nana editada");
+  assert.equal(
+    harness.elements.get("#certificate-protocol").textContent,
+    originalProtocol,
+  );
+  assert.equal(certificateShareButton.hidden, true);
+  assert.equal(
+    vm.runInContext("certificateBlobPromise === null", harness.context),
+    true,
+  );
+
+  certificateOpenButton.dispatch("click");
+  await settleMicrotasks();
+  assert.equal(harness.certificateCanvas.toBlobCalls, 2);
+  assert.equal(
+    harness.certificateCanvas.context.calls.some(
+      ([name, text]) => name === "fillText" && text === "nana editada",
+    ),
+    true,
+  );
+
+  certificateShareButton.dispatch("click");
+  await settleMicrotasks();
+  assert.equal(harness.sharedPayloads.at(-1).text, "nana editada ainda não está rica.");
+});
+
+test("editable display name bounds input and supports confirmation and cancellation", async () => {
+  // Preserve a valid identity through long, blank, confirmed, and canceled edits.
+  const harness = await loadHarness();
+  const editor = harness.elements.get("#display-name");
+  const question = harness.elements.get("#question");
+
+  editor.dispatch("focus");
+  editor.textContent = "abcdefghijklmnopqrstuvwxyz1234567890";
+  editor.dispatch("input");
+  const boundedName = editor.textContent;
+  assert.equal(Array.from(boundedName).length, 32);
+  assert.equal(question.dataset.nameSize, "long");
+  assert.equal(
+    vm.runInContext("document.title", harness.context),
+    boundedName + " já está rica?",
+  );
+
+  editor.textContent = "   ";
+  editor.dispatch("input");
+  assert.equal(
+    vm.runInContext("document.title", harness.context),
+    boundedName + " já está rica?",
+  );
+  editor.blur();
+  assert.equal(editor.textContent, boundedName);
+
+  editor.dispatch("focus");
+  editor.textContent = "nome temporário";
+  editor.dispatch("input");
+  const escapeEvent = editor.dispatch("keydown", { key: "Escape" });
+  assert.equal(escapeEvent.defaultPrevented, true);
+  assert.equal(editor.textContent, boundedName);
+  assert.equal(
+    vm.runInContext("document.title", harness.context),
+    boundedName + " já está rica?",
+  );
+
+  editor.dispatch("focus");
+  editor.textContent = "  nome   final  ";
+  editor.dispatch("input");
+  const enterEvent = editor.dispatch("keydown", { key: "Enter" });
+  assert.equal(enterEvent.defaultPrevented, true);
+  assert.equal(editor.textContent, "nome final");
+  assert.equal(
+    vm.runInContext("document.title", harness.context),
+    "nome final já está rica?",
+  );
+
+  editor.dispatch("focus");
+  const lineBreakEvent = editor.dispatch("beforeinput", {
+    inputType: "insertParagraph",
+  });
+  assert.equal(lineBreakEvent.defaultPrevented, true);
+  assert.equal(editor.focused, false);
+});
+
+test("official certificate keeps one record and exports one reusable PNG", async () => {
+  // Exercise the responsive record, download, and supported native share path.
+  const harness = await loadHarness({ shareSupported: true });
+  vm.runInContext(
+    'certificateRecord = createCertificateRecord(new Date("2026-08-31T15:04:05Z"))',
+    harness.context,
+  );
+
+  const openButton = harness.elements.get("#open-certificate");
+  const dialog = harness.elements.get("#certificate-dialog");
+  const shareButton = harness.elements.get("#share-certificate");
+  const downloadButton = harness.elements.get("#download-certificate");
+  const status = harness.elements.get("#certificate-status");
+
+  openButton.dispatch("click");
+  await settleMicrotasks();
+  assert.equal(dialog.open, true);
+  assert.equal(harness.elements.get("#certificate-name").textContent, "amanda");
+  assert.equal(
+    harness.elements.get("#certificate-date").textContent,
+    "31 de agosto de 2026 às 12:04:05 · Porto Alegre",
+  );
+  assert.equal(
+    harness.elements.get("#certificate-date").dateTime,
+    "2026-08-31T12:04:05",
+  );
+  assert.equal(
+    harness.elements.get("#certificate-protocol").textContent,
+    "NR-20260831-120405",
+  );
+  assert.equal(shareButton.hidden, false);
+  assert.equal(harness.certificateCanvas.width, 1600);
+  assert.equal(harness.certificateCanvas.height, 1131);
+  assert.equal(harness.certificateCanvas.toBlobCalls, 1);
+  assert.equal(
+    harness.certificateCanvas.context.calls.some(
+      ([name, text]) => name === "fillText" && text === "amanda",
+    ),
+    true,
+  );
+  for (const expectedText of [
+    "emitido em 31 de agosto de 2026 às 12:04:05 · Porto Alegre",
+    "Tigrinho",
+    "nanaBet",
+  ]) {
+    assert.equal(
+      harness.certificateCanvas.context.calls.some(
+        ([name, text]) => name === "fillText" && text === expectedText,
+      ),
+      true,
+      expectedText,
+    );
+  }
+
+  downloadButton.dispatch("click");
+  await settleMicrotasks();
+  const downloadLink = harness.documentBody.appendedChildren.at(-1);
+  assert.equal(downloadLink.download, "certificado-oficial-de-nao-riqueza.png");
+  assert.equal(downloadLink.clicked, true);
+  assert.equal(downloadLink.removed, true);
+  assert.deepEqual(harness.revokedObjectUrls, ["blob:certificate-1"]);
+  assert.equal(status.textContent, "certificado baixado.");
+  assert.equal(harness.certificateCanvas.toBlobCalls, 1);
+
+  shareButton.dispatch("click");
+  await settleMicrotasks();
+  assert.equal(harness.sharedPayloads.length, 1);
+  assert.equal(
+    harness.sharedPayloads[0].files[0].name,
+    "certificado-oficial-de-nao-riqueza.png",
+  );
+  assert.equal(harness.sharedPayloads[0].text, "amanda ainda não está rica.");
+  assert.equal(status.textContent, "certificado compartilhado.");
+
+  dialog.close();
+  assert.equal(status.textContent, "");
+  openButton.dispatch("click");
+  await settleMicrotasks();
+  assert.equal(
+    harness.elements.get("#certificate-protocol").textContent,
+    "NR-20260831-120405",
+  );
+  assert.equal(harness.certificateCanvas.toBlobCalls, 1);
+});
+
+test("certificate hides unsupported sharing and keeps PNG download", async () => {
+  // Leave the universal download route usable when no native share API exists.
+  const harness = await loadHarness({ shareApiAvailable: false });
+  harness.elements.get("#open-certificate").dispatch("click");
+  await settleMicrotasks();
+
+  assert.equal(harness.elements.get("#share-certificate").hidden, true);
+  harness.elements.get("#download-certificate").dispatch("click");
+  await settleMicrotasks();
+  assert.equal(
+    harness.elements.get("#certificate-status").textContent,
+    "certificado baixado.",
+  );
+});
+
+test("canceling native certificate sharing stays silent", async () => {
+  // Treat the operating system share-sheet dismissal as a normal user choice.
+  const canceledShare = new Error("Share canceled");
+  canceledShare.name = "AbortError";
+  const harness = await loadHarness({
+    shareSupported: true,
+    shareError: canceledShare,
+  });
+  harness.elements.get("#open-certificate").dispatch("click");
+  await settleMicrotasks();
+  harness.elements.get("#share-certificate").dispatch("click");
+  await settleMicrotasks();
+
+  assert.equal(harness.elements.get("#certificate-status").textContent, "");
+  assert.equal(harness.sharedPayloads.length, 0);
+});
+
 test("custom domain and every local media asset are release-ready", async () => {
   // Guard GitHub Pages routing and prevent silent GIF or music omissions.
   const cname = await readFile(resolve(projectRoot, "CNAME"), "utf8");
@@ -688,6 +1172,12 @@ test("custom domain and every local media asset are release-ready", async () => 
     "assets/images/casino/symbol-cherries.png",
     "assets/images/casino/symbol-seven.png",
     "assets/images/casino/symbol-gift.png",
+    "assets/images/casino/prize-cards/card-esposa-nenepira.png",
+    "assets/images/casino/prize-cards/card-pe-prima-vaper.png",
+    "assets/images/casino/prize-cards/card-bolos.png",
+    "assets/images/casino/prize-cards/card-355-reais-juros.png",
+    "assets/images/casino/prize-cards/card-lanche-subway.png",
+    "assets/images/casino/prize-cards/card-verso-misterioso.png",
   ];
   for (const mediaPath of mediaPaths) {
     const bytes = await readFile(resolve(projectRoot, mediaPath));
@@ -766,6 +1256,40 @@ test("casino PNGs keep their delivered dimensions and transparency", async () =>
   }
 });
 
+test("prize-card PNGs remain unchanged at their delivered size", async () => {
+  // Protect all five fronts and the shared mystery back from accidental rewrites.
+  const filenames = [
+    "card-esposa-nenepira.png",
+    "card-pe-prima-vaper.png",
+    "card-bolos.png",
+    "card-355-reais-juros.png",
+    "card-lanche-subway.png",
+    "card-verso-misterioso.png",
+  ];
+
+  for (const filename of filenames) {
+    const bytes = await readFile(
+      resolve(
+        projectRoot,
+        "assets",
+        "images",
+        "casino",
+        "prize-cards",
+        filename,
+      ),
+    );
+    assert.deepEqual(
+      [...bytes.subarray(0, 8)],
+      [137, 80, 78, 71, 13, 10, 26, 10],
+      filename,
+    );
+    assert.equal(bytes.readUInt32BE(16), 1086, filename);
+    assert.equal(bytes.readUInt32BE(20), 1448, filename);
+    assert.equal(bytes[24], 8, filename);
+    assert.equal(bytes[25], 6, filename);
+  }
+});
+
 test("vendored Three.js module and MIT notice remain pinned", async () => {
   // Detect accidental dependency drift or a missing redistribution notice.
   const moduleBytes = await readFile(
@@ -791,7 +1315,7 @@ test("vendored Three.js module and MIT notice remain pinned", async () => {
     pathToFileURL(resolve(projectRoot, "casino-3d.mjs")).href
   );
   assert.equal(typeof casinoModule.createCasino3D, "function");
-  assert.equal(typeof casinoModule.createAchievements3D, "function");
+  assert.equal(casinoModule.createAchievements3D, undefined);
 });
 
 test("procedural tiger face has two eyes and correctly placed chibi details", async () => {
@@ -835,77 +1359,20 @@ test("procedural tiger face has two eyes and correctly placed chibi details", as
   );
 });
 
-test("procedural foot prize has five distinct toes", async () => {
-  // Keep the renamed prize recognizable in both jackpot and gallery scenes.
+test("3D module exposes no procedural prize or achievement renderer", async () => {
+  // Keep WebGL focused on the cabinet, lever, reels, tiger, and victory effects.
   const casinoModule = await import(
     pathToFileURL(resolve(projectRoot, "casino-3d.mjs")).href
   );
-  const foot = casinoModule.createFootPrize({
-    hairBlonde: "#f5c06b",
-    hairBlondeSoft: "#ffe7b5",
-    hairPink: "#ef6f9b",
-  });
-  const names = [];
-  foot.traverse((object) => names.push(object.name));
-
-  assert.deepEqual(
-    names.filter((name) => /^foot-toe-\d$/.test(name)).sort(),
-    ["foot-toe-1", "foot-toe-2", "foot-toe-3", "foot-toe-4", "foot-toe-5"],
-  );
-});
-
-test("jackpot prize anchor stays centered and viewport-bound", async () => {
-  // Project the same camera-local anchor through every required viewport.
-  const casinoModule = await import(
-    pathToFileURL(resolve(projectRoot, "casino-3d.mjs")).href
-  );
-  const THREE = await import(
-    pathToFileURL(
-      resolve(projectRoot, "assets/vendor/three.module.min.mjs"),
-    ).href
-  );
-  const viewports = [
-    [320, 568],
-    [568, 320],
-    [390, 844],
-    [768, 1024],
-    [1366, 768],
-    [1920, 1080],
-  ];
-
-  for (const [width, height] of viewports) {
-    const aspect = width / height;
-    const fov = aspect < 0.75 ? 48 : aspect < 1.15 ? 40 : 33;
-    const distanceScale = aspect < 0.75 ? 1.34 : aspect < 1.15 ? 1.16 : 1;
-    const camera = new THREE.PerspectiveCamera(fov, aspect, 0.1, 100);
-    camera.position.set(
-      7.6 * distanceScale,
-      5.15 * distanceScale,
-      16.5 * distanceScale,
-    );
-    camera.lookAt(-0.15, -0.1, 0.25);
-    const anchor = new THREE.Group();
-    camera.add(anchor);
-    const layout = casinoModule.calculatePrizePresentationLayout({
-      viewportWidth: width,
-      viewportHeight: height,
-      verticalFovDegrees: fov,
-      modelWidth: 2.2,
-      modelHeight: 1.6,
-    });
-    anchor.position.set(...layout.position);
-    camera.updateMatrixWorld(true);
-    camera.updateProjectionMatrix();
-    const projected = anchor
-      .getWorldPosition(new THREE.Vector3())
-      .project(camera);
-
-    assert.ok(Math.abs(projected.x) < 1e-9, width + "x" + height);
-    assert.ok(Math.abs(projected.y) < 1e-9, width + "x" + height);
-    assert.ok(layout.scale * 2.2 <= layout.visibleWidth * 0.46 + 1e-9);
-    assert.ok(layout.scale * 1.6 <= layout.visibleHeight * 0.34 + 1e-9);
+  for (const removedExport of [
+    "createAchievements3D",
+    "createFootPrize",
+    "calculatePrizePresentationLayout",
+  ]) {
+    assert.equal(casinoModule[removedExport], undefined, removedExport);
   }
 });
+
 
 test("all six reel faces stop exactly on the selected symbol", async () => {
   // Cover every current and target face while preserving backward rotation.
@@ -955,7 +1422,7 @@ test("one random roll selects the two exact outcome bands", async () => {
   }
 });
 
-test("the first eligible spin guarantees the foot prize and persists the bait", async () => {
+test("the first eligible spin guarantees the foot card and persists the bait", async () => {
   // The promotional first result bypasses RNG but still spends one chip.
   const harness = await loadHarness({
     savedTokens: 5,
@@ -1224,6 +1691,10 @@ test("casino artwork loads only on first open and upgrades native fallbacks", as
     ],
   );
   assert.equal(
+    harness.createdImages.some((image) => image.src.includes("prize-cards/")),
+    false,
+  );
+  assert.equal(
     harness.elements.get("#casino-logo").src,
     "assets/images/casino/nanabet-logo.png",
   );
@@ -1263,6 +1734,38 @@ test("casino artwork loads only on first open and upgrades native fallbacks", as
   assert.equal(harness.createdImages.length, 6);
 });
 
+test("a winning spin preloads and displays only its matching card", async () => {
+  // Do not fetch the collection merely because the casino is visible.
+  const harness = await loadHarness({ savedTokens: 5 });
+  vm.runInContext("openCasino()", harness.context);
+  assert.equal(
+    harness.createdImages.filter((image) => image.src.includes("prize-cards/"))
+      .length,
+    0,
+  );
+
+  harness.setRandomValues([0.05, 0]);
+  await vm.runInContext("startCasinoSpin()", harness.context);
+  await settleMicrotasks();
+  const requestedCards = harness.createdImages.filter((image) =>
+    image.src.includes("prize-cards/"),
+  );
+  assert.deepEqual(
+    requestedCards.map((image) => image.src),
+    ["assets/images/casino/prize-cards/card-esposa-nenepira.png"],
+  );
+  assert.equal(
+    harness.elements.get("#casino-jackpot-card-image").src,
+    "assets/images/casino/prize-cards/card-esposa-nenepira.png",
+  );
+  assert.equal(
+    harness.elements.get("#casino-jackpot-card").classList.contains(
+      "is-card-ready",
+    ),
+    true,
+  );
+});
+
 test("one missing reel illustration keeps only its character fallback", async () => {
   // A partial asset failure must not disable the other illustrated faces.
   const harness = await loadHarness({ imagesAutoLoad: false });
@@ -1286,9 +1789,11 @@ test("one missing reel illustration keeps only its character fallback", async ()
   assert.equal(harness.fallbackReels[1].textContent, "🐯");
 });
 
-test("achievement room art is orientation-aware and lazily requested", async () => {
-  // Preserve the CSS gradient until the selected local background succeeds.
+test("achievement room and current cards are orientation-aware and lazy", async () => {
+  // Preserve main-page requests, then fetch one shared back plus unlocked fronts.
   const harness = await loadHarness();
+  assert.equal(harness.createdImages.length, 0);
+  assert.equal(vm.runInContext("shared3DModulePromise", harness.context), null);
   assert.equal(
     harness.elements.get("#achievements-background-image").src,
     undefined,
@@ -1299,6 +1804,20 @@ test("achievement room art is orientation-aware and lazily requested", async () 
   );
 
   vm.runInContext("openAchievements()", harness.context);
+  await settleMicrotasks();
+  assert.equal(harness.createdImages.length, 1);
+  assert.equal(
+    harness.createdImages[0].src,
+    "assets/images/casino/prize-cards/card-verso-misterioso.png",
+  );
+  for (const slot of harness.achievementSlots) {
+    assert.equal(
+      slot.querySelector(".achievement-card-image").src,
+      "assets/images/casino/prize-cards/card-verso-misterioso.png",
+    );
+    assert.equal(slot.classList.contains("is-card-ready"), true);
+  }
+  assert.equal(vm.runInContext("shared3DModulePromise", harness.context), null);
   assert.equal(
     harness.elements.get("#achievements-background-image").src,
     "assets/images/casino/achievements-room-landscape.png",
@@ -1320,6 +1839,21 @@ test("achievement room art is orientation-aware and lazily requested", async () 
       "is-background-ready",
     ),
     false,
+  );
+
+  vm.runInContext(
+    'unlockedAchievementIds.add("esposa-nenepira"); renderAchievements()',
+    harness.context,
+  );
+  await settleMicrotasks();
+  assert.equal(harness.createdImages.length, 2);
+  assert.equal(
+    harness.achievementSlots[0].querySelector(".achievement-card-image").src,
+    "assets/images/casino/prize-cards/card-esposa-nenepira.png",
+  );
+  assert.equal(
+    harness.achievementSlots[1].querySelector(".achievement-card-image").src,
+    "assets/images/casino/prize-cards/card-verso-misterioso.png",
   );
 });
 
@@ -1916,7 +2450,7 @@ test("rejected music playback leaves a truthful retry control", async () => {
   );
 });
 
-test("restored five-prize progress completes the trophy gallery", async () => {
+test("restored five-prize progress completes the card gallery", async () => {
   // Filter unknown IDs while retaining the permanent five-prize collection.
   const harness = await loadHarness({
     savedAchievements: [...prizeIds, "unknown-prize"],
@@ -1933,18 +2467,112 @@ test("restored five-prize progress completes the trophy gallery", async () => {
   assert.equal(harness.elements.get("#achievements-count").textContent, "5/5");
 });
 
+test("F3 cheat opens only unmodified on the unobstructed main page", async () => {
+  // Keep the terminal hidden from visible UI and reject modified or obstructed use.
+  const harness = await loadHarness();
+  const createShortcut = (overrides = {}) => ({
+    key: "F3",
+    ctrlKey: false,
+    altKey: false,
+    shiftKey: false,
+    metaKey: false,
+    defaultPrevented: false,
+    preventDefault() {
+      this.defaultPrevented = true;
+    },
+    ...overrides,
+  });
+
+  vm.runInContext("handleAchievementCheatShortcut", harness.context)(
+    createShortcut({ shiftKey: true }),
+  );
+  assert.equal(harness.elements.get("#cheat-dialog").open, false);
+
+  harness.elements.get("#certificate-dialog").open = true;
+  vm.runInContext("handleAchievementCheatShortcut", harness.context)(
+    createShortcut(),
+  );
+  assert.equal(harness.elements.get("#cheat-dialog").open, false);
+  harness.elements.get("#certificate-dialog").open = false;
+
+  const acceptedShortcut = createShortcut();
+  vm.runInContext("handleAchievementCheatShortcut", harness.context)(
+    acceptedShortcut,
+  );
+  assert.equal(acceptedShortcut.defaultPrevented, true);
+  assert.equal(harness.elements.get("#cheat-dialog").open, true);
+  assert.equal(harness.elements.get("#cheat-code").focused, true);
+
+  harness.elements.get("#cheat-code").value = "errado";
+  harness.elements.get("#cheat-form").dispatch("submit");
+  assert.equal(
+    harness.elements.get("#cheat-status").textContent,
+    "código inválido.",
+  );
+  harness.elements.get("#cheat-dialog").close();
+  assert.equal(harness.elements.get("#cheat-code").value, "");
+  assert.equal(harness.elements.get("#cheat-status").textContent, "");
+});
+
+test("valid cheat unlocks the five stable cards without changing chips", async () => {
+  // Use normal storage and gallery rendering without triggering a casino jackpot.
+  for (const storageAvailable of [true, false]) {
+    const harness = await loadHarness({
+      savedTokens: 7,
+      storageAvailable,
+    });
+    const tokensBefore = vm.runInContext("casinoTokenBalance", harness.context);
+    vm.runInContext("handleAchievementCheatShortcut", harness.context)({
+      key: "F3",
+      ctrlKey: false,
+      altKey: false,
+      shiftKey: false,
+      metaKey: false,
+      preventDefault() {},
+    });
+    harness.elements.get("#cheat-code").value = "  GoJoPeLaDo  ";
+    harness.elements.get("#cheat-form").dispatch("submit");
+    await settleMicrotasks();
+
+    assert.equal(harness.elements.get("#cheat-dialog").open, false);
+    assert.equal(harness.elements.get("#achievements-dialog").open, true);
+    assert.equal(harness.elements.get("#achievements-count").textContent, "5/5");
+    assert.equal(vm.runInContext("unlockedAchievementIds.size", harness.context), 5);
+    assert.equal(
+      vm.runInContext("casinoTokenBalance", harness.context),
+      tokensBefore,
+    );
+    assert.equal(vm.runInContext("casinoJackpotOpen", harness.context), false);
+    assert.equal(
+      harness.elements.get("#achievement-storage-note").hidden,
+      storageAvailable,
+    );
+    assert.equal(
+      harness.createdImages.filter((image) => image.src.includes("prize-cards/"))
+        .length,
+      5,
+    );
+    if (storageAvailable) {
+      assert.equal(
+        harness.storage.get("niasguts-achievements-v1"),
+        JSON.stringify(prizeIds),
+      );
+    }
+  }
+});
+
 test("secret patch notes paginate three releases and support P toggling", async () => {
   // Confirm initial visibility, bounded navigation, and the hidden keyboard entry.
   const harness = await loadHarness();
   assert.deepEqual(
     harness.releaseEntries.map((entry) => entry.hidden),
-    [false, false, false, ...Array(27).fill(true)],
+    [false, false, false, ...Array(31).fill(true)],
   );
-  assert.equal(harness.elements.get("#release-page-status").textContent, "1/10");
+  assert.equal(harness.elements.get("#release-page-status").textContent, "1/12");
   vm.runInContext("changeReleasePage(1)", harness.context);
   assert.deepEqual(
     harness.releaseEntries.map((entry) => entry.hidden),
-    [true, true, true, false, false, false, ...Array(24).fill(true)],
+    [true, true, true, false, false, false, ...Array(28).fill(true)],
   );
 
   const shortcut = {
@@ -1959,6 +2587,14 @@ test("secret patch notes paginate three releases and support P toggling", async 
   harness.context.handlePatchNotesShortcut(shortcut);
   assert.equal(harness.elements.get("#patch-notes-dialog").open, false);
   harness.elements.get("#classroom-dialog").open = false;
+  harness.elements.get("#certificate-dialog").open = true;
+  harness.context.handlePatchNotesShortcut(shortcut);
+  assert.equal(harness.elements.get("#patch-notes-dialog").open, false);
+  harness.elements.get("#certificate-dialog").open = false;
+  shortcut.target = harness.elements.get("#display-name");
+  harness.context.handlePatchNotesShortcut(shortcut);
+  assert.equal(harness.elements.get("#patch-notes-dialog").open, false);
+  shortcut.target = new FakeElement("main");
   harness.context.handlePatchNotesShortcut(shortcut);
   assert.equal(harness.elements.get("#patch-notes-dialog").open, true);
   harness.context.handlePatchNotesShortcut(shortcut);
@@ -1994,6 +2630,21 @@ test("CSS keeps colors centralized and every screen viewport-bound", async () =>
     css,
     /\.achievements-background img\s*\{[\s\S]*?object-fit:\s*cover/,
   );
+  assert.match(
+    css,
+    /\.achievement-card-shell\s*\{[\s\S]*?aspect-ratio:\s*3 \/ 4/,
+  );
+  assert.match(
+    css,
+    /\.achievement-card-image\s*\{[\s\S]*?object-fit:\s*contain/,
+  );
+  assert.match(css, /@keyframes achievement-card-reveal/);
+  assert.match(css, /@keyframes achievement-card-repeat/);
+  assert.match(css, /@keyframes jackpot-card-reveal/);
+  assert.match(
+    css,
+    /\.cheat-screen\s*\{[\s\S]*?height:\s*100%;[\s\S]*?overflow:\s*hidden/,
+  );
   assert.match(css, /\.classroom-finale\s*\{[\s\S]*?z-index:\s*3/);
   assert.match(
     css,
@@ -2002,6 +2653,31 @@ test("CSS keeps colors centralized and every screen viewport-bound", async () =>
   assert.match(
     css,
     /\.coffee-oracle-message\s*\{[\s\S]*?font-size:\s*clamp\(0\.68rem, 1\.85vmin, 0\.94rem\);[\s\S]*?text-wrap:\s*balance/,
+  );
+  assert.match(
+    css,
+    /\.answer\s*\{[\s\S]*?appearance:\s*none;[\s\S]*?background:\s*transparent;[\s\S]*?cursor:\s*pointer/,
+  );
+  assert.match(
+    css,
+    /\.editable-name\s*\{[\s\S]*?cursor:\s*text;[\s\S]*?overflow-wrap:\s*anywhere;[\s\S]*?text-decoration-style:\s*dotted/,
+  );
+  assert.match(
+    css,
+    /\.question-heading\[data-name-size="long"\]\s*\{[\s\S]*?font-size:\s*clamp/,
+  );
+  assert.match(css, /\.verdict\[data-stage="5"\]/);
+  assert.match(
+    css,
+    /\.certificate-screen\s*\{[\s\S]*?height:\s*100%;[\s\S]*?grid-template-rows:\s*auto minmax\(0, 1fr\) auto auto;[\s\S]*?overflow:\s*hidden/,
+  );
+  assert.match(
+    css,
+    /\.certificate-card\s*\{[\s\S]*?aspect-ratio:\s*1600 \/ 1131;[\s\S]*?overflow:\s*hidden/,
+  );
+  assert.match(
+    css,
+    /@media \(prefers-reduced-motion:\s*reduce\)[\s\S]*?\.dramatic-paper,[\s\S]*?\.verdict::after[\s\S]*?display:\s*none/,
   );
   assert.match(
     css,
@@ -2064,6 +2740,7 @@ test("CSS keeps colors centralized and every screen viewport-bound", async () =>
   assert.doesNotMatch(css, /\.lever-label/);
   assert.doesNotMatch(css, /\.casino-tray/);
   assert.doesNotMatch(css, /\.achievements-kicker/);
+  assert.doesNotMatch(css, /\.achievements-canvas|\.achievement-model-space/);
   assert.doesNotMatch(css, /casino-chip-mark|fallback-reel\.is-chip/);
   assert.match(
     css,
@@ -2071,22 +2748,29 @@ test("CSS keeps colors centralized and every screen viewport-bound", async () =>
   );
 });
 
-test("3D source uses centered jackpots, a dancing tiger, and precise lever raycasting", async () => {
-  // Prevent regression to flat prizes or a rectangular pointer control.
+test("3D source keeps card-backed jackpots, a dancing tiger, and precise lever raycasting", async () => {
+  // Keep WebGL effects while preventing procedural prize or gallery regressions.
   const source = await readFile(resolve(projectRoot, "casino-3d.mjs"), "utf8");
-  for (const factory of [
+  assert.match(source, /function createTigerModel\(/);
+  for (const removedFactory of [
     "createRingPrize",
     "createFootPrize",
     "createCakePrize",
     "createCashCasePrize",
     "createSandwichPrize",
-    "createTigerModel",
+    "createMysteryPrize",
+    "createAchievements3D",
   ]) {
-    assert.match(source, new RegExp("function " + factory + "\\("));
+    assert.doesNotMatch(
+      source,
+      new RegExp("function " + removedFactory + "\\("),
+    );
   }
   assert.match(source, /camera\.add\(stage\)/);
   assert.match(source, /name = "jackpot-presentation-stage"/);
-  assert.doesNotMatch(source, /prizeRoot\.position\.set/);
+  assert.match(source, /function showJackpot\(isRepeat, skipMotion\)/);
+  assert.match(source, /function hideJackpot\(\)/);
+  assert.doesNotMatch(source, /prizeModels|modelId|createTextTexture/);
   assert.match(source, /new THREE\.Raycaster\(\)/);
   assert.doesNotMatch(source, /character === "FICHA"/);
   assert.match(source, /context\.fillText\(character, 192, 205\)/);
@@ -2102,7 +2786,16 @@ test("3D source uses centered jackpots, a dancing tiger, and precise lever rayca
 test("casino source has six faces and no refunded-chip outcome", async () => {
   // Guard the simplified economy while retaining the classroom reward path.
   const applicationSource = await readFile(resolve(projectRoot, "app.js"), "utf8");
-  assert.match(applicationSource, /name: "pé da prima do vaper", modelId: "foot"/);
+  assert.match(
+    applicationSource,
+    /name: "pé da prima do vaper",[\s\S]*?cardSource: PRIZE_CARD_ROOT \+ "card-pe-prima-vaper\.png"/,
+  );
+  assert.match(
+    applicationSource,
+    /id: "350-reais",[\s\S]*?name: "355 reais \+ juros",[\s\S]*?cardSource: PRIZE_CARD_ROOT \+ "card-355-reais-juros\.png"/,
+  );
+  assert.match(applicationSource, /const ACHIEVEMENT_CHEAT_CODE = "gojopelado"/);
+  assert.doesNotMatch(applicationSource, /modelId:/);
   assert.match(applicationSource, /niasguts-casino-bait-v1/);
   assert.match(applicationSource, /const CASINO_PRIZE_CHANCE = 0\.125/);
   assert.match(applicationSource, /CLASSROOM_REWARD_TOKENS = 5/);
